@@ -1,0 +1,19 @@
+{
+  "name": "Hoshizora Vocal",
+  "short_name": "Hoshizora",
+  "description": "収録音声を使わない日本語歌声シンセサイザー。完全無料・広告なし・オフライン動作。",
+  "id": "/vocal/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#070a14",
+  "theme_color": "#070a14",
+  "categories": ["music", "entertainment", "productivity"],
+  "lang": "ja",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

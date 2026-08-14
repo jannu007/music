@@ -1,0 +1,15 @@
+{
+  "appId": "com.hibikidrummachine.app",
+  "productName": "Hibiki Drum Machine",
+  "extraMetadata": {
+    "main": "electron/drums-main.cjs"
+  },
+  "files": [
+    "dist/drums/**/*",
+    "dist/assets/**/*",
+    "electron/drums-main.cjs"
+  ],
+  "win": {
+    "target": "portable"
+  }
+}

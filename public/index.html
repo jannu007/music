@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>無料の音楽制作アプリ集 — Micro Sakura</title>
+<meta name="description" content="サンプル音源を使わず、その場で音を計算する完全無料の音楽制作アプリ集。シンセサイザー・グランドピアノ・ドラムマシン・ギター・ベースをブラウザだけで。" />
+<meta name="theme-color" content="#0d0a11" />
+<meta name="color-scheme" content="dark" />
+<link rel="icon" href="./synthesizer/icon-192.png" />
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 48px 20px 64px;
+    background: #0d0a11;
+    background-image:
+      radial-gradient(1200px 600px at 15% -10%, rgba(255, 138, 179, 0.14), transparent 60%),
+      radial-gradient(1000px 500px at 100% 0%, rgba(138, 215, 255, 0.10), transparent 55%);
+    color: #ece7f1;
+    font-family: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    line-height: 1.7;
+  }
+  main { max-width: 880px; margin: 0 auto; }
+  h1 {
+    font-size: clamp(26px, 5vw, 42px);
+    margin: 0 0 10px;
+    letter-spacing: 0.02em;
+    background: linear-gradient(120deg, #ff8ab3, #8ad7ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .lead { color: #9d93ab; margin: 0 0 36px; font-size: 15px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+  }
+  a.card {
+    display: block;
+    padding: 20px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #17121e, #120e17);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s, transform 0.1s;
+  }
+  a.card:hover, a.card:focus-visible {
+    border-color: #ff8ab3;
+    transform: translateY(-2px);
+    outline: none;
+  }
+  .emoji { font-size: 30px; line-height: 1; }
+  .name { font-weight: 700; margin: 10px 0 2px; font-size: 17px; }
+  .sub { color: #9d93ab; font-size: 13px; margin: 0; }
+  footer { margin-top: 40px; color: #6f6580; font-size: 12.5px; }
+  footer a { color: #9d93ab; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Micro Sakura</h1>
+  <p class="lead">
+    サンプル音源を一切使わず、音をその場で計算して鳴らす<strong>完全無料</strong>の音楽制作アプリ集です。<br />
+    インストール不要・広告なし・課金なし。ホーム画面に追加すればオフラインでも動きます。
+  </p>
+
+  <div class="grid">
+    <a class="card" href="./synthesizer/">
+      <div class="emoji">🎛</div>
+      <p class="name">Akatsuki Synth</p>
+      <p class="sub">バーチャルアナログ・シンセサイザー / DTM ワークステーション</p>
+    </a>
+    <a class="card" href="./piano/">
+      <div class="emoji">🎹</div>
+      <p class="name">Aozora Grand Piano</p>
+      <p class="sub">物理モデリングのグランドピアノ（88鍵・3本ペダル）</p>
+    </a>
+    <a class="card" href="./drums/">
+      <div class="emoji">🥁</div>
+      <p class="name">Hibiki Drum Machine</p>
+      <p class="sub">14種類の打楽器を合成するドラムマシン</p>
+    </a>
+    <a class="card" href="./guitar/">
+      <div class="emoji">🎸</div>
+      <p class="name">Takibi Guitar</p>
+      <p class="sub">物理モデリングのギター（指板演奏・自動伴奏・アンプ）</p>
+    </a>
+    <a class="card" href="./bass/">
+      <div class="emoji">🎻</div>
+      <p class="name">Kurogane Bass</p>
+      <p class="sub">デジタル導波管方式のエレキベース（スラップ・フレットレス対応）</p>
+    </a>
+    <a class="card" href="./vocal/">
+      <div class="emoji">🎤</div>
+      <p class="name">Hoshizora Vocal</p>
+      <p class="sub">収録音声を使わない日本語歌声シンセ（かな歌詞・伴奏つき）</p>
+    </a>
+  </div>
+
+  <footer>
+    作った曲の権利は制作者であるあなたのものです。商用利用も自由です。 ·
+    <a href="./privacy.html">プライバシーポリシー</a>
+  </footer>
+</main>
+</body>
+</html>

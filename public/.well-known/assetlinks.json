@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.microsakurastudio.app",
+        "sha256_cert_fingerprints": ["2A:C1:30:2A:77:76:FB:23:BD:1F:8C:7E:DE:C1:36:03:6C:D8:52:1D:B3:7D:9C:E7:8F:01:A4:6D:B6:94:6D:B9"]
+      }
+    }]

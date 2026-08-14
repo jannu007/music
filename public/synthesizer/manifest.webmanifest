@@ -1,0 +1,38 @@
+{
+  "name": "Akatsuki Synth",
+  "short_name": "Akatsuki",
+  "description": "完全無料のバーチャルアナログ・シンセサイザー / DTM ワークステーション。オフラインでも動作します。",
+  "id": "/synthesizer/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d0a11",
+  "theme_color": "#0d0a11",
+  "categories": [
+    "music",
+    "productivity",
+    "entertainment"
+  ],
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

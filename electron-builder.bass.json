@@ -1,0 +1,15 @@
+{
+  "appId": "com.kuroganebass.app",
+  "productName": "Kurogane Bass",
+  "extraMetadata": {
+    "main": "electron/bass-main.cjs"
+  },
+  "files": [
+    "dist/bass/**/*",
+    "dist/assets/**/*",
+    "electron/bass-main.cjs"
+  ],
+  "win": {
+    "target": "portable"
+  }
+}

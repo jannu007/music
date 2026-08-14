@@ -1,0 +1,19 @@
+{
+  "name": "Takibi Guitar",
+  "short_name": "Takibi Guitar",
+  "description": "サンプル音源を使わない物理モデリングのギター。コード伴奏・録音まで完全無料・広告なし・オフライン動作。",
+  "id": "/guitar/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#100b08",
+  "theme_color": "#100b08",
+  "categories": ["music", "entertainment", "education"],
+  "lang": "ja",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

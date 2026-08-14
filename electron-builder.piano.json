@@ -1,0 +1,15 @@
+{
+  "appId": "com.aozoragrandpiano.app",
+  "productName": "Aozora Grand Piano",
+  "extraMetadata": {
+    "main": "electron/piano-main.cjs"
+  },
+  "files": [
+    "dist/piano/**/*",
+    "dist/assets/**/*",
+    "electron/piano-main.cjs"
+  ],
+  "win": {
+    "target": "portable"
+  }
+}

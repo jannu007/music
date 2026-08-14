@@ -1,0 +1,19 @@
+{
+  "name": "Aozora Grand Piano",
+  "short_name": "Aozora Piano",
+  "description": "サンプル音源を使わない物理モデリングのグランドピアノ。完全無料・広告なし・オフライン動作。",
+  "id": "/piano/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0908",
+  "theme_color": "#0a0908",
+  "categories": ["music", "entertainment", "education"],
+  "lang": "ja",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

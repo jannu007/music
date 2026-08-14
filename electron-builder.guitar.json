@@ -1,0 +1,15 @@
+{
+  "appId": "com.takibiguitar.app",
+  "productName": "Takibi Guitar",
+  "extraMetadata": {
+    "main": "electron/guitar-main.cjs"
+  },
+  "files": [
+    "dist/guitar/**/*",
+    "dist/assets/**/*",
+    "electron/guitar-main.cjs"
+  ],
+  "win": {
+    "target": "portable"
+  }
+}

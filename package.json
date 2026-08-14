@@ -1,0 +1,58 @@
+{
+  "name": "dtm-synth",
+  "version": "2.0.0",
+  "private": true,
+  "description": "完全無料のDTM/音楽制作アプリ集 — シンセ・グランドピアノ・ドラムマシン・ギター（Web / Windows対応）",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite --open /synthesizer/",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173",
+    "electron:dev": "vite build && electron electron/main.cjs",
+    "electron:build": "vite build && electron-builder --win portable",
+    "piano:dev": "vite --open /piano/",
+    "piano:icons": "node scripts/gen-piano-icons.mjs",
+    "piano:electron": "vite build && electron electron/piano-main.cjs",
+    "piano:build:win": "vite build && electron-builder --win portable --config electron-builder.piano.json",
+    "drums:dev": "vite --open /drums/",
+    "drums:icons": "node scripts/gen-drum-icons.mjs",
+    "drums:electron": "vite build && electron electron/drums-main.cjs",
+    "drums:build:win": "vite build && electron-builder --win portable --config electron-builder.drums.json",
+    "guitar:dev": "vite --open /guitar/",
+    "guitar:icons": "node scripts/gen-guitar-icons.mjs",
+    "guitar:electron": "vite build && electron electron/guitar-main.cjs",
+    "guitar:build:win": "vite build && electron-builder --win portable --config electron-builder.guitar.json",
+    "bass:dev": "vite --open /bass/",
+    "bass:test": "node scripts/test-bass-dsp.mjs",
+    "bass:icons": "node scripts/gen-bass-icons.mjs",
+    "bass:electron": "vite build && electron electron/bass-main.cjs",
+    "bass:build:win": "vite build && electron-builder --win portable --config electron-builder.bass.json",
+    "vocal:dev": "vite --open /vocal/",
+    "vocal:icons": "node scripts/gen-vocal-icons.mjs",
+    "vocal:electron": "vite build && electron electron/vocal-main.cjs",
+    "vocal:build:win": "vite build && electron-builder --win portable --config electron-builder.vocal.json",
+    "test:audio": "node scripts/audio-smoke.mjs",
+    "test": "tsc --noEmit && vite build && node scripts/test-bass-dsp.mjs && node scripts/audio-smoke.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.1",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2"
+  },
+  "optionalDependencies": {
+    "electron": "^31.3.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.microsakurastudio.app",
+    "productName": "Akatsuki Synth",
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": "portable"
+    }
+  }
+}

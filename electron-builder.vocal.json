@@ -1,0 +1,15 @@
+{
+  "appId": "com.hoshizoravocal.app",
+  "productName": "Hoshizora Vocal",
+  "extraMetadata": {
+    "main": "electron/vocal-main.cjs"
+  },
+  "files": [
+    "dist/vocal/**/*",
+    "dist/assets/**/*",
+    "electron/vocal-main.cjs"
+  ],
+  "win": {
+    "target": "portable"
+  }
+}
