@@ -49,51 +49,25 @@ export class App {
 
   constructor(root: HTMLElement) {
     this.root = root;
-    this.showSplash();
+    this.root.innerHTML = '<div class="loading">読み込み中…</div>';
+    void this.boot();
   }
 
   // ------------------------------------------------------------------
   // 起動
   // ------------------------------------------------------------------
-  private showSplash() {
-    this.root.innerHTML = '';
-    const splash = document.createElement('div');
-    splash.className = 'splash';
-    splash.innerHTML = `
-      <div class="splash-inner">
-        <div class="splash-logo">AKATSUKI SYNTH</div>
-        <p class="splash-sub">バーチャルアナログ・シンセサイザー / DTM ワークステーション</p>
-        <ul class="splash-features">
-          <li>アンチエイリアス処理済みオシレーター＆ラダーフィルターによる本格アナログサウンド</li>
-          <li>マルチトラック・シーケンサー／ソング構成／WAV・MIDI 書き出し</li>
-          <li>スペクトラム＋波形を常時表示するアナライザーとステレオ・ピークメーター</li>
-          <li>完全無料・オフライン動作・広告なし</li>
-        </ul>
-      </div>`;
-    const startBtn = createButton('▶ スタジオを起動', () => void this.boot(), 'btn-start');
-    (splash.querySelector('.splash-inner') as HTMLElement).appendChild(startBtn);
-    const note = document.createElement('p');
-    note.className = 'splash-note';
-    note.textContent = 'ブラウザの自動再生制限のため、最初に一度クリック（タップ）が必要です。';
-    (splash.querySelector('.splash-inner') as HTMLElement).appendChild(note);
-    this.root.appendChild(splash);
-    startBtn.focus();
-  }
-
   private async boot() {
-    const splash = this.root.querySelector('.splash') as HTMLElement | null;
-    if (splash) splash.classList.add('loading');
-
     this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)({ latencyHint: 'interactive' });
     try {
       await loadWorklets(this.ctx);
     } catch (err) {
-      this.root.innerHTML = `<div class="splash"><div class="splash-inner"><p>お使いのブラウザは AudioWorklet に対応していないため起動できません。<br>最新の Chrome / Edge / Firefox / Safari をお使いください。</p><pre>${String(err)}</pre></div></div>`;
+      this.root.innerHTML = `<div class="loading"><p>お使いのブラウザは AudioWorklet に対応していないため起動できません。<br>最新の Chrome / Edge / Firefox / Safari をお使いください。</p><pre>${String(err)}</pre></div>`;
       return;
     }
-    await this.ctx.resume();
 
     this.engine = new AudioEngine(this.ctx, defaultMasterSettings());
+    // ブラウザの自動再生制限のため、AudioContext は最初のクリック/タップで開始する
+    document.addEventListener('pointerdown', () => this.engine.resume(), { once: true });
     this.engine.rebuildReverb();
     this.sequencer = new Sequencer(this.engine);
 
