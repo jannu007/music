@@ -13,5 +13,5 @@
     "resolveJsonModule": true,
     "isolatedModules": true
   },
-  "include": ["src"]
+  "include": ["bass", "drums", "guitar", "piano", "synthesizer", "vocal"]
 }
