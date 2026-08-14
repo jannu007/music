@@ -66,8 +66,7 @@ export class App {
     }
 
     this.engine = new AudioEngine(this.ctx, defaultMasterSettings());
-    // ブラウザの自動再生制限のため、AudioContext は最初のクリック/タップで開始する
-    document.addEventListener('pointerdown', () => this.engine.resume(), { once: true });
+    this.unlockAudioOnFirstGesture();
     this.engine.rebuildReverb();
     this.sequencer = new Sequencer(this.engine);
 
@@ -95,6 +94,17 @@ export class App {
     this.buildLayout();
     this.startAnimationLoop();
     window.addEventListener('beforeunload', () => this.autosave());
+  }
+
+  // ブラウザの自動再生制限のため、AudioContext はユーザー操作の中で resume() する必要がある。
+  // 対応イベントの種類やタイミングはブラウザ・端末によって差があるため、複数のイベントで待ち構える。
+  private unlockAudioOnFirstGesture() {
+    const events = ['pointerdown', 'mousedown', 'touchstart', 'keydown', 'click'];
+    const unlock = () => {
+      this.engine.resume();
+      for (const ev of events) document.removeEventListener(ev, unlock, true);
+    };
+    for (const ev of events) document.addEventListener(ev, unlock, { capture: true, passive: true });
   }
 
   // ------------------------------------------------------------------
