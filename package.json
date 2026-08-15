@@ -32,10 +32,12 @@
     "vocal:icons": "node scripts/gen-vocal-icons.mjs",
     "vocal:electron": "vite build && electron electron/vocal-main.cjs",
     "vocal:build:win": "vite build && electron-builder --win portable --config electron-builder.vocal.json",
+    "vocal:test": "node scripts/test-vocal-transcribe.mjs",
     "test:audio": "node scripts/audio-smoke.mjs",
-    "test": "tsc --noEmit && vite build && node scripts/test-bass-dsp.mjs && node scripts/audio-smoke.mjs"
+    "test": "tsc --noEmit && vite build && node scripts/test-bass-dsp.mjs && node scripts/test-vocal-transcribe.mjs && node scripts/audio-smoke.mjs"
   },
   "devDependencies": {
+    "esbuild": "^0.21.5",
     "playwright": "^1.49.1",
     "typescript": "^5.5.4",
     "vite": "^5.4.2"

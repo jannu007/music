@@ -631,3 +631,78 @@ html, body {
   .roll-toolbar { gap: 0.35rem; }
   .side { max-height: 44vh; }
 }
+
+/* ------------------------------------------------------------------ 録音 */
+
+.record-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.btn.record-main {
+  padding: 0.7rem 0.9rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.btn.record-main.active {
+  border-color: rgba(255, 122, 107, 0.55);
+  background: linear-gradient(180deg, rgba(255, 122, 107, 0.26), rgba(255, 122, 107, 0.08));
+  color: #ffe9e6;
+  animation: record-pulse 1.4s ease-in-out infinite;
+}
+
+.btn.record-main:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+@keyframes record-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 122, 107, 0.32); }
+  50% { box-shadow: 0 0 0 7px rgba(255, 122, 107, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn.record-main.active { animation: none; }
+}
+
+.record-level {
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.34);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.record-level-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--star), var(--sakura));
+  transition: width 0.07s linear;
+}
+
+.record-status {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.record-transcript {
+  margin: 0.15rem 0 0.5rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.24);
+  font-size: 0.78rem;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.tips {
+  margin: 0;
+  padding-left: 1.05rem;
+  font-size: 0.7rem;
+  line-height: 1.75;
+  color: var(--text-dim);
+}

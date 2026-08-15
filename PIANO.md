@@ -27,7 +27,7 @@
 
 ## 音源のしくみ
 
-`src/piano/audio/piano-processor.js`（AudioWorklet）で動く**モーダル合成**エンジンです。
+`piano/src/audio/piano-processor.js`（AudioWorklet）で動く**モーダル合成**エンジンです。
 
 | 要素 | モデル |
 | --- | --- |
@@ -78,7 +78,7 @@
 | 夏の終わりのバラード | オリジナル | 本アプリ書き下ろし |
 | 夜明けのノクターン | オリジナル | 本アプリ書き下ろし |
 
-デモは `src/piano/data/demos.ts` に楽譜文字列として記述されており、音声ファイルは含みません。
+デモは `piano/src/data/demos.ts` に楽譜文字列として記述されており、音声ファイルは含みません。
 
 ```ts
 // 例：音名:長さ（長さは unit の倍数）、"+" で和音、"r" で休符
@@ -109,7 +109,7 @@ take.hit(time, ['G2', 'D3', 'B3'], quarter, 0.4);
 
 ```
 piano/index.html                    アプリのHTMLエントリー（/piano/ で公開）
-src/piano/
+piano/src/
   main.ts                           起動・Service Worker 登録
   audio/
     piano-processor.js              AudioWorklet：物理モデリング音源本体

@@ -32,6 +32,9 @@ import {
   type VocalNote,
 } from '../audio/types';
 import { VocalEngine, renderSong } from '../audio/VocalEngine';
+import { MicRecorder, micSupported, type Recording } from '../audio/mic';
+import { SpeechCapture, speechSupported } from '../audio/speech';
+import { analyzeRecording, quantizeToBeats } from '../audio/transcribe';
 import { VOICES, voiceDefaults } from '../audio/voices';
 import { DEMOS } from '../data/demos';
 import { PianoRoll, type RollTool } from './PianoRoll';
@@ -51,7 +54,38 @@ import {
 const STORAGE_KEY = 'hoshizora-vocal-v1';
 const HISTORY_LIMIT = 80;
 
-type TabId = 'voice' | 'expression' | 'accomp' | 'mix' | 'song';
+type TabId = 'voice' | 'expression' | 'accomp' | 'mix' | 'record' | 'song';
+
+/** 録音した歌をどう歌詞にするか */
+type LyricMode = 'speech' | 'vowel' | 'ra';
+
+/** 取り込んだ音符をどこへ置くか */
+type InsertAt = 'start' | 'playhead' | 'end';
+
+interface RecordSettings {
+  /** 録音中もクリックを鳴らす */
+  metronome: boolean;
+  /** 1小節分のカウントインを入れる */
+  countIn: boolean;
+  insertAt: InsertAt;
+  /** 音符の位置合わせ（拍） */
+  snap: number;
+  /** 小さな声をどこまで拾うか 0..1 */
+  sensitivity: number;
+  lyricMode: LyricMode;
+  /** 最初の音が先頭に来るように前を詰める */
+  trimStart: boolean;
+}
+
+const DEFAULT_RECORD: RecordSettings = {
+  metronome: true,
+  countIn: true,
+  insertAt: 'playhead',
+  snap: 0.25,
+  sensitivity: 0.5,
+  lyricMode: 'speech',
+  trimStart: true,
+};
 
 const SNAP_OPTIONS: { value: string; label: string }[] = [
   { value: '1', label: '1/4' },
@@ -89,6 +123,26 @@ export class VocalApp {
   private menu: HTMLElement | null = null;
   private chordArea: HTMLTextAreaElement | null = null;
   private lyricArea: HTMLTextAreaElement | null = null;
+
+  // ------------------------------------------------------------------ 録音
+  private mic = new MicRecorder();
+  private speech: SpeechCapture | null = null;
+  private recordSettings: RecordSettings = { ...DEFAULT_RECORD };
+  private recording = false;
+  private analyzing = false;
+  /** 直前の録音（設定を変えて解析し直せるように取っておく） */
+  private lastRecording: Recording | null = null;
+  private lastTranscript = '';
+  private speechNote = '';
+  private recordStartTimer = 0;
+  private clickTimer = 0;
+  private clickBeat = 0;
+  private clickFrom = 0;
+  private recordUi: {
+    button: HTMLButtonElement;
+    level: HTMLElement;
+    status: HTMLElement;
+  } | null = null;
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -421,6 +475,7 @@ export class VocalApp {
       { id: 'expression', label: '歌い方' },
       { id: 'accomp', label: '伴奏' },
       { id: 'mix', label: 'ミックス' },
+      { id: 'record', label: '録音' },
       { id: 'song', label: '曲' },
     ];
     for (const item of items) {
@@ -442,6 +497,7 @@ export class VocalApp {
 
   private renderPanel() {
     this.panelBody.innerHTML = '';
+    this.recordUi = null;
     switch (this.activeTab) {
       case 'voice':
         this.panelVoice();
@@ -454,6 +510,9 @@ export class VocalApp {
         break;
       case 'mix':
         this.panelMix();
+        break;
+      case 'record':
+        this.panelRecord();
         break;
       case 'song':
         this.panelSong();
@@ -766,6 +825,385 @@ export class VocalApp {
       })
     );
     this.panelBody.append(reset);
+  }
+
+  // ------------------------------------------------------------------ 録音
+
+  private panelRecord() {
+    const s = this.recordSettings;
+
+    const capture = section('マイクから録音', '歌うと音符になってピアノロールへ入ります');
+    if (!micSupported()) {
+      capture.append(
+        el('div', 'ctl-hint', 'この端末ではマイクを使えません。HTTPS で開いているか確かめてください。')
+      );
+      this.panelBody.append(capture);
+      return;
+    }
+
+    const box = el('div', 'record-box');
+    const recordButton = button(
+      this.recording ? '■ 停止して取り込む' : '● 録音開始',
+      this.recording ? 'danger record-main active' : 'primary record-main',
+      () => void this.toggleRecording()
+    );
+    recordButton.disabled = this.analyzing;
+    const level = el('div', 'record-level');
+    const levelFill = el('div', 'record-level-fill');
+    level.append(levelFill);
+    const status = el('div', 'record-status', this.recordHint());
+    box.append(recordButton, level, status);
+    capture.append(box);
+    this.recordUi = { button: recordButton, level: levelFill, status };
+    this.panelBody.append(capture);
+
+    const setup = section('録音の設定', 'ハウリングを避けるため、イヤホンの使用をおすすめします');
+    setup.append(
+      switchRow('カウントイン', s.countIn, (v) => {
+        s.countIn = v;
+      }, '1小節分クリックを鳴らしてから録音を始めます'),
+      switchRow('録音中もクリックを鳴らす', s.metronome, (v) => {
+        s.metronome = v;
+      }),
+      switchRow('最初の音を先頭に詰める', s.trimStart, (v) => {
+        s.trimStart = v;
+      }, 'カウントインに合わせて歌うときはオフにしてください'),
+      segmented<InsertAt>(
+        '取り込む位置',
+        [
+          { value: 'start', label: '先頭' },
+          { value: 'playhead', label: '再生位置' },
+          { value: 'end', label: '曲の最後' },
+        ],
+        s.insertAt,
+        (v) => {
+          s.insertAt = v;
+        }
+      )
+    );
+
+    const snapWrap = el('div', 'ctl');
+    snapWrap.append(el('div', 'ctl-label', '音符の位置合わせ'));
+    const snapSelect = el('select', 'select');
+    for (const opt of SNAP_OPTIONS) {
+      const o = el('option', '', opt.label);
+      o.value = opt.value;
+      if (Number(opt.value) === s.snap) o.selected = true;
+      snapSelect.append(o);
+    }
+    snapSelect.addEventListener('change', () => {
+      s.snap = Number(snapSelect.value);
+    });
+    snapWrap.append(snapSelect);
+    setup.append(snapWrap);
+
+    setup.append(
+      slider({
+        label: '感度',
+        min: 0,
+        max: 1,
+        step: 0.01,
+        value: s.sensitivity,
+        hint: '音符が抜けるときは上げ、雑音を拾うときは下げてください',
+        format: (v) => `${Math.round(v * 100)}%`,
+        onInput: (v) => {
+          s.sensitivity = v;
+        },
+      })
+    );
+
+    const lyricOptions: { value: LyricMode; label: string }[] = [
+      { value: 'speech', label: '言葉を聞き取る' },
+      { value: 'vowel', label: '母音を推定' },
+      { value: 'ra', label: '「ら」' },
+    ];
+    setup.append(segmented<LyricMode>('歌詞の付け方', lyricOptions, s.lyricMode, (v) => {
+      s.lyricMode = v;
+      this.renderPanel();
+    }));
+    if (s.lyricMode === 'speech') {
+      setup.append(
+        el(
+          'div',
+          'ctl-hint',
+          speechSupported()
+            ? 'ブラウザの音声認識を使います（インターネット接続が必要です）。聞き取れないときは母音の推定に切り替わります。'
+            : 'この端末は音声認識に対応していません。母音の推定で歌詞を付けます。'
+        )
+      );
+    } else if (s.lyricMode === 'vowel') {
+      setup.append(el('div', 'ctl-hint', '声の響きから あいうえお を推定します（オフラインで動きます）。'));
+    }
+    this.panelBody.append(setup);
+
+    if (this.lastRecording) {
+      const seconds = this.lastRecording.samples.length / this.lastRecording.sampleRate;
+      const last = section('最後の録音', `${seconds.toFixed(1)} 秒`);
+      if (this.lastTranscript) {
+        last.append(el('div', 'ctl-label', '聞き取った言葉'));
+        last.append(el('div', 'record-transcript', this.lastTranscript));
+      } else if (this.speechNote) {
+        last.append(el('div', 'ctl-hint', this.speechNote));
+      }
+      const again = el('div', 'button-row');
+      again.append(
+        button('この録音をもう一度取り込む', 'ghost', () => void this.applyRecording())
+      );
+      last.append(again);
+      last.append(
+        el('div', 'ctl-hint', '感度や位置合わせを変えてから押すと、設定し直した結果を追加できます。')
+      );
+      this.panelBody.append(last);
+    }
+
+    const help = section('うまく取り込むコツ');
+    const tips = el('ul', 'tips');
+    for (const tip of [
+      '「ら・ら・ら」のように音を切って歌うと、音符に分かれやすくなります。',
+      'カウントインのクリックに合わせて歌うと、小節の位置がそろいます。',
+      '取り込んだ音符は普通の音符です。ピアノロールで自由に直せます。',
+      '取り込みすぎたときは Ctrl+Z（元に戻す）で戻せます。',
+    ]) {
+      tips.append(el('li', '', tip));
+    }
+    help.append(tips);
+    this.panelBody.append(help);
+  }
+
+  private recordHint(): string {
+    if (this.recording) return '録音中です。歌い終わったら停止を押してください';
+    if (this.analyzing) return '解析しています…';
+    return 'ボタンを押すとマイクの使用を尋ねます';
+  }
+
+  private setRecordStatus(text: string) {
+    if (this.recordUi?.status.isConnected) this.recordUi.status.textContent = text;
+    this.setStatus(text);
+  }
+
+  private updateRecordUi() {
+    const ui = this.recordUi;
+    if (!ui?.button.isConnected) return;
+    ui.button.textContent = this.recording ? '■ 停止して取り込む' : '● 録音開始';
+    ui.button.className = this.recording ? 'btn danger record-main active' : 'btn primary record-main';
+    ui.button.disabled = this.analyzing;
+    if (!this.recording) ui.level.style.width = '0%';
+  }
+
+  private toggleRecording() {
+    if (this.recording) return this.stopRecording();
+    return this.startRecording();
+  }
+
+  private async startRecording(): Promise<void> {
+    if (this.recording || this.analyzing) return;
+    if (this.playing) this.stop();
+
+    try {
+      await this.ensureAudio();
+    } catch {
+      return;
+    }
+    const ctx = this.engine.ctx;
+    if (!ctx) return;
+
+    this.setRecordStatus('マイクの使用を許可してください…');
+    try {
+      await this.mic.open(ctx);
+    } catch (err) {
+      this.setRecordStatus(`マイクを使えません: ${this.errorText(err)}`);
+      return;
+    }
+    this.mic.onLevel = (peak) => {
+      if (this.recordUi?.level.isConnected) {
+        this.recordUi.level.style.width = `${Math.min(100, peak * 140)}%`;
+      }
+    };
+
+    const s = this.recordSettings;
+    const secondsPerBeat = 60 / this.song.bpm;
+    const countInBeats = s.countIn ? this.song.beatsPerBar : 0;
+    const from = ctx.currentTime + 0.2;
+    if (s.countIn || s.metronome) this.startClicks(ctx, from);
+
+    this.recording = true;
+    this.speechNote = '';
+    this.updateRecordUi();
+
+    const waitMs = countInBeats * secondsPerBeat * 1000;
+    this.setRecordStatus(countInBeats > 0 ? 'カウントイン…' : '録音中です。歌い終わったら停止を押してください');
+    this.recordStartTimer = window.setTimeout(() => {
+      if (!this.recording) return;
+      if (!s.metronome) this.stopClicks();
+      this.mic.start();
+      if (s.lyricMode === 'speech' && speechSupported()) {
+        const speech = new SpeechCapture();
+        if (speech.start()) this.speech = speech;
+      }
+      this.setRecordStatus('録音中です。歌い終わったら停止を押してください');
+    }, waitMs);
+  }
+
+  private async stopRecording(): Promise<void> {
+    if (!this.recording) return;
+    this.recording = false;
+    window.clearTimeout(this.recordStartTimer);
+    this.stopClicks();
+
+    const recording = this.mic.isCapturing ? this.mic.stop() : null;
+    this.mic.onLevel = null;
+    this.mic.close();
+    this.updateRecordUi();
+
+    if (this.speech) {
+      this.setRecordStatus('聞き取った言葉をまとめています…');
+      this.lastTranscript = await this.speech.finish();
+      this.speechNote = this.lastTranscript ? '' : this.speech.error ?? '';
+      this.speech = null;
+    } else {
+      this.lastTranscript = '';
+    }
+
+    if (!recording || recording.samples.length < recording.sampleRate * 0.25) {
+      this.lastRecording = null;
+      this.setRecordStatus('録音が短すぎます。もう一度お試しください');
+      this.renderPanel();
+      return;
+    }
+    this.lastRecording = recording;
+    await this.applyRecording();
+  }
+
+  /** 録音を解析して音符にし、曲へ差し込む */
+  private async applyRecording(): Promise<void> {
+    const recording = this.lastRecording;
+    if (!recording || this.analyzing) return;
+    const s = this.recordSettings;
+
+    this.analyzing = true;
+    this.updateRecordUi();
+    this.setRecordStatus('解析しています…');
+
+    let detected;
+    try {
+      detected = await analyzeRecording(
+        recording,
+        {
+          a4: this.song.settings.a4,
+          sensitivity: s.sensitivity,
+          // 言葉を聞き取れなかったときも歌詞が付くよう、母音の推定は保険として動かす
+          detectVowels: s.lyricMode === 'vowel' || (s.lyricMode === 'speech' && !this.lastTranscript),
+        },
+        (ratio) => this.setRecordStatus(`解析しています… ${Math.round(ratio * 100)}%`)
+      );
+    } catch (err) {
+      this.analyzing = false;
+      this.updateRecordUi();
+      this.setRecordStatus(`解析できませんでした: ${this.errorText(err)}`);
+      return;
+    }
+
+    this.analyzing = false;
+    this.updateRecordUi();
+
+    if (detected.length === 0) {
+      this.setRecordStatus('音符を取り出せませんでした。感度を上げて、もう一度取り込んでみてください');
+      this.renderPanel();
+      return;
+    }
+
+    const quantized = quantizeToBeats(detected, {
+      bpm: this.song.bpm,
+      snap: s.snap,
+      offsetBeats: this.insertOffsetBeats(),
+      trimStart: s.trimStart,
+    });
+
+    const notes = quantized.map((q) =>
+      createNote({
+        start: q.start,
+        length: q.length,
+        note: q.note,
+        vel: q.vel,
+        lyric: q.vowel ?? 'ら',
+      })
+    );
+
+    let lyricNote = '';
+    if (s.lyricMode === 'speech' && this.lastTranscript) {
+      const applied = applyLyrics(notes, this.lastTranscript);
+      lyricNote = `・歌詞 ${applied} 文字`;
+    } else if (s.lyricMode === 'ra') {
+      for (const note of notes) note.lyric = 'ら';
+    }
+
+    this.song.notes.push(...notes);
+    this.song.notes.sort((a, b) => a.start - b.start);
+    this.changed(`${notes.length} 音符を取り込みました${lyricNote}`);
+    this.roll.refresh();
+    this.renderPanel();
+  }
+
+  private insertOffsetBeats(): number {
+    const perBar = this.song.beatsPerBar;
+    switch (this.recordSettings.insertAt) {
+      case 'start':
+        return 0;
+      case 'end': {
+        const beats = songBeats(this.song);
+        return beats <= 0 ? 0 : Math.ceil(beats / perBar) * perBar;
+      }
+      default:
+        return Math.max(0, this.playFromBeat);
+    }
+  }
+
+  private errorText(err: unknown): string {
+    if (err && typeof err === 'object' && 'name' in err) {
+      const name = String((err as Error).name);
+      if (name === 'NotAllowedError') return 'マイクの使用が許可されませんでした';
+      if (name === 'NotFoundError') return 'マイクが見つかりません';
+    }
+    return err instanceof Error ? err.message : String(err);
+  }
+
+  // ------------------------------------------------------------ メトロノーム
+
+  /** 先読みしながらクリックを並べる（setInterval だけだと揺れるため） */
+  private startClicks(ctx: AudioContext, from: number) {
+    this.stopClicks();
+    this.clickFrom = from;
+    this.clickBeat = 0;
+    const secondsPerBeat = 60 / this.song.bpm;
+    const schedule = () => {
+      const until = ctx.currentTime + 0.4;
+      while (this.clickFrom + this.clickBeat * secondsPerBeat < until) {
+        const at = this.clickFrom + this.clickBeat * secondsPerBeat;
+        if (at >= ctx.currentTime) this.click(ctx, at, this.clickBeat % this.song.beatsPerBar === 0);
+        this.clickBeat++;
+      }
+    };
+    schedule();
+    this.clickTimer = window.setInterval(schedule, 120);
+  }
+
+  private stopClicks() {
+    if (this.clickTimer) window.clearInterval(this.clickTimer);
+    this.clickTimer = 0;
+  }
+
+  private click(ctx: AudioContext, at: number, accent: boolean) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = accent ? 1560 : 1040;
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(accent ? 0.3 : 0.16, at + 0.002);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.06);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(at);
+    osc.stop(at + 0.09);
   }
 
   private panelSong() {
