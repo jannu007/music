@@ -706,3 +706,14 @@ html, body {
   line-height: 1.75;
   color: var(--text-dim);
 }
+
+.record-note {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.btn.ghost.active { color: var(--star); border-color: var(--line-strong); }

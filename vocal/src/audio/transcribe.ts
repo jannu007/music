@@ -335,6 +335,38 @@ function modeFilter(values: number[], width: number): number[] {
 
 const yieldToUi = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
+/** 録音の大きさ（画面に出して、マイクが拾えているか確かめるのに使う） */
+export function measureLevel(recording: Recording): { peak: number; rms: number; seconds: number } {
+  const { samples, sampleRate } = recording;
+  let peak = 0;
+  let energy = 0;
+  for (let i = 0; i < samples.length; i++) {
+    const v = samples[i];
+    const a = v < 0 ? -v : v;
+    if (a > peak) peak = a;
+    energy += v * v;
+  }
+  return {
+    peak,
+    rms: samples.length ? Math.sqrt(energy / samples.length) : 0,
+    seconds: sampleRate > 0 ? samples.length / sampleRate : 0,
+  };
+}
+
+/** ピークを target にそろえる。ほぼ無音なら null を返す */
+function normalizePeak(input: Float32Array, target: number): Float32Array | null {
+  let peak = 0;
+  for (let i = 0; i < input.length; i++) {
+    const a = input[i] < 0 ? -input[i] : input[i];
+    if (a > peak) peak = a;
+  }
+  if (peak < 1e-5) return null;
+  const gain = target / peak;
+  const out = new Float32Array(input.length);
+  for (let i = 0; i < input.length; i++) out[i] = input[i] * gain;
+  return out;
+}
+
 /** 録音から音符を取り出す */
 export async function analyzeRecording(
   recording: Recording,
@@ -347,11 +379,16 @@ export async function analyzeRecording(
   const maxGapSec = options.maxGapSec ?? 0.1;
   const detectVowels = options.detectVowels ?? false;
 
-  const signal = resample(recording.samples, recording.sampleRate, ANALYSIS_RATE);
+  const resampled = resample(recording.samples, recording.sampleRate, ANALYSIS_RATE);
   const hopSec = HOP / ANALYSIS_RATE;
   const need = FRAME + MAX_TAU;
-  const frameCount = Math.max(0, Math.floor((signal.length - need) / HOP) + 1);
+  const frameCount = Math.max(0, Math.floor((resampled.length - need) / HOP) + 1);
   if (frameCount <= 0) return [];
+
+  // 端末によってマイクの入力レベルは大きく違う（自動ゲイン調整を切っているので特に）。
+  // 大きさをそろえてから解析すると、小さな声でも同じしきい値で扱える。
+  const signal = normalizePeak(resampled, 0.5);
+  if (!signal) return [];
 
   const frames: Frame[] = [];
   for (let f = 0; f < frameCount; f++) {
@@ -496,7 +533,27 @@ export async function analyzeRecording(
   }
 
   onProgress?.(1);
-  return notes;
+  return mergeFragments(notes);
+}
+
+/**
+ * 同じ高さの音がごく短い切れ目で並んでいたら 1 つに戻す。
+ * メトロノームの回り込みや一瞬の息継ぎで、伸ばした音が割れてしまうのを防ぐ。
+ */
+function mergeFragments(notes: DetectedNote[], gapSec = 0.06): DetectedNote[] {
+  const out: DetectedNote[] = [];
+  for (const note of notes) {
+    const previous = out[out.length - 1];
+    const gap = previous ? note.startSec - (previous.startSec + previous.lengthSec) : Infinity;
+    if (previous && previous.midi === note.midi && gap <= gapSec) {
+      previous.lengthSec = note.startSec + note.lengthSec - previous.startSec;
+      previous.vel = Math.max(previous.vel, note.vel);
+      previous.vowel = previous.vowel ?? note.vowel;
+      continue;
+    }
+    out.push({ ...note });
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------- 拍への割り当て

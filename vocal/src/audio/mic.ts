@@ -36,6 +36,9 @@ export class MicRecorder {
   private sink: GainNode | null = null;
   private chunks: Float32Array[] = [];
   private capturing = false;
+  /** ワークレットが送り終えるまでは受け取り続ける */
+  private collecting = false;
+  private stopWaiters: (() => void)[] = [];
 
   /** 入力レベル 0..1（メーター用） */
   onLevel: ((peak: number) => void) | null = null;
@@ -66,9 +69,13 @@ export class MicRecorder {
       node.port.onmessage = (e) => {
         const data = e.data;
         if (data?.type === 'chunk') {
-          if (this.capturing) this.chunks.push(data.data as Float32Array);
+          if (this.collecting) this.chunks.push(data.data as Float32Array);
         } else if (data?.type === 'level') {
           this.onLevel?.(data.peak as number);
+        } else if (data?.type === 'stopped') {
+          this.collecting = false;
+          for (const resolve of this.stopWaiters) resolve();
+          this.stopWaiters = [];
         }
       };
 
@@ -96,14 +103,25 @@ export class MicRecorder {
     if (!this.node) throw new Error('マイクが用意できていません');
     this.chunks = [];
     this.capturing = true;
+    this.collecting = true;
     this.node.port.postMessage({ type: 'start' });
   }
 
-  /** 録音を止めて波形を取り出す */
-  stop(): Recording {
+  /**
+   * 録音を止めて波形を取り出す。
+   * ワークレットは音声スレッドで動いているため、止めた合図が返るまで待ってから
+   * 繋ぎ合わせる（待たずに読むと、最後のひと息分が抜け落ちる）。
+   */
+  async stop(): Promise<Recording> {
     const rate = this.ctx?.sampleRate ?? 48000;
-    if (this.node) this.node.port.postMessage({ type: 'stop' });
     this.capturing = false;
+    if (this.node && this.collecting) {
+      const stopped = new Promise<void>((resolve) => this.stopWaiters.push(resolve));
+      this.node.port.postMessage({ type: 'stop' });
+      await Promise.race([stopped, new Promise<void>((resolve) => setTimeout(resolve, 400))]);
+    }
+    this.collecting = false;
+    this.stopWaiters = [];
 
     let total = 0;
     for (const c of this.chunks) total += c.length;
@@ -120,6 +138,9 @@ export class MicRecorder {
   /** マイクを解放する（録音ランプを消す） */
   close() {
     this.capturing = false;
+    this.collecting = false;
+    for (const resolve of this.stopWaiters) resolve();
+    this.stopWaiters = [];
     if (this.node) {
       this.node.port.onmessage = null;
       this.node.disconnect();

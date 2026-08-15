@@ -30,7 +30,7 @@ await build({
   platform: 'neutral',
   logLevel: 'silent',
 });
-const { analyzeRecording, detectPitch, quantizeToBeats, resample } = await import(
+const { analyzeRecording, detectPitch, measureLevel, quantizeToBeats, resample } = await import(
   pathToFileURL(outFile).href
 );
 
@@ -202,6 +202,66 @@ console.log('\n— 音符の取り出し —');
   const quiet = await analyzeRecording({ samples, sampleRate: SR }, { sensitivity: 0.95 });
   check('感度を上げると小さな声も拾う', quiet.length === 1 && quiet[0].midi === 60,
     `${quiet.length} 個 / ${quiet.map((n) => n.midi).join(',')}`);
+}
+
+// -------------------------------------------------- 実機のマイクに近い条件
+
+console.log('\n— 実機のマイクに近い条件 —');
+{
+  const wanted = [62, 64, 65, 64, 62];
+  const phrase = (gain) => {
+    const parts = [silence(0.3)];
+    for (const midi of wanted) {
+      parts.push(sing(midiToFreq(midi), 0.45, { gain }));
+      parts.push(silence(0.2));
+    }
+    return concat(parts);
+  };
+  /** 暗騒音と、手に持ったときの低い揺れを足す */
+  const addNoise = (buf, level) => {
+    const out = Float32Array.from(buf);
+    let rumble = 0;
+    for (let i = 0; i < out.length; i++) {
+      rumble = rumble * 0.999 + (Math.random() * 2 - 1) * 0.02;
+      out[i] += (Math.random() * 2 - 1) * level + rumble * level * 12;
+    }
+    return out;
+  };
+  /** スピーカーから回り込むメトロノームのクリック */
+  const addClicks = (buf, bpm, gain) => {
+    const out = Float32Array.from(buf);
+    const period = 60 / bpm;
+    for (let beat = 0; ; beat++) {
+      const at = Math.round(beat * period * SR);
+      if (at >= out.length) break;
+      for (let i = 0; i < 0.05 * SR && at + i < out.length; i++) {
+        out[at + i] += Math.sign(Math.sin((2 * Math.PI * 1040 * i) / SR)) * Math.exp(-i / (0.006 * SR)) * gain;
+      }
+    }
+    return out;
+  };
+
+  const cases = [
+    ['ごく小さい入力（自動ゲイン調整なし）', phrase(0.012)],
+    ['雑音の多い部屋', addNoise(phrase(0.12), 0.012)],
+    ['クリックが回り込む', addClicks(phrase(0.2), 96, 0.35)],
+    ['クリック＋雑音', addClicks(addNoise(phrase(0.12), 0.008), 96, 0.3)],
+  ];
+  for (const [label, samples] of cases) {
+    const notes = await analyzeRecording({ samples, sampleRate: SR }, { sensitivity: 0.5 });
+    const ok = JSON.stringify(notes.map((n) => n.midi)) === JSON.stringify(wanted);
+    check(label, ok, `${notes.length} 個 / ${notes.map((n) => n.midi).join(',')}`);
+  }
+}
+
+console.log('\n— 入力レベルの計測 —');
+{
+  const quiet = measureLevel({ samples: sing(440, 0.5, { gain: 0.02 }), sampleRate: SR });
+  check('小さな入力でも長さと音量が取れる',
+    Math.abs(quiet.seconds - 0.5) < 0.01 && quiet.peak > 0 && quiet.rms > 0,
+    `${quiet.seconds.toFixed(2)}秒 peak=${quiet.peak.toFixed(4)}`);
+  const mute = measureLevel({ samples: silence(0.5), sampleRate: SR });
+  check('無音は音量 0 と分かる', mute.peak === 0 && mute.rms === 0);
 }
 
 // ---------------------------------------------------------------- 母音の推定

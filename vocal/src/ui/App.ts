@@ -34,7 +34,7 @@ import {
 import { VocalEngine, renderSong } from '../audio/VocalEngine';
 import { MicRecorder, micSupported, type Recording } from '../audio/mic';
 import { SpeechCapture, speechSupported } from '../audio/speech';
-import { analyzeRecording, quantizeToBeats } from '../audio/transcribe';
+import { analyzeRecording, measureLevel, quantizeToBeats } from '../audio/transcribe';
 import { VOICES, voiceDefaults } from '../audio/voices';
 import { DEMOS } from '../data/demos';
 import { PianoRoll, type RollTool } from './PianoRoll';
@@ -78,7 +78,8 @@ interface RecordSettings {
 }
 
 const DEFAULT_RECORD: RecordSettings = {
-  metronome: true,
+  // 録音中のクリックはスピーカーからマイクへ回り込むため、既定では切っておく
+  metronome: false,
   countIn: true,
   insertAt: 'playhead',
   snap: 0.25,
@@ -134,6 +135,9 @@ export class VocalApp {
   private lastRecording: Recording | null = null;
   private lastTranscript = '';
   private speechNote = '';
+  /** うまくいかないときに原因を伝えるための実測値 */
+  private lastLevelNote = '';
+  private monitoring = false;
   private recordStartTimer = 0;
   private clickTimer = 0;
   private clickBeat = 0;
@@ -853,6 +857,22 @@ export class VocalApp {
     level.append(levelFill);
     const status = el('div', 'record-status', this.recordHint());
     box.append(recordButton, level, status);
+
+    // マイクが本当に音を拾えているかを、録音する前に目で確かめられるようにする
+    const checkRow = el('div', 'button-row');
+    checkRow.append(
+      button(
+        this.monitoring ? 'マイクの確認をやめる' : 'マイクを確かめる',
+        this.monitoring ? 'ghost active' : 'ghost',
+        () => void this.toggleMonitor()
+      )
+    );
+    box.append(checkRow);
+    if (this.monitoring) {
+      box.append(el('div', 'ctl-hint', '声を出すと上のバーが動きます。動かないときは端末のマイク設定をご確認ください。'));
+    }
+    if (this.lastLevelNote) box.append(el('div', 'record-note', this.lastLevelNote));
+
     capture.append(box);
     this.recordUi = { button: recordButton, level: levelFill, status };
     this.panelBody.append(capture);
@@ -995,9 +1015,48 @@ export class VocalApp {
     return this.startRecording();
   }
 
+  /** 録音せずにマイクの入力レベルだけを見る */
+  private async toggleMonitor(): Promise<void> {
+    if (this.recording) return;
+    if (this.monitoring) {
+      this.monitoring = false;
+      this.mic.onLevel = null;
+      this.mic.close();
+      this.renderPanel();
+      return;
+    }
+    try {
+      await this.ensureAudio();
+    } catch {
+      return;
+    }
+    const ctx = this.engine.ctx;
+    if (!ctx) return;
+    try {
+      await this.mic.open(ctx);
+    } catch (err) {
+      this.setRecordStatus(`マイクを使えません: ${this.errorText(err)}`);
+      return;
+    }
+    let seen = 0;
+    this.mic.onLevel = (peak) => {
+      if (peak > seen) seen = peak;
+      if (this.recordUi?.level.isConnected) {
+        this.recordUi.level.style.width = `${Math.min(100, peak * 140)}%`;
+      }
+      if (this.recordUi?.status.isConnected) {
+        this.recordUi.status.textContent = `マイク確認中… 現在 ${(peak * 100).toFixed(0)}％ ／ 最大 ${(seen * 100).toFixed(0)}％`;
+      }
+    };
+    this.monitoring = true;
+    this.renderPanel();
+  }
+
   private async startRecording(): Promise<void> {
     if (this.recording || this.analyzing) return;
     if (this.playing) this.stop();
+    this.monitoring = false;
+    this.lastLevelNote = '';
 
     try {
       await this.ensureAudio();
@@ -1050,7 +1109,7 @@ export class VocalApp {
     window.clearTimeout(this.recordStartTimer);
     this.stopClicks();
 
-    const recording = this.mic.isCapturing ? this.mic.stop() : null;
+    const recording = this.mic.isCapturing ? await this.mic.stop() : null;
     this.mic.onLevel = null;
     this.mic.close();
     this.updateRecordUi();
@@ -1070,6 +1129,22 @@ export class VocalApp {
       this.renderPanel();
       return;
     }
+
+    const level = measureLevel(recording);
+    this.lastLevelNote =
+      `録音 ${level.seconds.toFixed(1)} 秒 ／ 最大音量 ${(level.peak * 100).toFixed(1)}％` +
+      `（平均 ${(level.rms * 100).toFixed(2)}％）`;
+
+    // マイクから何も入っていないなら、感度を上げても解決しない。原因を分けて伝える
+    if (level.peak < 0.002) {
+      this.lastRecording = null;
+      this.setRecordStatus(
+        'マイクから音が入っていませんでした。端末のマイクの許可・別アプリでの使用・外部マイクの接続をご確認ください'
+      );
+      this.renderPanel();
+      return;
+    }
+
     this.lastRecording = recording;
     await this.applyRecording();
   }
@@ -1107,7 +1182,9 @@ export class VocalApp {
     this.updateRecordUi();
 
     if (detected.length === 0) {
-      this.setRecordStatus('音符を取り出せませんでした。感度を上げて、もう一度取り込んでみてください');
+      this.setRecordStatus(
+        '音符を取り出せませんでした。「あー」と声を伸ばして歌うと拾いやすくなります（話し声や小さすぎる声は音程が取れません）'
+      );
       this.renderPanel();
       return;
     }

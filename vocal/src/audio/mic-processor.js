@@ -24,8 +24,10 @@ class MicRecorderProcessor extends AudioWorkletProcessor {
         this.active = true;
         this.filled = 0;
       } else if (type === 'stop') {
+        // 残りを送り切ってから合図を返す（末尾の歌が欠けないように）
         this.flush();
         this.active = false;
+        this.port.postMessage({ type: 'stopped' });
       }
     };
   }
