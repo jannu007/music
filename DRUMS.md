@@ -28,7 +28,7 @@
 
 ## 音源のしくみ
 
-`src/drums/audio/drum-processor.js`（AudioWorklet）に、方式の異なる9種類のボイスが入っています。
+`drums/src/audio/drum-processor.js`（AudioWorklet）に、方式の異なる9種類のボイスが入っています。
 すべて 1 サンプルずつ計算しており、フィルターは TPT 型ステートバリアブルフィルター
 （ローパス／バンドパス／ハイパスを同時に取り出せる形式）です。
 
@@ -109,7 +109,7 @@
 | ポリメーター実験 | 96 | アンビエント | シェイカー7歩・パーカッション5歩 |
 | シンセポップ | 118 | クラシック・アナログ | 80年代風のカウベルとクラップ |
 
-デモは `src/drums/data/songs.ts` に文字譜として書かれており、音声ファイルは含みません。
+デモは `drums/src/data/songs.ts` に文字譜として書かれており、音声ファイルは含みません。
 
 ```ts
 // 4ステップごとに `|` で区切る（`|` は読み飛ばされる）
@@ -146,7 +146,7 @@ ch:    'oxox|oxox|oxox|oxRx',   // r 2連打 / R 3連打 / ? 50%の確率
 
 ```
 drums/index.html                    アプリのHTMLエントリー（/drums/ で公開）
-src/drums/
+drums/src/
   main.ts                           起動・Service Worker 登録
   audio/
     drum-processor.js               AudioWorklet：音源9方式 + シーケンサー本体

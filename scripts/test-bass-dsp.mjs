@@ -30,7 +30,7 @@ globalThis.registerProcessor = (_name, cls) => {
   ProcessorClass = cls;
 };
 
-await import(pathToFileURL(resolve(here, '..', 'src', 'bass', 'audio', 'bass-processor.js')).href);
+await import(pathToFileURL(resolve(here, '..', 'bass', 'src', 'audio', 'bass-processor.js')).href);
 
 if (!ProcessorClass) {
   console.error('プロセッサを読み込めませんでした');

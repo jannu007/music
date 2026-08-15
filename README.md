@@ -170,7 +170,7 @@ npm run electron:dev     # 開発中の確認用
 ## ディレクトリ構成
 
 ```
-src/
+synthesizer/src/
   audio/
     worklets/
       synth-processor.js    ★ DSP コア（オシレーター/フィルター/EG/LFO/ドラム/ボイス管理）
@@ -204,9 +204,9 @@ scripts/audio-smoke.mjs     音声の自動検証（Playwright）
 electron/                   Windows デスクトップアプリ用エントリーポイント
 ```
 
-姉妹アプリのソースは `src/piano/`（[PIANO.md](PIANO.md)）・`src/drums/`（[DRUMS.md](DRUMS.md)）・
-`src/guitar/`（[GUITAR.md](GUITAR.md)）・`src/bass/`（[BASS.md](BASS.md)）・
-`src/vocal/`（[VOCAL.md](VOCAL.md)）にあります。
+姉妹アプリのソースは `piano/src/`（[PIANO.md](PIANO.md)）・`drums/src/`（[DRUMS.md](DRUMS.md)）・
+`guitar/src/`（[GUITAR.md](GUITAR.md)）・`bass/src/`（[BASS.md](BASS.md)）・
+`vocal/src/`（[VOCAL.md](VOCAL.md)）にあります。
 ビルドはまとめて `npm run build` で行われ、`dist/synthesizer/`（シンセ）・`dist/piano/`・
 `dist/drums/`・`dist/guitar/`・`dist/bass/`・`dist/vocal/` に出力されます。
 

@@ -204,11 +204,11 @@ page.on('pageerror', (err) => consoleErrors.push(String(err)));
 
 console.log('\n▶ アプリを起動…');
 await page.goto(`http://localhost:${PORT}/synthesizer/`, { waitUntil: 'networkidle' });
-await page.getByRole('button', { name: /スタジオを起動/ }).click();
 await page.waitForSelector('.shell', { timeout: 15000 });
 check('アプリが起動する', true);
 
-// 再生してオーディオが動くことを確認
+// 自動再生制限があるため、最初のクリックでオーディオを開始させる
+await page.mouse.click(5, 5);
 await page.waitForTimeout(300);
 await page.click('#play-btn');
 await page.waitForTimeout(1200);

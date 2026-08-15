@@ -176,7 +176,7 @@ npm run guitar:build:win  # Windows 向けポータブル exe
 
 ```
 guitar/index.html                    エントリ
-src/guitar/
+guitar/src/
   main.ts                            起動
   audio/
     guitar-processor.js              弦の物理モデル（AudioWorklet）

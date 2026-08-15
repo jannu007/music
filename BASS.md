@@ -30,7 +30,7 @@
 
 ## 音源のしくみ
 
-`src/bass/audio/bass-processor.js`（AudioWorklet）で動く**デジタル導波管**エンジンです。
+`bass/src/audio/bass-processor.js`（AudioWorklet）で動く**デジタル導波管**エンジンです。
 実機のベースと同じ構造をそのままモデル化しています。
 
 | 要素 | モデル |
