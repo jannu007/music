@@ -1,7 +1,7 @@
 {
   "name": "Takibi Guitar",
   "short_name": "Takibi Guitar",
-  "description": "サンプル音源を使わない物理モデリングのギター。コード伴奏・録音まで完全無料・広告なし・オフライン動作。",
+  "description": "サンプル音源を使わない物理モデリングのギター。コード伴奏・録音まで対応。広告なし・オフライン動作。",
   "id": "/guitar/",
   "start_url": "./",
   "scope": "./",

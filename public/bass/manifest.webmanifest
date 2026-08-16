@@ -1,7 +1,7 @@
 {
   "name": "Kurogane Bass",
   "short_name": "Kurogane Bass",
-  "description": "サンプルを使わない物理モデリング方式の無料エレキベース。指弾き・ピック・スラップ・フレットレスに対応",
+  "description": "サンプルを使わない物理モデリング方式のエレキベース。指弾き・ピック・スラップ・フレットレスに対応",
   "id": "/bass/",
   "start_url": "./",
   "scope": "./",

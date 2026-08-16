@@ -334,7 +334,7 @@ export class VocalApp {
     const status = el('div', 'statusbar');
     this.statusEl = el('span', 'status-text', 'ピアノロールに音符を書いて、再生してみてください');
     status.append(this.statusEl);
-    const credit = el('span', 'status-credit', 'サンプル音源なし・完全無料・オフライン動作');
+    const credit = el('span', 'status-credit', 'サンプル音源なし・広告なし・オフライン動作');
     status.append(credit);
     app.append(status);
 

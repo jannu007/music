@@ -1,7 +1,7 @@
 {
   "name": "Hibiki Drum Machine",
   "short_name": "Hibiki Drums",
-  "description": "サンプル音源を使わない完全合成のドラムマシン。完全無料・広告なし・オフライン動作。",
+  "description": "サンプル音源を使わない完全合成のドラムマシン。広告なし・オフライン動作。",
   "id": "/drums/",
   "start_url": "./",
   "scope": "./",

@@ -1,6 +1,6 @@
 # Takibi Guitar — 物理モデリング・ギター
 
-**完全無料**（広告なし・課金なし・アカウント不要・通信なし）のギター・アプリです。
+広告なし・アカウント不要・通信なしのギター・アプリです（Web版は無料、Android版はGoogle Playで買い切り配布）。
 サンプル音源を一切使わず、**弦の振動をその場で計算**して音を作っています。
 
 - 公開パス: `/guitar/`（同一リポジトリの [Akatsuki Synth](README.md) / [Aozora Grand Piano](PIANO.md) の姉妹アプリ）
