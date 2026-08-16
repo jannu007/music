@@ -4,7 +4,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "shop.youkoku.synth",
-      "sha256_cert_fingerprints": ["REPLACE_WITH_SYNTH_UPLOAD_KEY_SHA256_FINGERPRINT"]
+      "sha256_cert_fingerprints": ["6D:B7:41:52:26:59:58:74:B9:B6:36:2C:92:2F:CB:F1:4F:93:CB:F8:D9:8F:EA:47:4C:63:CE:87:70:0C:D6:F3"]
     }
   },
   {
@@ -12,7 +12,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "shop.youkoku.piano",
-      "sha256_cert_fingerprints": ["REPLACE_WITH_PIANO_UPLOAD_KEY_SHA256_FINGERPRINT"]
+      "sha256_cert_fingerprints": ["6D:B7:41:52:26:59:58:74:B9:B6:36:2C:92:2F:CB:F1:4F:93:CB:F8:D9:8F:EA:47:4C:63:CE:87:70:0C:D6:F3"]
     }
   },
   {
@@ -20,7 +20,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "shop.youkoku.vocal",
-      "sha256_cert_fingerprints": ["REPLACE_WITH_VOCAL_UPLOAD_KEY_SHA256_FINGERPRINT"]
+      "sha256_cert_fingerprints": ["6D:B7:41:52:26:59:58:74:B9:B6:36:2C:92:2F:CB:F1:4F:93:CB:F8:D9:8F:EA:47:4C:63:CE:87:70:0C:D6:F3"]
     }
   },
   {
@@ -28,7 +28,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "shop.youkoku.bass",
-      "sha256_cert_fingerprints": ["REPLACE_WITH_BASS_UPLOAD_KEY_SHA256_FINGERPRINT"]
+      "sha256_cert_fingerprints": ["6D:B7:41:52:26:59:58:74:B9:B6:36:2C:92:2F:CB:F1:4F:93:CB:F8:D9:8F:EA:47:4C:63:CE:87:70:0C:D6:F3"]
     }
   },
   {
@@ -36,7 +36,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "shop.youkoku.drums",
-      "sha256_cert_fingerprints": ["REPLACE_WITH_DRUMS_UPLOAD_KEY_SHA256_FINGERPRINT"]
+      "sha256_cert_fingerprints": ["6D:B7:41:52:26:59:58:74:B9:B6:36:2C:92:2F:CB:F1:4F:93:CB:F8:D9:8F:EA:47:4C:63:CE:87:70:0C:D6:F3"]
     }
   },
   {
@@ -44,7 +44,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "shop.youkoku.guitar",
-      "sha256_cert_fingerprints": ["REPLACE_WITH_GUITAR_UPLOAD_KEY_SHA256_FINGERPRINT"]
+      "sha256_cert_fingerprints": ["6D:B7:41:52:26:59:58:74:B9:B6:36:2C:92:2F:CB:F1:4F:93:CB:F8:D9:8F:EA:47:4C:63:CE:87:70:0C:D6:F3"]
     }
   }
 ]
