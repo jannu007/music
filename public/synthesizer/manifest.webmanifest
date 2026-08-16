@@ -1,7 +1,7 @@
 {
   "name": "Akatsuki Synth",
   "short_name": "Akatsuki",
-  "description": "完全無料のバーチャルアナログ・シンセサイザー / DTM ワークステーション。オフラインでも動作します。",
+  "description": "バーチャルアナログ・シンセサイザー / DTM ワークステーション。広告なし・オフラインでも動作します。",
   "id": "/synthesizer/",
   "start_url": "./",
   "scope": "./",

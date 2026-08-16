@@ -1,7 +1,7 @@
 {
   "name": "Aozora Grand Piano",
   "short_name": "Aozora Piano",
-  "description": "サンプル音源を使わない物理モデリングのグランドピアノ。完全無料・広告なし・オフライン動作。",
+  "description": "サンプル音源を使わない物理モデリングのグランドピアノ。広告なし・オフライン動作。",
   "id": "/piano/",
   "start_url": "./",
   "scope": "./",

@@ -1,7 +1,7 @@
 {
   "name": "Hoshizora Vocal",
   "short_name": "Hoshizora",
-  "description": "収録音声を使わない日本語歌声シンセサイザー。完全無料・広告なし・オフライン動作。",
+  "description": "収録音声を使わない日本語歌声シンセサイザー。広告なし・オフライン動作。",
   "id": "/vocal/",
   "start_url": "./",
   "scope": "./",

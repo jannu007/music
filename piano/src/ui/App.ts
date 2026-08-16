@@ -999,7 +999,7 @@ export class PianoApp {
         打弦位置・ダンパー・共鳴を計算して、その場で音を合成しています。
         そのためアプリ本体は数百KBで、追加ダウンロードも通信も不要です。
       </p>
-      <p class="help-free">完全無料・広告なし・アカウント登録なし。オフラインでも動作します。</p>
+      <p class="help-free">広告なし・追跡なし・アカウント登録なし。オフラインでも動作します。</p>
       <p class="help-small">
         書き出した音源はご自由にお使いいただけます（商用利用可・クレジット表記不要）。
         <a href="./privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>
