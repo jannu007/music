@@ -1,5 +1,6 @@
 import { NOTE_NAMES, type Tuning } from '../music/tunings';
 import { el } from './controls';
+import { t } from './i18n';
 
 export type LabelMode = 'off' | 'note' | 'degree';
 
@@ -52,7 +53,7 @@ export class Fretboard {
 
     this.board = el('div', 'fretboard');
     this.strumBar = el('div', 'strum-bar');
-    this.strumBar.innerHTML = '<span>ここを左右になぞってストローク</span>';
+    this.strumBar.innerHTML = `<span>${t('fretboard.strumHint')}</span>`;
     this.root.append(this.board, this.strumBar);
 
     this.build();
