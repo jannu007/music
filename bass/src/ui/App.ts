@@ -32,18 +32,12 @@ import { DEMOS } from '../data/demos';
 import { Fretboard, type LabelMode } from './Fretboard';
 import { PATTERNS, Rhythm } from './Rhythm';
 import { button, el, segmented, select, slider, switchRow } from './controls';
+import { getLocale, onLocaleChange, t, toggleLocale } from './i18n';
+import './strings';
 
 const STORAGE_KEY = 'kurogane-bass-v1';
 
-const TECHNIQUE_LABELS: { value: Technique; label: string; hint: string }[] = [
-  { value: 'finger', label: '指', hint: '2フィンガー。基本の弾き方' },
-  { value: 'pick', label: 'ピック', hint: '硬いアタック' },
-  { value: 'slap', label: 'スラップ', hint: '親指で叩く' },
-  { value: 'pop', label: 'プル', hint: '指で引っ張る' },
-  { value: 'mute', label: 'ミュート', hint: 'ブリッジミュート' },
-  { value: 'ghost', label: 'ゴースト', hint: '音程のない打音' },
-  { value: 'harmonic', label: 'ハーモニクス', hint: '5・7・12フレットで倍音' },
-];
+const TECHNIQUE_VALUES: Technique[] = ['finger', 'pick', 'slap', 'pop', 'mute', 'ghost', 'harmonic'];
 
 interface UiState {
   presetId: string;
@@ -111,9 +105,12 @@ export class BassApp {
   private recordButton!: HTMLButtonElement;
   private audioReady = false;
   private initPromise: Promise<void> | null = null;
+  private globalListenersBound = false;
 
   constructor(root: HTMLElement) {
     this.root = root;
+    document.documentElement.lang = getLocale();
+    onLocaleChange(() => this.build());
     this.load();
     this.player = new Player(this.engine);
     this.build();
@@ -175,7 +172,7 @@ export class BassApp {
         })
         .catch((err) => {
           this.initPromise = null;
-          this.setStatus(`オーディオを開始できません: ${err}`);
+          this.setStatus(t('status.audioError', { err: String(err) }));
           throw err;
         });
     }
@@ -267,13 +264,13 @@ export class BassApp {
       <span class="brand-mark" aria-hidden="true"></span>
       <span class="brand-text">
         <strong>Kurogane Bass</strong>
-        <small>物理モデリング・エレキベース</small>
+        <small>${t('brand.subtitle')}</small>
       </span>`;
 
     const presetSelect = el('select', 'preset-select');
-    presetSelect.setAttribute('aria-label', '音色プリセット');
+    presetSelect.setAttribute('aria-label', t('preset.ariaLabel'));
     for (const preset of PRESETS) {
-      const option = el('option', undefined, preset.name);
+      const option = el('option', undefined, t(`preset.${preset.id}.name`));
       option.value = preset.id;
       presetSelect.append(option);
     }
@@ -287,18 +284,20 @@ export class BassApp {
       '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
       + '<circle cx="12" cy="12" r="9.4" fill="none" stroke="currentColor" stroke-width="1.7" />'
       + '<rect x="8.6" y="8.6" width="6.8" height="6.8" rx="1.2" fill="currentColor" />'
-      + '</svg><span class="btn-text">全停止</span>';
-    panicButton.title = 'すべての音を止める（Esc）';
-    panicButton.setAttribute('aria-label', 'すべての音を止める');
+      + `</svg><span class="btn-text">${t('panic.label')}</span>`;
+    panicButton.title = t('panic.title');
+    panicButton.setAttribute('aria-label', t('panic.ariaLabel'));
+
+    const langButton = button(t('lang.toggle'), 'ghost round lang-btn', () => toggleLocale());
 
     const headerActions = el('div', 'header-actions');
-    headerActions.append(panicButton, button('?', 'ghost round', () => this.toggleHelp()));
+    headerActions.append(langButton, panicButton, button(t('help.button'), 'ghost round', () => this.toggleHelp()));
     header.append(brand, presetSelect, this.statusEl, headerActions);
 
     // ---------- 指板 ----------
     const stage = el('section', 'stage');
     const canvas = el('canvas', 'fret-canvas');
-    canvas.setAttribute('aria-label', 'ベースの指板');
+    canvas.setAttribute('aria-label', t('fretboard.ariaLabel'));
     stage.append(canvas);
 
     const overlay = el('div', 'stage-overlay');
@@ -314,11 +313,11 @@ export class BassApp {
     const playBar = el('div', 'play-bar');
     const techWrap = el('div', 'tech-row');
     this.techButtons = [];
-    for (const tech of TECHNIQUE_LABELS) {
-      const btn = button(tech.label, 'tech-btn', () => this.setTechnique(tech.value));
-      btn.dataset.tech = tech.value;
-      btn.title = tech.hint;
-      if (tech.value === this.ui.technique) btn.classList.add('active');
+    for (const value of TECHNIQUE_VALUES) {
+      const btn = button(t(`technique.${value}.label`), 'tech-btn', () => this.setTechnique(value));
+      btn.dataset.tech = value;
+      btn.title = t(`technique.${value}.hint`);
+      if (value === this.ui.technique) btn.classList.add('active');
       this.techButtons.push(btn);
       techWrap.append(btn);
     }
@@ -329,7 +328,7 @@ export class BassApp {
       button('◀', 'ghost small', () => this.shiftPosition(-1)),
       this.positionLabel,
       button('▶', 'ghost small', () => this.shiftPosition(1)),
-      button('全ミュート', 'ghost small', () => this.muteAll())
+      button(t('position.muteAll'), 'ghost small', () => this.muteAll())
     );
     playBar.append(techWrap, posWrap);
 
@@ -337,12 +336,13 @@ export class BassApp {
     const panel = el('section', 'panel');
     const tabs = el('nav', 'tabs');
     const tabDefs = [
-      { id: 'tone', label: '音色' },
-      { id: 'amp', label: 'アンプ' },
-      { id: 'play', label: '演奏' },
-      { id: 'rec', label: '録音' },
-      { id: 'demo', label: 'フレーズ' },
+      { id: 'tone', label: t('tab.tone') },
+      { id: 'amp', label: t('tab.amp') },
+      { id: 'play', label: t('tab.play') },
+      { id: 'rec', label: t('tab.rec') },
+      { id: 'demo', label: t('tab.demo') },
     ];
+    this.tabButtons = [];
     for (const def of tabDefs) {
       const btn = el('button', 'tab', def.label);
       btn.type = 'button';
@@ -382,7 +382,10 @@ export class BassApp {
     // 最初の操作でオーディオを起動する（ブラウザの自動再生制限対策）
     const kick = () => void this.ensureAudio().catch(() => {});
     app.addEventListener('pointerdown', kick, { once: true });
-    window.addEventListener('keydown', kick, { once: true });
+    if (!this.globalListenersBound) {
+      this.globalListenersBound = true;
+      window.addEventListener('keydown', kick, { once: true });
+    }
   }
 
   /** チューニングや表示範囲を指板へ反映する */
@@ -404,10 +407,10 @@ export class BassApp {
       return;
     }
     const parts: string[] = [];
-    parts.push(this.audioReady ? '準備完了' : '指板をタップすると開始');
+    parts.push(this.audioReady ? t('status.ready') : t('status.tapToStart'));
     const tuning = findTuning(this.settings.tuningId);
-    parts.push(tuning.name);
-    if (this.midi && this.midi.devices.length > 0) parts.push(`MIDI: ${this.midi.devices.join(', ')}`);
+    parts.push(t(`tuning.${tuning.id}.name`));
+    if (this.midi && this.midi.devices.length > 0) parts.push(t('status.midi', { devices: this.midi.devices.join(', ') }));
     this.statusEl.textContent = parts.join(' ・ ');
   }
 
@@ -428,7 +431,8 @@ export class BassApp {
   private updatePositionLabel() {
     const [start, count] = this.fretboard.getRange();
     const first = start === 0 ? 0 : start;
-    this.positionLabel.textContent = `${first}〜${start === 0 ? count : start + count - 1}フレット`;
+    const last = start === 0 ? count : start + count - 1;
+    this.positionLabel.textContent = t('position.range', { first, last });
   }
 
   private showTab(id: string) {
@@ -454,106 +458,106 @@ export class BassApp {
       const card = el('button', 'preset-card');
       card.type = 'button';
       if (preset.id === this.ui.presetId) card.classList.add('active');
-      card.append(el('strong', undefined, preset.name), el('span', undefined, preset.description));
+      card.append(el('strong', undefined, t(`preset.${preset.id}.name`)), el('span', undefined, t(`preset.${preset.id}.description`)));
       card.addEventListener('click', () => {
         this.selectPreset(preset.id);
         this.showTab('tone');
       });
       grid.append(card);
     }
-    body.append(el('h2', 'panel-title', '音色プリセット'), grid);
+    body.append(el('h2', 'panel-title', t('panel.tonePresets')), grid);
 
     const strings = el('div', 'ctl-grid');
     strings.append(
       slider({
-        label: '弦の明るさ',
+        label: t('ctl.brightness.label'),
         min: 0, max: 1, step: 0.01, value: this.settings.brightness,
         format: (v) => `${Math.round(v * 100)}`,
-        hint: '使い込んだ弦 ← → 張りたての弦',
+        hint: t('ctl.brightness.hint'),
         onInput: (v) => { this.settings.brightness = v; this.commit(); },
       }),
       slider({
-        label: 'サステイン（余韻）',
+        label: t('ctl.sustain.label'),
         min: 0.4, max: 1.7, step: 0.01, value: this.settings.sustain,
         format: (v) => `${v.toFixed(2)}×`,
         onInput: (v) => { this.settings.sustain = v; this.commit(); },
       }),
       slider({
-        label: '弦の硬さ（ゴリッと感）',
+        label: t('ctl.stiffness.label'),
         min: 0, max: 1, step: 0.01, value: this.settings.stiffness,
         format: (v) => `${Math.round(v * 100)}`,
-        hint: '倍音が少しずれて生まれる、太い弦特有の唸り',
+        hint: t('ctl.stiffness.hint'),
         onInput: (v) => { this.settings.stiffness = v; this.commit(); },
       }),
       slider({
-        label: 'フレットのビビり',
+        label: t('ctl.buzz.label'),
         min: 0, max: 1, step: 0.01, value: this.settings.buzz,
         format: (v) => `${Math.round(v * 100)}`,
-        hint: '弦高を下げるほど、強く弾いたときに「バチッ」と鳴ります',
+        hint: t('ctl.buzz.hint'),
         onInput: (v) => { this.settings.buzz = v; this.commit(); },
       }),
       slider({
-        label: '弾く位置',
+        label: t('ctl.pluckPos.label'),
         min: -1, max: 1, step: 0.01, value: this.settings.pluckPos,
         format: (v) => (v > 0 ? `+${v.toFixed(2)}` : v.toFixed(2)),
-        hint: 'ブリッジ寄り（硬い） ← → ネック寄り（丸い）',
+        hint: t('ctl.pluckPos.hint'),
         onInput: (v) => { this.settings.pluckPos = v; this.commit(); },
       }),
       slider({
-        label: '撥弦ノイズ',
+        label: t('ctl.noise.label'),
         min: 0, max: 1, step: 0.01, value: this.settings.noise,
         format: (v) => `${Math.round(v * 100)}`,
-        hint: '指やピックが弦に当たる音',
+        hint: t('ctl.noise.hint'),
         onInput: (v) => { this.settings.noise = v; this.commit(); },
       }),
       slider({
-        label: 'うなり',
+        label: t('ctl.beat.label'),
         min: 0, max: 1, step: 0.01, value: this.settings.beat,
         format: (v) => `${Math.round(v * 100)}`,
-        hint: '縦振動と横振動のズレ。太さと生々しさが出ます',
+        hint: t('ctl.beat.hint'),
         onInput: (v) => { this.settings.beat = v; this.commit(); },
       }),
       slider({
-        label: '他弦の共鳴',
+        label: t('ctl.sympathetic.label'),
         min: 0, max: 1, step: 0.01, value: this.settings.sympathetic,
         format: (v) => `${Math.round(v * 100)}`,
-        hint: '押さえていない弦がブリッジ越しに一緒に鳴ります',
+        hint: t('ctl.sympathetic.hint'),
         onInput: (v) => { this.settings.sympathetic = v; this.commit(); },
       })
     );
-    body.append(el('h2', 'panel-title', '弦'), strings);
+    body.append(el('h2', 'panel-title', t('panel.strings')), strings);
 
     const pickups = el('div', 'ctl-grid');
     pickups.append(
       slider({
-        label: 'ピックアップ・バランス',
+        label: t('ctl.pickupBlend.label'),
         min: 0, max: 1, step: 0.01, value: this.settings.pickupBlend,
-        format: (v) => (v < 0.05 ? 'フロント' : v > 0.95 ? 'リア' : `F ${Math.round((1 - v) * 100)} : R ${Math.round(v * 100)}`),
-        hint: 'フロントは太く、リアは細くて硬い音になります',
+        format: (v) => (v < 0.05 ? t('pickup.front') : v > 0.95 ? t('pickup.rear') : `F ${Math.round((1 - v) * 100)} : R ${Math.round(v * 100)}`),
+        hint: t('ctl.pickupBlend.hint'),
         onInput: (v) => { this.settings.pickupBlend = v; this.commit(); },
       }),
       slider({
-        label: 'ピックアップの効き',
+        label: t('ctl.pickupTone.label'),
         min: 0, max: 1, step: 0.01, value: this.settings.pickupTone,
         format: (v) => `${Math.round(v * 100)}`,
-        hint: 'コイルの共振。上げるほど抜けが良く、下げるとこもります',
+        hint: t('ctl.pickupTone.hint'),
         onInput: (v) => { this.settings.pickupTone = v; this.commit(); },
       }),
       slider({
-        label: 'フロントPUの位置',
+        label: t('ctl.pickupNeck.label'),
         min: 0.18, max: 0.42, step: 0.005, value: this.settings.pickupNeck,
         format: (v) => `${Math.round(v * 100)}%`,
-        hint: 'ブリッジからの距離。倍音の欠け方が変わります',
+        hint: t('ctl.pickupNeck.hint'),
         onInput: (v) => { this.settings.pickupNeck = v; this.commit(); },
       }),
       slider({
-        label: 'リアPUの位置',
+        label: t('ctl.pickupBridge.label'),
         min: 0.05, max: 0.22, step: 0.005, value: this.settings.pickupBridge,
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { this.settings.pickupBridge = v; this.commit(); },
       })
     );
-    body.append(el('h2', 'panel-title', 'ピックアップ'), pickups);
+    body.append(el('h2', 'panel-title', t('panel.pickups')), pickups);
   }
 
   private buildAmpTab() {
@@ -562,17 +566,17 @@ export class BassApp {
 
     amp.append(
       slider({
-        label: 'ドライブ（歪み）',
+        label: t('ctl.drive.label'),
         min: 0, max: 1, step: 0.01, value: this.settings.drive,
         format: (v) => `${Math.round(v * 100)}`,
-        hint: '低音はクリーンのまま、中高域だけを歪ませます',
+        hint: t('ctl.drive.hint'),
         onInput: (v) => { this.settings.drive = v; this.commit(); },
       }),
       slider({
-        label: 'コンプレッサー',
+        label: t('ctl.comp.label'),
         min: 0, max: 1, step: 0.01, value: this.settings.comp,
         format: (v) => `${Math.round(v * 100)}`,
-        hint: '粒を揃えます。指弾きやスラップで特に有効',
+        hint: t('ctl.comp.hint'),
         onInput: (v) => { this.settings.comp = v; this.commit(); },
       }),
       slider({
@@ -588,10 +592,10 @@ export class BassApp {
         onInput: (v) => { this.settings.ampMid = v; this.commit(); },
       }),
       slider({
-        label: 'MIDDLE の周波数',
+        label: t('ctl.ampMidFreq.label'),
         min: 200, max: 2000, step: 10, value: this.settings.ampMidFreq,
         format: (v) => `${Math.round(v)} Hz`,
-        hint: '250Hz付近は太さ、800Hz付近は輪郭に効きます',
+        hint: t('ctl.ampMidFreq.hint'),
         onInput: (v) => { this.settings.ampMidFreq = v; this.commit(); },
       }),
       slider({
@@ -601,77 +605,77 @@ export class BassApp {
         onInput: (v) => { this.settings.ampTreble = v; this.commit(); },
       })
     );
-    body.append(el('h2', 'panel-title', 'アンプ'), amp);
+    body.append(el('h2', 'panel-title', t('panel.amp')), amp);
 
     const cabOptions = (Object.keys(CABS) as CabType[]).map((key) => ({
       value: key,
-      label: CABS[key].label,
+      label: t(`cab.${key}.label`),
     }));
     const cabBox = el('div', 'ctl-grid');
     cabBox.append(
-      segmented<CabType>('キャビネット', cabOptions, this.settings.cab, (v) => {
+      segmented<CabType>(t('panel.cabinet'), cabOptions, this.settings.cab, (v) => {
         this.settings.cab = v;
         this.commit();
         this.showTab('amp');
       })
     );
-    const cabNote = el('p', 'panel-note', CABS[this.settings.cab].hint);
-    body.append(el('h2', 'panel-title', 'キャビネット'), cabBox, cabNote);
+    const cabNote = el('p', 'panel-note', t(`cab.${this.settings.cab}.hint`));
+    body.append(el('h2', 'panel-title', t('panel.cabinet')), cabBox, cabNote);
 
     const fx = el('div', 'ctl-grid');
     fx.append(
       slider({
-        label: 'オートワウ',
+        label: t('ctl.wah.label'),
         min: 0, max: 1, step: 0.01, value: this.settings.wah,
-        format: (v) => (v < 0.005 ? 'オフ' : `${Math.round(v * 100)}`),
-        hint: '弾く強さでフィルターが開くエンベロープフィルター',
+        format: (v) => (v < 0.005 ? t('fx.off') : `${Math.round(v * 100)}`),
+        hint: t('ctl.wah.hint'),
         onInput: (v) => { this.settings.wah = v; this.commit(); },
       }),
       slider({
-        label: 'ワウの戻りの速さ',
+        label: t('ctl.wahSens.label'),
         min: 0, max: 1, step: 0.01, value: this.settings.wahSens,
         format: (v) => `${Math.round(v * 100)}`,
         onInput: (v) => { this.settings.wahSens = v; this.commit(); },
       }),
       slider({
-        label: 'コーラス',
+        label: t('ctl.chorus.label'),
         min: 0, max: 1, step: 0.01, value: this.settings.chorus,
-        format: (v) => (v < 0.005 ? 'オフ' : `${Math.round(v * 100)}`),
-        hint: 'フレットレスやバラードで広がりが出ます',
+        format: (v) => (v < 0.005 ? t('fx.off') : `${Math.round(v * 100)}`),
+        hint: t('ctl.chorus.hint'),
         onInput: (v) => { this.settings.chorus = v; this.commit(); },
       }),
       segmented<ReverbType>(
-        '残響',
+        t('reverb.label'),
         [
-          { value: 'off', label: 'オフ' },
+          { value: 'off', label: t('fx.off') },
           ...(Object.keys(ROOMS) as (keyof typeof ROOMS)[]).map((key) => ({
             value: key as ReverbType,
-            label: ROOMS[key].label,
+            label: t(`reverb.${key}.label`),
           })),
         ],
         this.settings.reverbType,
         (v) => { this.settings.reverbType = v; this.commit(); }
       ),
       slider({
-        label: '残響の量',
+        label: t('ctl.reverbMix.label'),
         min: 0, max: 0.6, step: 0.01, value: this.settings.reverbMix,
         format: (v) => `${Math.round(v * 166)}`,
         onInput: (v) => { this.settings.reverbMix = v; this.commit(); },
       }),
       slider({
-        label: 'マスター音量',
+        label: t('ctl.volume.label'),
         min: 0, max: 1, step: 0.01, value: this.settings.volume,
         format: (v) => `${Math.round(v * 100)}`,
         onInput: (v) => { this.settings.volume = v; this.commit(); },
       })
     );
-    body.append(el('h2', 'panel-title', 'エフェクト'), fx);
+    body.append(el('h2', 'panel-title', t('panel.fx')), fx);
 
     body.append(
       el(
         'p',
         'panel-note',
-        'キャビネットも残響も、その場で計算して作っています。音声ファイルのダウンロードは一切ありません。'
+        t('amp.note')
       )
     );
   }
@@ -682,8 +686,8 @@ export class BassApp {
     const instrument = el('div', 'ctl-grid');
     instrument.append(
       select(
-        'チューニング',
-        TUNINGS.map((t) => ({ value: t.id, label: t.name })),
+        t('ctl.tuning.label'),
+        TUNINGS.map((tuning) => ({ value: tuning.id, label: t(`tuning.${tuning.id}.name`) })),
         this.settings.tuningId,
         (v) => {
           this.settings.tuningId = v;
@@ -694,32 +698,32 @@ export class BassApp {
         }
       )
     );
-    const tuningNote = el('p', 'panel-note', findTuning(this.settings.tuningId).hint);
+    const tuningNote = el('p', 'panel-note', t(`tuning.${findTuning(this.settings.tuningId).id}.hint`));
 
     const options = el('div', 'ctl-grid');
     options.append(
       switchRow(
-        'フレットレス',
+        t('ctl.fretless.label'),
         this.settings.fretless,
         (v) => {
           this.settings.fretless = v;
           this.fretboard.setFretless(v);
           this.commit();
         },
-        'フレットの無い指板。スライドが滑らかになります'
+        t('ctl.fretless.hint')
       ),
       switchRow(
-        '指を離しても鳴らし続ける',
+        t('ctl.letRing.label'),
         this.ui.letRing,
         (v) => { this.ui.letRing = v; this.save(); },
-        'オフにすると、指を離した瞬間に音が止まります'
+        t('ctl.letRing.hint')
       ),
       segmented<LabelMode>(
-        '指板の音名表示',
+        t('ctl.labelMode.label'),
         [
-          { value: 'off', label: 'なし' },
-          { value: 'root', label: 'ルートのみ' },
-          { value: 'all', label: 'すべて' },
+          { value: 'off', label: t('labelMode.off') },
+          { value: 'root', label: t('labelMode.root') },
+          { value: 'all', label: t('labelMode.all') },
         ],
         this.ui.labelMode,
         (v) => {
@@ -729,9 +733,9 @@ export class BassApp {
         }
       ),
       select(
-        'キー（ルート音を光らせる）',
+        t('ctl.rootPitch.label'),
         [
-          { value: '-1', label: '指定しない' },
+          { value: '-1', label: t('rootPitch.none') },
           ...Array.from({ length: 12 }, (_, i) => ({ value: String(i), label: pitchClass(i) })),
         ],
         String(this.ui.rootPitch),
@@ -742,7 +746,7 @@ export class BassApp {
         }
       ),
       slider({
-        label: '表示するフレット数',
+        label: t('ctl.fretCount.label'),
         min: 4, max: 20, step: 1, value: this.ui.fretCount,
         format: (v) => `${v}`,
         onInput: (v) => {
@@ -754,58 +758,58 @@ export class BassApp {
         },
       }),
       slider({
-        label: 'タッチの強さ',
+        label: t('ctl.touch.label'),
         min: 0.2, max: 1, step: 0.01, value: this.ui.baseVelocity,
         format: (v) => `${Math.round(v * 100)}`,
-        hint: '筆圧に対応した端末では、押す強さでも変化します',
+        hint: t('ctl.touch.hint'),
         onInput: (v) => { this.ui.baseVelocity = v; this.save(); },
       })
     );
-    body.append(el('h2', 'panel-title', '楽器'), instrument, tuningNote, options);
+    body.append(el('h2', 'panel-title', t('panel.instrument')), instrument, tuningNote, options);
 
     const feel = el('div', 'ctl-grid');
     feel.append(
       slider({
-        label: '基準ピッチ A4',
+        label: t('ctl.a4.label'),
         min: 415, max: 448, step: 0.5, value: this.settings.a4,
         format: (v) => `${v.toFixed(1)} Hz`,
         onInput: (v) => { this.settings.a4 = v; this.commit(); },
       }),
       slider({
-        label: 'ベロシティカーブ',
+        label: t('ctl.velCurve.label'),
         min: 0.5, max: 2.2, step: 0.01, value: this.settings.velCurve,
         format: (v) => v.toFixed(2),
-        hint: '大きいほど強く弾かないと音量が出ません',
+        hint: t('ctl.velCurve.hint'),
         onInput: (v) => { this.settings.velCurve = v; this.commit(); },
       }),
       slider({
-        label: 'ダイナミクス',
+        label: t('ctl.dynamics.label'),
         min: 0.4, max: 1.4, step: 0.01, value: this.settings.dynamics,
         format: (v) => v.toFixed(2),
         onInput: (v) => { this.settings.dynamics = v; this.commit(); },
       }),
       slider({
-        label: 'ミュートの速さ',
+        label: t('ctl.release.label'),
         min: 0, max: 1, step: 0.01, value: this.settings.release,
         format: (v) => `${Math.round(v * 100)}`,
-        hint: '指を置いてから音が止まるまでの速さ',
+        hint: t('ctl.release.hint'),
         onInput: (v) => { this.settings.release = v; this.commit(); },
       }),
       slider({
-        label: 'スライドの速さ',
+        label: t('ctl.glide.label'),
         min: 0.01, max: 0.25, step: 0.005, value: this.settings.glide,
         format: (v) => `${Math.round(v * 1000)} ms`,
         onInput: (v) => { this.settings.glide = v; this.commit(); },
       })
     );
-    body.append(el('h2', 'panel-title', 'タッチ'), feel);
+    body.append(el('h2', 'panel-title', t('panel.touch')), feel);
 
     // リズム
     const rhythmBox = el('div', 'ctl-grid');
     rhythmBox.append(
       segmented(
-        'リズム',
-        PATTERNS.map((p) => ({ value: p.id, label: p.name })),
+        t('ctl.rhythm.label'),
+        PATTERNS.map((p) => ({ value: p.id, label: t(`rhythm.${p.id}.name`) })),
         this.ui.rhythmId,
         (v) => {
           this.ui.rhythmId = v;
@@ -814,7 +818,7 @@ export class BassApp {
         }
       ),
       slider({
-        label: 'テンポ',
+        label: t('ctl.tempo.label'),
         min: 40, max: 220, step: 1, value: this.ui.bpm,
         format: (v) => `${v} BPM`,
         onInput: (v) => {
@@ -824,7 +828,7 @@ export class BassApp {
         },
       }),
       slider({
-        label: 'リズムの音量',
+        label: t('ctl.rhythmVolume.label'),
         min: 0, max: 1, step: 0.01, value: this.ui.rhythmVolume,
         format: (v) => `${Math.round(v * 100)}`,
         onInput: (v) => {
@@ -833,46 +837,46 @@ export class BassApp {
           this.save();
         },
       }),
-      switchRow('リズムを鳴らす', this.rhythm.running, (on) => {
+      switchRow(t('ctl.rhythmToggle.label'), this.rhythm.running, (on) => {
         void this.ensureAudio().then(() => {
           if (on) this.rhythm.start(this.ui.bpm);
           else this.rhythm.stop();
         });
-      }, 'スペースキーでも切り替えられます')
+      }, t('ctl.rhythmToggle.hint'))
     );
-    body.append(el('h2', 'panel-title', '練習ツール'), rhythmBox);
+    body.append(el('h2', 'panel-title', t('panel.practiceTools')), rhythmBox);
 
     // MIDI
     const midiBox = el('div', 'midi-box');
     if (MidiInput.supported) {
       midiBox.append(
-        button(this.midi ? 'MIDI 再検出' : 'MIDIキーボードを接続', 'primary', () => void this.connectMidi())
+        button(this.midi ? t('midi.reconnect') : t('midi.connect'), 'primary', () => void this.connectMidi())
       );
       const list = el('span', 'panel-note');
       list.textContent = this.midi?.devices.length
-        ? `接続中: ${this.midi.devices.join(', ')}`
-        : 'MIDIキーボードの音は、自動でいちばん自然な弦とフレットに割り当てられます。';
+        ? t('midi.connected', { devices: this.midi.devices.join(', ') })
+        : t('midi.hint');
       midiBox.append(list);
     } else {
       midiBox.append(
-        el('span', 'panel-note', 'このブラウザは Web MIDI に対応していません（Chrome / Edge 推奨）。')
+        el('span', 'panel-note', t('midi.unsupported'))
       );
     }
-    body.append(el('h2', 'panel-title', 'MIDI'), midiBox);
+    body.append(el('h2', 'panel-title', t('panel.midi')), midiBox);
   }
 
   private buildRecordTab() {
     const body = this.panelBody;
-    body.append(el('h2', 'panel-title', '録音と書き出し'));
+    body.append(el('h2', 'panel-title', t('panel.record')));
 
     const row = el('div', 'button-row');
     this.recordButton = button(
-      this.recorder.recording ? '■ 録音停止' : '● 録音開始',
+      this.recorder.recording ? t('record.stop') : t('record.start'),
       this.recorder.recording ? 'danger' : 'primary',
       () => this.toggleRecording()
     );
-    const playBtn = button('▶ 再生', 'ghost', () => this.playRecording());
-    const clearBtn = button('クリア', 'ghost', () => {
+    const playBtn = button(t('record.play'), 'ghost', () => this.playRecording());
+    const clearBtn = button(t('record.clear'), 'ghost', () => {
       this.recorder.clear();
       this.lastSequence = null;
       this.showTab('rec');
@@ -883,53 +887,52 @@ export class BassApp {
     const info = el('p', 'panel-note');
     const count = this.recorder.events.filter((e) => e.type === 'pluck').length;
     info.textContent = this.recorder.isEmpty
-      ? '録音すると、演奏がイベントとして記録されます。あとから音色を変えて書き出せます。'
-      : `録音済み: ${count} 音 / ${this.formatTime(this.recorder.duration(0))}`;
+      ? t('record.empty')
+      : t('record.count', { count, time: this.formatTime(this.recorder.duration(0)) });
     body.append(info);
 
     const exportRow = el('div', 'button-row');
-    const wavBtn = button('WAV で書き出し', 'primary', () => void this.exportWav());
-    const midiBtn = button('MIDI で書き出し', 'ghost', () => this.exportMidi());
+    const wavBtn = button(t('export.wav'), 'primary', () => void this.exportWav());
+    const midiBtn = button(t('export.midi'), 'ghost', () => this.exportMidi());
     if (this.exporting) {
       wavBtn.disabled = true;
-      wavBtn.textContent = '書き出し中…';
+      wavBtn.textContent = t('export.exporting');
     }
     exportRow.append(wavBtn, midiBtn);
-    body.append(el('h2', 'panel-title', 'ファイル'), exportRow);
+    body.append(el('h2', 'panel-title', t('panel.file')), exportRow);
 
     body.append(
       el(
         'p',
         'panel-note',
-        'WAV は 48kHz / 24bit・ステレオで、現在の音色のまま再合成して書き出します。'
-        + '作成した音源の利用に制限はありません（商用利用も自由です）。'
+        t('export.note')
       )
     );
   }
 
   private buildDemoTab() {
     const body = this.panelBody;
-    body.append(el('h2', 'panel-title', 'デモ・フレーズ'));
+    body.append(el('h2', 'panel-title', t('panel.demo')));
 
     const list = el('div', 'demo-list');
     for (const demo of DEMOS) {
       const card = el('div', 'demo-card');
       const texts = el('div', 'demo-texts');
       texts.append(
-        el('strong', undefined, demo.title),
-        el('span', undefined, `${demo.style} ・ ${demo.bpm} BPM ・ ${demo.note}`)
+        el('strong', undefined, t(`demo.${demo.id}.title`)),
+        el('span', undefined, `${t(`demo.${demo.id}.style`)} ・ ${demo.bpm} BPM ・ ${t(`demo.${demo.id}.note`)}`)
       );
-      card.append(texts, button('▶ 再生', 'primary', () => this.playDemo(demo.id)));
+      card.append(texts, button(t('demo.play'), 'primary', () => this.playDemo(demo.id)));
       list.append(card);
     }
     body.append(list);
 
     const row = el('div', 'button-row');
-    row.append(button('■ 停止', 'ghost', () => this.stopPlayback()));
+    row.append(button(t('demo.stop'), 'ghost', () => this.stopPlayback()));
     body.append(row);
 
     body.append(
-      switchRow('推奨音色とリズムに切り替えて再生する', this.ui.useDemoPreset, (v) => {
+      switchRow(t('demo.useDemoPreset'), this.ui.useDemoPreset, (v) => {
         this.ui.useDemoPreset = v;
         this.save();
       })
@@ -939,8 +942,7 @@ export class BassApp {
       el(
         'p',
         'panel-note',
-        'デモはすべて本アプリのオリジナル・フレーズです（権利処理は不要）。'
-        + '再生中の演奏もそのまま WAV / MIDI に書き出せます。'
+        t('demo.note')
       )
     );
   }
@@ -953,7 +955,7 @@ export class BassApp {
     const preset = PRESETS.find((p) => p.id === id);
     if (preset) {
       this.setTechnique(preset.technique);
-      this.flashNowPlaying(`音色: ${preset.name}`);
+      this.flashNowPlaying(t('flash.presetChanged', { name: t(`preset.${preset.id}.name`) }));
     }
     this.fretboard.setFretless(this.settings.fretless);
     this.commit();
@@ -971,7 +973,7 @@ export class BassApp {
     this.midiNotes.clear();
     this.resetTransport();
     this.restoreDemoPreset();
-    this.flashNowPlaying('すべての音を停止しました');
+    this.flashNowPlaying(t('flash.allStopped'));
     if (this.activeTab === 'play') this.showTab('play');
   }
 
@@ -1025,7 +1027,7 @@ export class BassApp {
     }
     await this.ensureAudio();
     const ok = await this.midi.init();
-    this.setStatus(ok ? undefined : 'MIDIデバイスに接続できませんでした');
+    this.setStatus(ok ? undefined : t('status.midiFailed'));
     if (this.activeTab === 'play') this.showTab('play');
   }
 
@@ -1035,11 +1037,11 @@ export class BassApp {
         this.recorder.stop(this.engine.now);
         this.lastSequence = { events: this.recorder.events, name: 'recording' };
         this.resetTransport();
-        this.flashNowPlaying('録音を停止しました');
+        this.flashNowPlaying(t('flash.recordStopped'));
       } else {
         this.player.stop();
         this.recorder.start(this.engine.now);
-        this.flashNowPlaying('● 録音中');
+        this.flashNowPlaying(t('flash.recording'));
       }
       if (this.activeTab === 'rec') this.showTab('rec');
     });
@@ -1049,7 +1051,7 @@ export class BassApp {
     if (this.recorder.isEmpty) return;
     void this.ensureAudio().then(() => {
       this.recorder.stop(this.engine.now);
-      this.startPlayback(this.recorder.events, '録音した演奏');
+      this.startPlayback(this.recorder.events, t('flash.recordedPerformance'));
     });
   }
 
@@ -1075,7 +1077,7 @@ export class BassApp {
         this.ui.bpm = demo.bpm;
         this.rhythm.setBpm(demo.bpm);
       }
-      this.startPlayback(events, `${demo.title}（${demo.style}）`);
+      this.startPlayback(events, t('flash.demoLabel', { title: t(`demo.${demo.id}.title`), style: t(`demo.${demo.id}.style`) }));
     });
   }
 
@@ -1107,10 +1109,10 @@ export class BassApp {
       this.fretboard.allOff();
       this.resetTransport();
       this.restoreDemoPreset();
-      this.flashNowPlaying('再生が終了しました');
+      this.flashNowPlaying(t('flash.playbackEnded'));
     };
     this.player.play(events);
-    this.flashNowPlaying(`▶ ${label}`);
+    this.flashNowPlaying(t('flash.playing', { label }));
   }
 
   private stopPlayback() {
@@ -1128,19 +1130,19 @@ export class BassApp {
   private async exportWav() {
     const source = this.exportEvents();
     if (!source || source.events.length === 0) {
-      this.flashNowPlaying('書き出す演奏がありません');
+      this.flashNowPlaying(t('flash.noExportable'));
       return;
     }
     this.exporting = true;
     if (this.activeTab === 'rec') this.showTab('rec');
-    this.flashNowPlaying('WAV を書き出しています…');
+    this.flashNowPlaying(t('flash.exportingWav'));
     try {
       const last = source.events.reduce((max, ev) => Math.max(max, ev.time), 0);
       const buffer = await renderPerformance(source.events, this.settings, last + 4);
       downloadBlob(encodeWav(buffer), timestampName('kurogane-bass', 'wav'));
-      this.flashNowPlaying('WAV を保存しました');
+      this.flashNowPlaying(t('flash.wavSaved'));
     } catch (err) {
-      this.flashNowPlaying(`書き出しに失敗しました: ${err}`);
+      this.flashNowPlaying(t('flash.exportFailed', { err: String(err) }));
     } finally {
       this.exporting = false;
       if (this.activeTab === 'rec') this.showTab('rec');
@@ -1150,11 +1152,11 @@ export class BassApp {
   private exportMidi() {
     const source = this.exportEvents();
     if (!source || source.events.length === 0) {
-      this.flashNowPlaying('書き出す演奏がありません');
+      this.flashNowPlaying(t('flash.noExportable'));
       return;
     }
     downloadBlob(encodeMidi(source.events, this.ui.bpm), timestampName('kurogane-bass', 'mid'));
-    this.flashNowPlaying('MIDI を保存しました');
+    this.flashNowPlaying(t('flash.midiSaved'));
   }
 
   private toggleHelp() {
@@ -1166,32 +1168,25 @@ export class BassApp {
     const modal = el('div', 'help-modal');
     const card = el('div', 'help-card');
     card.innerHTML = `
-      <h2>使い方</h2>
+      <h2>${t('help.title')}</h2>
       <ul>
-        <li><strong>弾く</strong> … 指板をタップ／クリック（マルチタッチ対応）。下の段ほど低い弦です。</li>
-        <li><strong>スライド</strong> … 押さえたまま左右にドラッグすると、弾き直さずに音程が移動します。</li>
-        <li><strong>チョーキング</strong> … 押さえたまま上へドラッグすると音程が上がります。</li>
-        <li><strong>奏法</strong> … 指板の下のボタンで、指弾き／ピック／スラップ／プル／ミュート／ゴースト／ハーモニクスを切り替えます。</li>
-        <li><strong>PCキーボード</strong> … 手前の段から順に低い弦。<br>
-          Z X C V B N M , . / ＝ 1弦目 ／ A S D F G H J K L ; ＝ 2弦目 ／
-          Q W E R T Y U I O P ＝ 3弦目 ／ 1 2 3 4 5 6 7 8 9 0 ＝ 4弦目。
-          左右キーでポジション移動、Shift で強く弾きます。</li>
-        <li><strong>リズム</strong> … スペースキーでドラム／メトロノームの開始・停止。</li>
-        <li><strong>録音</strong> … 「録音」タブで演奏を記録し、WAV（48kHz/24bit）や MIDI として保存できます。</li>
+        <li><strong>${t('help.play.term')}</strong> … ${t('help.play.desc')}</li>
+        <li><strong>${t('help.slide.term')}</strong> … ${t('help.slide.desc')}</li>
+        <li><strong>${t('help.bend.term')}</strong> … ${t('help.bend.desc')}</li>
+        <li><strong>${t('help.technique.term')}</strong> … ${t('help.technique.desc')}</li>
+        <li><strong>${t('help.pcKeys.term')}</strong> … ${t('help.pcKeys.desc')}</li>
+        <li><strong>${t('help.rhythm.term')}</strong> … ${t('help.rhythm.desc')}</li>
+        <li><strong>${t('help.rec.term')}</strong> … ${t('help.rec.desc')}</li>
       </ul>
-      <h2>この音について</h2>
-      <p>
-        録音されたベースの音（サンプル）は一切使っていません。弦の振動・弾く位置・
-        ピックアップの位置・フレットとの衝突までを計算して、その場で音を合成しています。
-        だからアプリ本体は数百KBで、追加ダウンロードも通信も不要です。
-      </p>
-      <p class="help-free">広告なし・追跡なし・アカウント登録なし。オフラインでも動作します。</p>
+      <h2>${t('help.aboutSoundTitle')}</h2>
+      <p>${t('help.aboutSound')}</p>
+      <p class="help-free">${t('help.free')}</p>
       <p class="help-small">
-        書き出した音源はご自由にお使いいただけます（商用利用可・クレジット表記不要）。
-        <a href="./privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>
+        ${t('help.usage')}
+        <a href="./privacy.html" target="_blank" rel="noopener">${t('help.privacy')}</a>
       </p>
     `;
-    card.append(button('閉じる', 'primary', () => modal.remove()));
+    card.append(button(t('help.close'), 'primary', () => modal.remove()));
     modal.append(card);
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.remove();
