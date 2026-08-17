@@ -1,5 +1,6 @@
 import { STEP_MAX, type Pattern, type Step, type TrackConfig } from '../audio/types';
 import { el } from './controls';
+import { t } from './i18n';
 
 export interface StepGridCallbacks {
   /** ステップを書き換える（null で消去） */
@@ -73,7 +74,7 @@ export class StepGrid {
     const head = el('div', 'track-head');
     const name = el('button', 'track-name');
     name.type = 'button';
-    name.append(el('span', 'track-short', track.short), el('span', 'track-full', track.name));
+    name.append(el('span', 'track-short', track.short), el('span', 'track-full', t(`track.${track.id}.name`)));
     name.addEventListener('click', () => {
       this.cb.onSelectTrack(track.id);
       this.cb.onPreview(track.id);
@@ -82,14 +83,14 @@ export class StepGrid {
     const led = el('span', 'track-led');
     const muteBtn = el('button', 'mini-btn mute', 'M');
     muteBtn.type = 'button';
-    muteBtn.title = 'ミュート';
+    muteBtn.title = t('mute.title');
     muteBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.cb.onMute(track.id);
     });
     const soloBtn = el('button', 'mini-btn solo', 'S');
     soloBtn.type = 'button';
-    soloBtn.title = 'ソロ';
+    soloBtn.title = t('solo.title');
     soloBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.cb.onSolo(track.id);

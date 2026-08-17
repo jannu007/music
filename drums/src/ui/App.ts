@@ -34,6 +34,8 @@ import { DEMO_SONGS, loadDemo } from '../data/songs';
 import { DrumPads, PAD_KEYS } from './Pads';
 import { StepGrid } from './StepGrid';
 import { button, el, grid, section, segmented, slider, stepper, switchRow } from './controls';
+import { getLocale, onLocaleChange, t, toggleLocale } from './i18n';
+import './strings';
 
 const STORAGE_KEY = 'hibiki-drums-v1';
 
@@ -82,9 +84,12 @@ export class DrumApp {
   private lastStep: StepInfo | null = null;
   private tapTimes: number[] = [];
   private undoStack: { index: number; pattern: Pattern }[] = [];
+  private globalListenersBound = false;
 
   constructor(root: HTMLElement) {
     this.root = root;
+    document.documentElement.lang = getLocale();
+    onLocaleChange(() => this.build());
     this.load();
     this.build();
     this.bindKeys();
@@ -137,11 +142,11 @@ export class DrumApp {
           this.engine.onStep = (info) => this.onStep(info);
           this.engine.onMeters = (peaks) => this.grid.setMeters(peaks);
           this.engine.syncAll(this.project);
-          this.setStatus('準備完了');
+          this.setStatus(t('status.ready'));
         })
         .catch((err) => {
           console.error(err);
-          this.setStatus('音声を初期化できませんでした');
+          this.setStatus(t('status.audioInitFailed'));
         });
     }
     await this.initPromise;
@@ -199,32 +204,36 @@ export class DrumApp {
     const brand = el('div', 'brand');
     brand.append(el('div', 'brand-mark'));
     const texts = el('div', 'brand-text');
-    texts.append(el('strong', '', 'Hibiki Drum Machine'), el('small', '', '完全合成ドラムマシン'));
+    texts.append(el('strong', '', 'Hibiki Drum Machine'), el('small', '', t('brand.subtitle')));
     brand.append(texts);
 
     const kitSelect = el('select', 'kit-select');
     for (const kit of KITS) {
-      const opt = el('option', '', kit.name);
+      const opt = el('option', '', t(`kit.${kit.id}.name`));
       opt.value = kit.id;
       if (kit.id === this.project.kitId) opt.selected = true;
       kitSelect.append(opt);
     }
-    kitSelect.title = 'キット（音色セット）';
+    kitSelect.title = t('kit.selectTitle');
     kitSelect.addEventListener('change', () => this.setKit(kitSelect.value));
 
-    this.statusEl = el('div', 'status', '画面をタップすると音が出ます');
+    this.statusEl = el('div', 'status', t('status.tapToStart'));
 
     const meter = el('div', 'meter');
     this.meterFill = el('div', 'meter-fill');
     meter.append(this.meterFill);
 
+    const langButton = el('button', 'icon-btn lang-btn', t('lang.toggle'));
+    langButton.type = 'button';
+    langButton.addEventListener('click', () => toggleLocale());
+
     const panic = el('button', 'icon-btn danger');
     panic.type = 'button';
-    panic.title = '全停止（Esc）';
-    panic.append(el('span', 'stop-icon'), el('span', 'icon-label', '全停止'));
+    panic.title = t('panic.title');
+    panic.append(el('span', 'stop-icon'), el('span', 'icon-label', t('panic.label')));
     panic.addEventListener('click', () => this.panic());
 
-    bar.append(brand, kitSelect, this.statusEl, meter, panic);
+    bar.append(brand, kitSelect, this.statusEl, meter, langButton, panic);
     return bar;
   }
 
@@ -233,13 +242,13 @@ export class DrumApp {
 
     this.playButton = el('button', 'play-btn');
     this.playButton.type = 'button';
-    this.playButton.title = '再生 / 停止（Space）';
+    this.playButton.title = t('play.title');
     this.playButton.append(el('span', 'play-icon'));
     this.playButton.addEventListener('click', () => this.togglePlay());
 
     this.recButton = el('button', 'rec-btn');
     this.recButton.type = 'button';
-    this.recButton.title = 'パッドの演奏をパターンに書き込む（R）';
+    this.recButton.title = t('rec.title');
     this.recButton.append(el('span', 'rec-dot'), el('span', '', 'REC'));
     this.recButton.addEventListener('click', () => this.toggleRecord());
 
@@ -260,7 +269,7 @@ export class DrumApp {
     this.bpmInput.addEventListener('change', () => applyBpm(Number(this.bpmInput.value)));
     const tap = el('button', 'tap-btn', 'TAP');
     tap.type = 'button';
-    tap.title = 'テンポをタップで入力';
+    tap.title = t('tap.title');
     tap.addEventListener('click', () => this.tapTempo());
     tempo.append(el('span', 'tempo-label', 'BPM'), minus, this.bpmInput, plus, tap);
 
@@ -269,7 +278,7 @@ export class DrumApp {
     for (let i = 0; i < PATTERN_COUNT; i++) {
       const btn = el('button', 'pattern-btn', PATTERN_NAMES[i]);
       btn.type = 'button';
-      btn.title = `パターン ${PATTERN_NAMES[i]}`;
+      btn.title = t('pattern.title', { name: PATTERN_NAMES[i] });
       btn.addEventListener('click', () => this.selectPattern(i));
       this.patternButtons.push(btn);
       patterns.append(btn);
@@ -277,7 +286,7 @@ export class DrumApp {
 
     this.songModeButton = el('button', 'mode-btn', 'SONG');
     this.songModeButton.type = 'button';
-    this.songModeButton.title = 'ソングモード（パターンを並べて通しで再生）';
+    this.songModeButton.title = t('song.title');
     this.songModeButton.addEventListener('click', () => this.setSongMode(!this.project.songMode));
 
     bar.append(this.playButton, this.recButton, tempo, patterns, this.songModeButton);
@@ -288,14 +297,14 @@ export class DrumApp {
     const panel = el('section', 'panel');
     const tabs = el('div', 'panel-tabs');
     const defs: { id: TabId; label: string }[] = [
-      { id: 'edit', label: '打ち込み' },
-      { id: 'pads', label: 'パッド' },
-      { id: 'voice', label: '音づくり' },
-      { id: 'mix', label: 'ミキサー' },
-      { id: 'fx', label: 'エフェクト' },
-      { id: 'song', label: 'ソング' },
-      { id: 'demo', label: 'デモ' },
-      { id: 'export', label: '書き出し' },
+      { id: 'edit', label: t('tab.edit') },
+      { id: 'pads', label: t('tab.pads') },
+      { id: 'voice', label: t('tab.voice') },
+      { id: 'mix', label: t('tab.mix') },
+      { id: 'fx', label: t('tab.fx') },
+      { id: 'song', label: t('tab.song') },
+      { id: 'demo', label: t('tab.demo') },
+      { id: 'export', label: t('tab.export') },
     ];
     this.tabButtons = [];
     for (const def of defs) {
@@ -335,16 +344,16 @@ export class DrumApp {
   }
 
   private renderEditPanel() {
-    const sec = section('打ち込み', 'マス目をタップ / 長押しでステップの詳細');
+    const sec = section(t('panel.edit.title'), t('panel.edit.hint'));
     const g = grid();
 
     g.append(
       segmented<number>(
-        '入力の強さ',
+        t('ctl.inputVelocity.label'),
         [
-          { value: 0.34, label: 'ゴースト' },
-          { value: 0.7, label: 'ノーマル' },
-          { value: 1, label: 'アクセント' },
+          { value: 0.34, label: t('vel.ghost') },
+          { value: 0.7, label: t('vel.normal') },
+          { value: 1, label: t('vel.accent') },
         ],
         this.ui.inputVelocity,
         (v) => {
@@ -355,22 +364,22 @@ export class DrumApp {
     );
 
     g.append(
-      stepper('ステップ数', this.pattern.length, 1, STEP_MAX, 1, (v) => {
+      stepper(t('ctl.stepCount.label'), this.pattern.length, 1, STEP_MAX, 1, (v) => {
         this.pattern.length = clamp(v, 1, STEP_MAX);
         this.grid.render(this.pattern);
         this.syncPattern();
-      }, '1〜64。16 = 1小節（16分音符）')
+      }, t('ctl.stepCount.hint'))
     );
 
     g.append(
       slider({
-        label: 'スウィング',
+        label: t('ctl.swing.label'),
         min: 50,
         max: 75,
         step: 1,
         value: this.project.swing,
         format: (v) => `${v}%`,
-        hint: '50% で均等、62% 前後で三連のハネ',
+        hint: t('ctl.swing.hint'),
         onInput: (v) => {
           this.project.swing = v;
           this.engine.syncTransport(this.project);
@@ -381,13 +390,13 @@ export class DrumApp {
 
     g.append(
       slider({
-        label: 'ヒューマナイズ',
+        label: t('ctl.humanize.label'),
         min: 0,
         max: 1,
         step: 0.01,
         value: this.project.humanize,
         format: (v) => `${Math.round(v * 100)}%`,
-        hint: 'タイミングと強さをわずかに揺らす',
+        hint: t('ctl.humanize.hint'),
         onInput: (v) => {
           this.project.humanize = v;
           this.engine.syncTransport(this.project);
@@ -398,11 +407,11 @@ export class DrumApp {
 
     g.append(
       segmented<number>(
-        '細かさ',
+        t('ctl.subdivision.label'),
         [
-          { value: 4, label: '16分' },
-          { value: 3, label: '8分3連' },
-          { value: 6, label: '16分3連' },
+          { value: 4, label: t('sub.16') },
+          { value: 3, label: t('sub.8t') },
+          { value: 6, label: t('sub.16t') },
         ],
         this.project.stepsPerBeat,
         (v) => {
@@ -414,54 +423,53 @@ export class DrumApp {
     );
 
     g.append(
-      switchRow('再生位置を追う', this.ui.follow, (v) => {
+      switchRow(t('ctl.follow.label'), this.ui.follow, (v) => {
         this.ui.follow = v;
         this.save();
-      }, '長いパターンで自動的に横スクロール')
+      }, t('ctl.follow.hint'))
     );
 
     sec.append(g);
 
     const tools = el('div', 'btn-row');
     tools.append(
-      button('◀ ずらす', '', () => this.shiftPattern(-1)),
-      button('ずらす ▶', '', () => this.shiftPattern(1)),
-      button('倍に伸ばす', '', () => this.doublePattern()),
-      button('パターンを複製', '', () => this.duplicatePattern()),
-      button('選択トラックを消去', '', () => this.clearTrack()),
-      button('パターンを消去', 'danger', () => this.clearPattern()),
-      button('元に戻す', '', () => this.undo())
+      button(t('tool.shiftLeft'), '', () => this.shiftPattern(-1)),
+      button(t('tool.shiftRight'), '', () => this.shiftPattern(1)),
+      button(t('tool.double'), '', () => this.doublePattern()),
+      button(t('tool.duplicate'), '', () => this.duplicatePattern()),
+      button(t('tool.clearTrack'), '', () => this.clearTrack()),
+      button(t('tool.clearPattern'), 'danger', () => this.clearPattern()),
+      button(t('tool.undo'), '', () => this.undo())
     );
     sec.append(tools);
     this.panelBody.append(sec);
   }
 
   private renderPadsPanel() {
-    const sec = section('パッド', 'キーボードの A S D F G H J / Z X C V B N M でも叩けます');
+    const sec = section(t('panel.pads.title'), t('panel.pads.hint'));
     this.pads = new DrumPads(this.project.tracks, {
       onHit: (trackId, vel) => this.hit(trackId, vel),
       onSelect: (trackId) => this.selectTrack(trackId),
     });
     sec.append(this.pads.root);
-    const note = el('div', 'panel-note',
-      'REC を点灯させて再生すると、叩いた音がそのままステップに書き込まれます（自動でマス目に合わせます）。');
+    const note = el('div', 'panel-note', t('pads.note'));
     sec.append(note);
     this.panelBody.append(sec);
   }
 
   private renderVoicePanel() {
     const track = this.selectedTrack;
-    const sec = section(`音づくり — ${track.name}`, '左のトラック名を押すと切り替わります');
+    const sec = section(t('panel.voice.title', { track: t(`track.${track.id}.name`) }), t('panel.voice.hint'));
 
     const picker = el('div', 'track-picker');
-    for (const t of this.project.tracks) {
-      const btn = el('button', 'chip', t.short);
+    for (const tr of this.project.tracks) {
+      const btn = el('button', 'chip', tr.short);
       btn.type = 'button';
-      btn.title = t.name;
-      if (t.id === track.id) btn.classList.add('active');
+      btn.title = t(`track.${tr.id}.name`);
+      if (tr.id === track.id) btn.classList.add('active');
       btn.addEventListener('click', () => {
-        this.selectTrack(t.id);
-        this.preview(t.id);
+        this.selectTrack(tr.id);
+        this.preview(tr.id);
         this.renderPanel();
       });
       picker.append(btn);
@@ -484,30 +492,30 @@ export class DrumApp {
       );
     };
 
-    bind('tune', '音程', -24, 24, 0.5, (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}`, '半音単位');
-    bind('decay', '減衰', 0.1, 3, 0.01, (v) => `${v.toFixed(2)}×`, '大きいほど長く伸びる');
-    bind('tone', 'トーン', 0, 1, 0.01, (v) => `${Math.round(v * 100)}`, this.toneHint(track));
-    bind('snap', 'アタック', 0, 1, 0.01, (v) => `${Math.round(v * 100)}`, this.snapHint(track));
-    bind('drive', 'ドライブ', 0, 1, 0.01, (v) => `${Math.round(v * 100)}`, 'サチュレーションで太くする');
-    bind('level', '音量', 0, 1.6, 0.01, (v) => v.toFixed(2));
-    bind('pan', '定位', -1, 1, 0.01, (v) => (v === 0 ? '中央' : v < 0 ? `L${Math.round(-v * 100)}` : `R${Math.round(v * 100)}`));
-    bind('reverb', 'リバーブ送り', 0, 1, 0.01, (v) => `${Math.round(v * 100)}`);
-    bind('delay', 'ディレイ送り', 0, 1, 0.01, (v) => `${Math.round(v * 100)}`);
+    bind('tune', t('ctl.tune.label'), -24, 24, 0.5, (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}`, t('ctl.tune.hint'));
+    bind('decay', t('ctl.decay.label'), 0.1, 3, 0.01, (v) => `${v.toFixed(2)}×`, t('ctl.decay.hint'));
+    bind('tone', t('ctl.tone.label'), 0, 1, 0.01, (v) => `${Math.round(v * 100)}`, this.toneHint(track));
+    bind('snap', t('ctl.snap.label'), 0, 1, 0.01, (v) => `${Math.round(v * 100)}`, this.snapHint(track));
+    bind('drive', t('ctl.voiceDrive.label'), 0, 1, 0.01, (v) => `${Math.round(v * 100)}`, t('ctl.voiceDrive.hint'));
+    bind('level', t('ctl.level.label'), 0, 1.6, 0.01, (v) => v.toFixed(2));
+    bind('pan', t('ctl.pan.label'), -1, 1, 0.01, (v) => (v === 0 ? t('pan.center') : v < 0 ? `L${Math.round(-v * 100)}` : `R${Math.round(v * 100)}`));
+    bind('reverb', t('ctl.reverbSend.label'), 0, 1, 0.01, (v) => `${Math.round(v * 100)}`);
+    bind('delay', t('ctl.delaySend.label'), 0, 1, 0.01, (v) => `${Math.round(v * 100)}`);
 
     const tp = this.pattern.tracks[track.id];
     g.append(
-      stepper('このトラックの長さ', tp.length, 0, STEP_MAX, 1, (v) => {
+      stepper(t('ctl.trackLength.label'), tp.length, 0, STEP_MAX, 1, (v) => {
         tp.length = clamp(v, 0, STEP_MAX);
         this.grid.render(this.pattern);
         this.syncPattern();
-      }, '0 でパターン全体と同じ。別の数にするとポリメーターになります')
+      }, t('ctl.trackLength.hint'))
     );
 
     sec.append(g);
     const row = el('div', 'btn-row');
     row.append(
-      button('試聴', 'primary', () => this.preview(track.id)),
-      button('このトラックを初期値に', '', () => this.resetTrack(track.id))
+      button(t('action.preview'), 'primary', () => this.preview(track.id)),
+      button(t('action.resetTrack'), '', () => this.resetTrack(track.id))
     );
     sec.append(row);
     this.panelBody.append(sec);
@@ -515,36 +523,36 @@ export class DrumApp {
 
   private toneHint(track: TrackConfig): string {
     switch (track.type) {
-      case 'kick': return 'アタックの高さ（クリック感）';
-      case 'snare': return 'ノイズの明るさ';
-      case 'clap': return '手のあたる高さ';
+      case 'kick': return t('tonehint.kick');
+      case 'snare': return t('tonehint.snare');
+      case 'clap': return t('tonehint.clap');
       case 'hat':
-      case 'cymbal': return '金物の明るさ（高域の量）';
-      case 'tom': return '打面の張り';
-      case 'shaker': return '粒の細かさ';
-      default: return '音色の明るさ';
+      case 'cymbal': return t('tonehint.metal');
+      case 'tom': return t('tonehint.tom');
+      case 'shaker': return t('tonehint.shaker');
+      default: return t('tonehint.default');
     }
   }
 
   private snapHint(track: TrackConfig): string {
     switch (track.type) {
-      case 'kick': return 'ビーターのクリック音';
-      case 'snare': return 'スナッピー（響き線）の量';
-      case 'clap': return '手の重なり具合';
-      case 'tom': return '打面のノイズ';
-      case 'shaker': return '立ち上がりの速さ';
-      default: return 'アタックのノイズ量';
+      case 'kick': return t('snaphint.kick');
+      case 'snare': return t('snaphint.snare');
+      case 'clap': return t('snaphint.clap');
+      case 'tom': return t('snaphint.tom');
+      case 'shaker': return t('snaphint.shaker');
+      default: return t('snaphint.default');
     }
   }
 
   private renderMixPanel() {
-    const sec = section('ミキサー', '音量・定位・センドをまとめて調整します');
+    const sec = section(t('panel.mix.title'), t('panel.mix.hint'));
     const table = el('div', 'mixer');
     for (const track of this.project.tracks) {
       const strip = el('div', 'strip');
       if (track.id === this.ui.selected) strip.classList.add('active');
       const head = el('div', 'strip-head');
-      const name = el('button', 'strip-name', track.name);
+      const name = el('button', 'strip-name', t(`track.${track.id}.name`));
       name.type = 'button';
       name.addEventListener('click', () => {
         this.selectTrack(track.id);
@@ -581,8 +589,8 @@ export class DrumApp {
           })
         );
       };
-      mini('音量', 'level', 0, 1.6, (v) => v.toFixed(2));
-      mini('定位', 'pan', -1, 1, (v) => (v === 0 ? '中央' : v < 0 ? `L${Math.round(-v * 100)}` : `R${Math.round(v * 100)}`));
+      mini(t('mini.level'), 'level', 0, 1.6, (v) => v.toFixed(2));
+      mini(t('mini.pan'), 'pan', -1, 1, (v) => (v === 0 ? t('pan.center') : v < 0 ? `L${Math.round(-v * 100)}` : `R${Math.round(v * 100)}`));
       mini('REV', 'reverb', 0, 1, (v) => `${Math.round(v * 100)}`);
       mini('DLY', 'delay', 0, 1, (v) => `${Math.round(v * 100)}`);
 
@@ -595,7 +603,7 @@ export class DrumApp {
 
   private renderFxPanel() {
     const m = this.project.master;
-    const sec = section('エフェクト', 'マスターの音作りと空間系');
+    const sec = section(t('panel.fx.title'), t('panel.fx.hint'));
     const g = grid();
 
     const bind = (label: string, key: 'volume' | 'drive' | 'glue' | 'reverbMix' | 'delayFeedback' | 'delayMix',
@@ -612,20 +620,20 @@ export class DrumApp {
       );
     };
 
-    bind('マスター音量', 'volume', 0, 1, (v) => `${Math.round(v * 100)}`);
-    bind('ドライブ', 'drive', 0, 1, (v) => `${Math.round(v * 100)}`, 'バス全体を軽く歪ませて密度を出す');
-    bind('グルー（バスコンプ）', 'glue', 0, 1, (v) => `${Math.round(v * 100)}`, '全体をまとめて前に出す');
+    bind(t('ctl.masterVolume.label'), 'volume', 0, 1, (v) => `${Math.round(v * 100)}`);
+    bind(t('ctl.masterDrive.label'), 'drive', 0, 1, (v) => `${Math.round(v * 100)}`, t('ctl.masterDrive.hint'));
+    bind(t('ctl.glue.label'), 'glue', 0, 1, (v) => `${Math.round(v * 100)}`, t('ctl.glue.hint'));
 
     g.append(
       slider({
-        label: '低域', min: -12, max: 12, step: 0.5, value: m.low,
+        label: t('ctl.low.label'), min: -12, max: 12, step: 0.5, value: m.low,
         format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB`,
         onInput: (v) => { m.low = v; this.engine.syncMaster(this.project); this.save(); },
       })
     );
     g.append(
       slider({
-        label: '高域', min: -12, max: 12, step: 0.5, value: m.high,
+        label: t('ctl.high.label'), min: -12, max: 12, step: 0.5, value: m.high,
         format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB`,
         onInput: (v) => { m.high = v; this.engine.syncMaster(this.project); this.save(); },
       })
@@ -633,43 +641,43 @@ export class DrumApp {
 
     g.append(
       segmented<ReverbType>(
-        'リバーブ',
+        t('ctl.reverbType.label'),
         [
-          { value: 'off', label: 'なし' },
-          { value: 'room', label: ROOMS.room.label },
-          { value: 'plate', label: ROOMS.plate.label },
-          { value: 'hall', label: ROOMS.hall.label },
-          { value: 'cavern', label: ROOMS.cavern.label },
+          { value: 'off', label: t('reverbType.none') },
+          { value: 'room', label: t('room.room.label') },
+          { value: 'plate', label: t('room.plate.label') },
+          { value: 'hall', label: t('room.hall.label') },
+          { value: 'cavern', label: t('room.cavern.label') },
         ],
         m.reverbType,
         (v) => { m.reverbType = v; this.engine.syncMaster(this.project); this.save(); }
       )
     );
-    bind('リバーブ量', 'reverbMix', 0, 1, (v) => `${Math.round(v * 100)}`);
+    bind(t('ctl.reverbAmount.label'), 'reverbMix', 0, 1, (v) => `${Math.round(v * 100)}`);
 
     g.append(
       segmented<DelayDivision>(
-        'ディレイ（テンポ同期）',
+        t('ctl.delayDivision.label'),
         [
-          { value: 'off', label: 'なし' },
+          { value: 'off', label: t('delayDivision.none') },
           { value: '1/16', label: '1/16' },
-          { value: '1/8T', label: '3連' },
+          { value: '1/8T', label: t('delay.triplet') },
           { value: '1/8', label: '1/8' },
-          { value: '1/8.', label: '付点' },
+          { value: '1/8.', label: t('delay.dotted') },
           { value: '1/4', label: '1/4' },
         ],
         m.delayDivision,
         (v) => { m.delayDivision = v; this.engine.syncMaster(this.project); this.save(); }
       )
     );
-    bind('ディレイ量', 'delayMix', 0, 1, (v) => `${Math.round(v * 100)}`);
-    bind('フィードバック', 'delayFeedback', 0, 0.85, (v) => `${Math.round(v * 100)}`);
+    bind(t('ctl.delayAmount.label'), 'delayMix', 0, 1, (v) => `${Math.round(v * 100)}`);
+    bind(t('ctl.feedback.label'), 'delayFeedback', 0, 0.85, (v) => `${Math.round(v * 100)}`);
     g.append(
-      switchRow('ピンポン', m.delayPingPong, (v) => {
+      switchRow(t('ctl.pingpong.label'), m.delayPingPong, (v) => {
         m.delayPingPong = v;
         this.engine.syncMaster(this.project);
         this.save();
-      }, '左右交互に返す')
+      }, t('ctl.pingpong.hint'))
     );
 
     sec.append(g);
@@ -677,10 +685,10 @@ export class DrumApp {
   }
 
   private renderSongPanel() {
-    const sec = section('ソング', 'パターンを並べて曲にします');
+    const sec = section(t('panel.song.title'), t('panel.song.hint'));
     const g = grid();
     g.append(
-      switchRow('ソングモードで再生', this.project.songMode, (v) => this.setSongMode(v), 'この並び順で通して再生します')
+      switchRow(t('ctl.songMode.label'), this.project.songMode, (v) => this.setSongMode(v), t('ctl.songMode.hint'))
     );
     sec.append(g);
 
@@ -731,13 +739,13 @@ export class DrumApp {
 
     const tools = el('div', 'btn-row');
     tools.append(
-      button('ブロックを追加', 'primary', () => {
+      button(t('tool.addBlock'), 'primary', () => {
         this.project.song.push({ pattern: this.project.current, repeats: 2 });
         this.engine.syncTransport(this.project);
         this.save();
         this.renderPanel();
       }),
-      button('現在のパターンを末尾に', '', () => {
+      button(t('tool.appendCurrent'), '', () => {
         this.project.song.push({ pattern: this.project.current, repeats: 1 });
         this.engine.syncTransport(this.project);
         this.save();
@@ -750,21 +758,24 @@ export class DrumApp {
       (n, slot) => n + this.project.patterns[slot.pattern].length * slot.repeats, 0);
     const seconds = (total * 60) / this.project.bpm / this.project.stepsPerBeat;
     sec.append(el('div', 'panel-note',
-      `全体で ${total} ステップ・約 ${seconds.toFixed(1)} 秒（${this.project.bpm} BPM）`));
+      t('song.summary', { total, seconds: seconds.toFixed(1), bpm: this.project.bpm })));
 
     this.panelBody.append(sec);
   }
 
   private renderDemoPanel() {
-    const sec = section('デモ', '読み込むと現在の内容は置き換わります（保存したい場合は先に書き出してください）');
+    const sec = section(t('panel.demo.title'), t('panel.demo.hint'));
     const list = el('div', 'demo-list');
     for (const demo of DEMO_SONGS) {
       const card = el('div', 'demo-card');
       const head = el('div', 'demo-head');
-      head.append(el('strong', '', demo.name), el('span', 'demo-meta', `${demo.bpm} BPM / ${findKit(demo.kitId).name}`));
-      card.append(head, el('p', 'demo-desc', demo.desc));
+      head.append(
+        el('strong', '', t(`demo.${demo.id}.name`)),
+        el('span', 'demo-meta', t('demo.meta', { bpm: demo.bpm, kit: t(`kit.${demo.kitId}.name`) }))
+      );
+      card.append(head, el('p', 'demo-desc', t(`demo.${demo.id}.desc`)));
       const row = el('div', 'btn-row');
-      row.append(button('読み込む', 'primary', () => this.loadDemoSong(demo.id)));
+      row.append(button(t('action.load'), 'primary', () => this.loadDemoSong(demo.id)));
       card.append(row);
       list.append(card);
     }
@@ -773,29 +784,29 @@ export class DrumApp {
   }
 
   private renderExportPanel() {
-    const sec = section('書き出し', 'すべて端末内で処理します。アップロードは行いません');
+    const sec = section(t('panel.export.title'), t('panel.export.hint'));
     const g = grid();
     g.append(
-      stepper('繰り返し回数', this.ui.exportLoops, 1, 32, 1, (v) => {
+      stepper(t('ctl.exportLoops.label'), this.ui.exportLoops, 1, 32, 1, (v) => {
         this.ui.exportLoops = clamp(v, 1, 32);
         this.save();
         this.updateExportStatus();
-      }, 'パターン（またはソング全体）を何回続けて書き出すか')
+      }, t('ctl.exportLoops.hint'))
     );
     sec.append(g);
 
     const row = el('div', 'btn-row');
     row.append(
-      button('WAV を書き出す', 'primary', () => this.exportWav()),
-      button('トラック別 WAV（ZIP）', '', () => this.exportStems()),
-      button('MIDI を書き出す', '', () => this.exportMidi())
+      button(t('action.exportWav'), 'primary', () => this.exportWav()),
+      button(t('action.exportStems'), '', () => this.exportStems()),
+      button(t('action.exportMidi'), '', () => this.exportMidi())
     );
     sec.append(row);
 
     const row2 = el('div', 'btn-row');
     row2.append(
-      button('プロジェクトを保存', '', () => this.exportProject()),
-      button('プロジェクトを読み込む', '', () => this.importProject())
+      button(t('action.saveProject'), '', () => this.exportProject()),
+      button(t('action.loadProject'), '', () => this.importProject())
     );
     sec.append(row2);
 
@@ -804,8 +815,7 @@ export class DrumApp {
     this.updateExportStatus();
 
     sec.append(
-      el('div', 'panel-note',
-        'WAV は 48kHz / 24bit ステレオ。書き出した音源は自由に使えます（商用利用可・クレジット不要）。')
+      el('div', 'panel-note', t('export.note'))
     );
     this.panelBody.append(sec);
   }
@@ -817,8 +827,10 @@ export class DrumApp {
       return;
     }
     const seconds = projectSeconds(this.project, this.ui.exportLoops);
-    const mode = this.project.songMode ? 'ソング全体' : `パターン ${PATTERN_NAMES[this.project.current]}`;
-    this.exportStatus.textContent = `対象：${mode} ／ 長さ 約 ${seconds.toFixed(1)} 秒`;
+    const mode = this.project.songMode
+      ? t('export.mode.song')
+      : t('export.mode.pattern', { name: PATTERN_NAMES[this.project.current] });
+    this.exportStatus.textContent = t('export.status', { mode, seconds: seconds.toFixed(1) });
   }
 
   // ------------------------------------------------------------- 編集の操作
@@ -831,7 +843,7 @@ export class DrumApp {
   private undo() {
     const entry = this.undoStack.pop();
     if (!entry) {
-      this.setStatus('元に戻せる操作はありません');
+      this.setStatus(t('status.noUndo'));
       return;
     }
     this.project.patterns[entry.index] = entry.pattern;
@@ -840,7 +852,7 @@ export class DrumApp {
     this.paintPatternButtons();
     this.syncPattern();
     this.refreshPanelIfNeeded();
-    this.setStatus('元に戻しました');
+    this.setStatus(t('status.undone'));
   }
 
   private editStep(trackId: string, index: number, step: Step | null) {
@@ -881,7 +893,7 @@ export class DrumApp {
   private doublePattern() {
     const length = this.pattern.length;
     if (length * 2 > STEP_MAX) {
-      this.setStatus('これ以上は伸ばせません（最大64ステップ）');
+      this.setStatus(t('status.maxLength'));
       return;
     }
     this.pushUndo();
@@ -900,7 +912,7 @@ export class DrumApp {
   private duplicatePattern() {
     const target = this.project.patterns.findIndex((p, i) => i !== this.project.current && isPatternEmpty(p));
     if (target < 0) {
-      this.setStatus('空きパターンがありません');
+      this.setStatus(t('status.noEmptyPattern'));
       return;
     }
     const copy = clonePattern(this.pattern);
@@ -908,7 +920,7 @@ export class DrumApp {
     this.project.patterns[target] = copy;
     this.engine.syncPattern(target, copy);
     this.selectPattern(target);
-    this.setStatus(`パターン ${PATTERN_NAMES[target]} に複製しました`);
+    this.setStatus(t('status.duplicated', { name: PATTERN_NAMES[target] }));
   }
 
   private clearTrack() {
@@ -940,10 +952,10 @@ export class DrumApp {
     const tp = this.pattern.tracks[trackId];
     if (!tp) return;
     const step = tp.steps[index] ?? { v: this.ui.inputVelocity, p: 1, r: 1, s: 0 };
-    const track = this.project.tracks.find((t) => t.id === trackId);
+    const track = this.project.tracks.find((tr) => tr.id === trackId);
 
     const pop = el('div', 'inspector');
-    pop.append(el('div', 'inspector-title', `${track?.name ?? trackId} ／ ${index + 1} ステップ目`));
+    pop.append(el('div', 'inspector-title', t('inspector.title', { track: track ? t(`track.${track.id}.name`) : trackId, index: index + 1 })));
 
     const apply = (next: Step | null) => {
       tp.steps[index] = next;
@@ -953,34 +965,34 @@ export class DrumApp {
 
     pop.append(
       slider({
-        label: '強さ', min: 0.05, max: 1, step: 0.01, value: step.v,
+        label: t('ctl.velocity.label'), min: 0.05, max: 1, step: 0.01, value: step.v,
         format: (v) => `${Math.round(v * 100)}`,
         onInput: (v) => apply({ ...step, v }),
       }),
       slider({
-        label: '確率', min: 0.05, max: 1, step: 0.05, value: step.p,
+        label: t('ctl.probability.label'), min: 0.05, max: 1, step: 0.05, value: step.p,
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => apply({ ...step, p: v }),
       }),
-      segmented<number>('連打', [
+      segmented<number>(t('ctl.roll.label'), [
         { value: 1, label: '1' }, { value: 2, label: '2' },
         { value: 3, label: '3' }, { value: 4, label: '4' }, { value: 6, label: '6' },
       ], step.r, (v) => apply({ ...step, r: v })),
       slider({
-        label: 'ずらし', min: -0.5, max: 0.5, step: 0.01, value: step.s,
-        format: (v) => (v === 0 ? 'ジャスト' : `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`),
-        hint: '1ステップ幅に対する割合',
+        label: t('ctl.offset.label'), min: -0.5, max: 0.5, step: 0.01, value: step.s,
+        format: (v) => (v === 0 ? t('offset.just') : `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`),
+        hint: t('ctl.offset.hint'),
         onInput: (v) => apply({ ...step, s: v }),
       })
     );
 
     const row = el('div', 'btn-row');
     row.append(
-      button('消す', 'danger', () => {
+      button(t('action.delete'), 'danger', () => {
         apply(null);
         this.closeInspector();
       }),
-      button('閉じる', '', () => this.closeInspector())
+      button(t('action.close'), '', () => this.closeInspector())
     );
     pop.append(row);
 
@@ -1019,12 +1031,12 @@ export class DrumApp {
     if (this.engine.playing) {
       this.engine.stop();
       this.playButton.classList.remove('playing');
-      this.setStatus('停止');
+      this.setStatus(t('status.stopped'));
     } else {
       this.engine.syncAll(this.project);
       this.engine.play(0);
       this.playButton.classList.add('playing');
-      this.setStatus(this.project.songMode ? 'ソングを再生中' : `パターン ${PATTERN_NAMES[this.project.current]} を再生中`);
+      this.setStatus(this.project.songMode ? t('status.playingSong') : t('status.playingPattern', { name: PATTERN_NAMES[this.project.current] }));
     }
   }
 
@@ -1033,7 +1045,7 @@ export class DrumApp {
     this.recording = !this.recording;
     this.recButton.classList.toggle('active', this.recording);
     if (this.recording && !this.engine.playing) await this.togglePlay();
-    this.setStatus(this.recording ? '録音中：パッドを叩くと書き込まれます' : '録音を終了しました');
+    this.setStatus(this.recording ? t('status.recording') : t('status.recordingEnded'));
   }
 
   private panic() {
@@ -1042,7 +1054,7 @@ export class DrumApp {
     this.recButton.classList.remove('active');
     this.playButton.classList.remove('playing');
     this.grid.setPlayhead(-1, 0);
-    this.setStatus('全停止しました');
+    this.setStatus(t('status.allStopped'));
   }
 
   private async hit(trackId: string, velocity: number) {
@@ -1080,7 +1092,7 @@ export class DrumApp {
     this.tapTimes = this.tapTimes.filter((t) => now - t < 2500);
     this.tapTimes.push(now);
     if (this.tapTimes.length < 2) {
-      this.setStatus('もう数回タップしてください');
+      this.setStatus(t('status.tapMore'));
       return;
     }
     const spans: number[] = [];
@@ -1094,7 +1106,7 @@ export class DrumApp {
     this.bpmInput.value = String(this.project.bpm);
     this.engine.syncTransport(this.project);
     this.save();
-    this.setStatus(`テンポ ${this.project.bpm} BPM`);
+    this.setStatus(t('status.tempo', { bpm: this.project.bpm }));
     if (this.ui.tab === 'export') this.updateExportStatus();
   }
 
@@ -1104,7 +1116,7 @@ export class DrumApp {
     this.engine.syncTransport(this.project);
     this.save();
     if (this.ui.tab === 'song' || this.ui.tab === 'export') this.renderPanel();
-    this.setStatus(on ? 'ソングモード' : 'パターンモード');
+    this.setStatus(on ? t('status.songMode') : t('status.patternMode'));
   }
 
   private selectPattern(index: number) {
@@ -1132,7 +1144,7 @@ export class DrumApp {
   }
 
   private toggleMute(trackId: string) {
-    const track = this.project.tracks.find((t) => t.id === trackId);
+    const track = this.project.tracks.find((tr) => tr.id === trackId);
     if (!track) return;
     track.mute = !track.mute;
     this.grid.setTracks(this.project.tracks);
@@ -1141,7 +1153,7 @@ export class DrumApp {
   }
 
   private toggleSolo(trackId: string) {
-    const track = this.project.tracks.find((t) => t.id === trackId);
+    const track = this.project.tracks.find((tr) => tr.id === trackId);
     if (!track) return;
     track.solo = !track.solo;
     this.grid.setTracks(this.project.tracks);
@@ -1157,12 +1169,12 @@ export class DrumApp {
     this.engine.syncAll(this.project);
     this.save();
     this.renderPanel();
-    this.setStatus(`キット：${kit.name}`);
+    this.setStatus(t('status.kit', { name: t(`kit.${kit.id}.name`) }));
   }
 
   private resetTrack(trackId: string) {
-    const fresh = applyKit(this.project.tracks, this.project.kitId).find((t) => t.id === trackId);
-    const track = this.project.tracks.find((t) => t.id === trackId);
+    const fresh = applyKit(this.project.tracks, this.project.kitId).find((tr) => tr.id === trackId);
+    const track = this.project.tracks.find((tr) => tr.id === trackId);
     if (!fresh || !track) return;
     track.params = { ...fresh.params };
     this.engine.syncTracks(this.project);
@@ -1188,7 +1200,7 @@ export class DrumApp {
     this.engine.syncAll(this.project);
     this.save();
     this.build();
-    this.setStatus(`デモ「${demo.name}」を読み込みました`);
+    this.setStatus(t('status.demoLoaded', { name: t(`demo.${demo.id}.name`) }));
   }
 
   // ---------------------------------------------------------------- 書き出し
@@ -1196,16 +1208,16 @@ export class DrumApp {
   private async exportWav() {
     if (this.exporting) return;
     this.exporting = true;
-    this.updateExportStatus('書き出し中…');
+    this.updateExportStatus(t('export.exporting'));
     try {
       await this.ensureAudio();
       const buffer = await renderProject(this.project, { loops: this.ui.exportLoops });
       const wav = encodeWav(buffer);
       downloadBlob(new Blob([wav], { type: 'audio/wav' }), timestampName('hibiki-drums', 'wav'));
-      this.updateExportStatus(`WAV を書き出しました（${(wav.length / 1024 / 1024).toFixed(1)} MB）`);
+      this.updateExportStatus(t('export.wavDone', { size: (wav.length / 1024 / 1024).toFixed(1) }));
     } catch (err) {
       console.error(err);
-      this.updateExportStatus('書き出しに失敗しました');
+      this.updateExportStatus(t('export.failed'));
     } finally {
       this.exporting = false;
     }
@@ -1216,11 +1228,12 @@ export class DrumApp {
     this.exporting = true;
     try {
       await this.ensureAudio();
-      const targets = this.project.tracks.filter((t) => !t.mute);
+      const targets = this.project.tracks.filter((tr) => !tr.mute);
       const entries: ZipEntry[] = [];
       for (let i = 0; i < targets.length; i++) {
         const track = targets[i];
-        this.updateExportStatus(`トラック別に書き出し中… (${i + 1}/${targets.length}) ${track.name}`);
+        const trackName = t(`track.${track.id}.name`);
+        this.updateExportStatus(t('export.stemsProgress', { i: i + 1, total: targets.length, track: trackName }));
         // 描画を進めるために1フレーム譲る
         await new Promise((resolve) => setTimeout(resolve, 0));
         const buffer = await renderProject(this.project, {
@@ -1228,16 +1241,16 @@ export class DrumApp {
           soloTrack: track.id,
         });
         entries.push({
-          name: `${String(i + 1).padStart(2, '0')}_${safeName(track.name)}.wav`,
+          name: `${String(i + 1).padStart(2, '0')}_${safeName(trackName)}.wav`,
           data: encodeWav(buffer),
         });
       }
       const zip = createZip(entries);
       downloadBlob(zip, timestampName('hibiki-stems', 'zip'));
-      this.updateExportStatus(`${entries.length} 本のトラックを ZIP にまとめました`);
+      this.updateExportStatus(t('export.stemsDone', { count: entries.length }));
     } catch (err) {
       console.error(err);
-      this.updateExportStatus('書き出しに失敗しました');
+      this.updateExportStatus(t('export.failed'));
     } finally {
       this.exporting = false;
     }
@@ -1246,7 +1259,7 @@ export class DrumApp {
   private exportMidi() {
     const midi = encodeMidi(this.project, this.ui.exportLoops);
     downloadBlob(new Blob([midi], { type: 'audio/midi' }), timestampName('hibiki-drums', 'mid'));
-    this.updateExportStatus('MIDI を書き出しました（GM ドラムマップ・チャンネル10）');
+    this.updateExportStatus(t('export.midiDone'));
   }
 
   private exportProject() {
@@ -1259,7 +1272,7 @@ export class DrumApp {
       new Blob([JSON.stringify(data)], { type: 'application/json' }),
       `${safeName(this.project.name)}.hibiki.json`
     );
-    this.updateExportStatus('プロジェクトを保存しました');
+    this.updateExportStatus(t('export.projectSaved'));
   }
 
   private importProject() {
@@ -1279,10 +1292,10 @@ export class DrumApp {
         this.engine.syncAll(this.project);
         this.save();
         this.build();
-        this.setStatus('プロジェクトを読み込みました');
+        this.setStatus(t('export.projectLoaded'));
       } catch (err) {
         console.error(err);
-        this.setStatus('ファイルを読み込めませんでした');
+        this.setStatus(t('export.projectLoadFailed'));
       }
     });
     input.click();

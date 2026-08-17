@@ -1,5 +1,6 @@
 import type { TrackConfig } from '../audio/types';
 import { el } from './controls';
+import { t } from './i18n';
 
 /** PCキーの割り当て（上段＝生音系、下段＝金物・パーカッション） */
 export const PAD_KEYS = [
@@ -28,7 +29,7 @@ export class DrumPads {
       const pad = el('button', 'pad');
       pad.type = 'button';
       pad.append(
-        el('span', 'pad-name', track.name),
+        el('span', 'pad-name', t(`track.${track.id}.name`)),
         el('span', 'pad-key', KEY_LABELS[PAD_KEYS[i]] ?? '')
       );
       pad.addEventListener('pointerdown', (e) => {

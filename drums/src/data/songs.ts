@@ -2,6 +2,7 @@ import { PATTERN_NAMES, buildPattern, createProject, type PatternSource } from '
 import { emptyPattern } from '../audio/types';
 import { TRACK_IDS } from '../audio/kits';
 import type { Project, SongSlot } from '../audio/types';
+import { t } from '../ui/i18n';
 
 /**
  * 収録デモ。すべて本アプリのために書き下ろしたリズムパターンで、
@@ -36,6 +37,7 @@ export const DEMO_SONGS: DemoSong[] = [
     patterns: [
       {
         name: 'A メイン',
+        sectionKey: 'main',
         rows: {
           kick:   'X...|X...|X...|X...',
           clap:   '....|X...|....|X...',
@@ -46,6 +48,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'B 展開',
+        sectionKey: 'dev',
         rows: {
           kick:   'X...|X...|X...|X..x',
           clap:   '....|X...|....|X...',
@@ -57,6 +60,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'C ブレイク',
+        sectionKey: 'break',
         rows: {
           clap:   '....|X...|....|X...',
           ch:     'x.x.|x.x.|x.x.|x.x.',
@@ -67,6 +71,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'D フィル',
+        sectionKey: 'fill',
         rows: {
           kick:   'X...|X...|X...|....',
           clap:   '....|X...|....|....',
@@ -98,6 +103,7 @@ export const DEMO_SONGS: DemoSong[] = [
     patterns: [
       {
         name: 'A メイン',
+        sectionKey: 'main',
         rows: {
           kick:   'X...|X...|X...|X...',
           ch:     'oxox|oxox|oxox|oxox',
@@ -107,6 +113,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'B 展開',
+        sectionKey: 'dev',
         rows: {
           kick:   'X...|X...|X...|X.X.',
           ch:     'oxox|oxox|oxox|oxRx',
@@ -117,6 +124,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'C ブレイク',
+        sectionKey: 'break',
         rows: {
           ch:     'oxox|oxox|oxox|oxox',
           oh:     '..x.|..x.|..x.|..x.',
@@ -126,6 +134,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'D 落とし',
+        sectionKey: 'drop',
         length: 32,
         rows: {
           kick:   'X...|X...|X...|X...|X...|X...|X...|....',
@@ -154,6 +163,7 @@ export const DEMO_SONGS: DemoSong[] = [
     patterns: [
       {
         name: 'A メイン',
+        sectionKey: 'main',
         rows: {
           kick:   'X...|..x.|..X.|....',
           snare:  '....|X...|....|X...',
@@ -163,6 +173,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'B 展開',
+        sectionKey: 'dev',
         rows: {
           kick:   'X..x|..x.|..X.|.x..',
           snare:  '....|X...|....|X..o',
@@ -173,6 +184,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'C ブレイク',
+        sectionKey: 'break',
         rows: {
           kick:   'X...|....|..X.|....',
           snare:  '....|X...|....|X...',
@@ -182,6 +194,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'D フィル',
+        sectionKey: 'fill',
         rows: {
           kick:   'X...|..x.|....|....',
           snare:  '....|X...|o.o.|X.oX',
@@ -211,6 +224,7 @@ export const DEMO_SONGS: DemoSong[] = [
     patterns: [
       {
         name: 'A メイン',
+        sectionKey: 'main',
         rows: {
           kick:   'X...|....|..X.|.X..',
           snare:  '....|....|X...|....',
@@ -220,6 +234,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'B 展開',
+        sectionKey: 'dev',
         rows: {
           kick:   'X...|..x.|..X.|.X.x',
           snare:  '....|....|X...|....',
@@ -230,6 +245,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'C 静か',
+        sectionKey: 'quiet',
         rows: {
           kick:   'X...|....|....|....',
           snare:  '....|....|X...|....',
@@ -239,6 +255,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'D 転がし',
+        sectionKey: 'roll',
         rows: {
           kick:   'X...|....|..X.|....',
           snare:  '....|....|X...|..X.',
@@ -266,6 +283,7 @@ export const DEMO_SONGS: DemoSong[] = [
     patterns: [
       {
         name: 'A メイン',
+        sectionKey: 'main',
         length: 32,
         rows: {
           kick:   'X...|....|..x.|....|....|X...|..x.|....',
@@ -276,6 +294,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'B 展開',
+        sectionKey: 'dev',
         length: 32,
         rows: {
           kick:   'X...|....|..x.|.x..|X...|....|..x.|....',
@@ -287,6 +306,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'C ブレイク',
+        sectionKey: 'break',
         rows: {
           snare:  '....|X...|....|X...',
           ch:     'o.x.|o.x.|o.x.|o.x.',
@@ -296,6 +316,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'D フィル',
+        sectionKey: 'fill',
         rows: {
           kick:   'X...|....|X...|....',
           snare:  '..o.|X.o.|..oX|XoXX',
@@ -323,6 +344,7 @@ export const DEMO_SONGS: DemoSong[] = [
     patterns: [
       {
         name: 'A メイン',
+        sectionKey: 'main',
         rows: {
           kick:   'X...|....|X...|....',
           snare:  '....|X...|....|X...',
@@ -331,6 +353,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'B 展開',
+        sectionKey: 'dev',
         rows: {
           kick:   'X...|..x.|X...|....',
           snare:  '....|X...|....|X..o',
@@ -340,6 +363,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'C サビ',
+        sectionKey: 'chorus',
         rows: {
           kick:   'X...|..x.|X..x|....',
           snare:  '....|X...|....|X...',
@@ -350,6 +374,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'D フィル',
+        sectionKey: 'fill',
         rows: {
           kick:   'X...|....|....|....',
           snare:  '....|X...|x.x.|....',
@@ -379,6 +404,7 @@ export const DEMO_SONGS: DemoSong[] = [
     patterns: [
       {
         name: 'A メイン',
+        sectionKey: 'main',
         rows: {
           kick:   'X..x|....|..X.|.x..',
           snare:  '..o.|X.o.|..o.|X.o.',
@@ -387,6 +413,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'B 展開',
+        sectionKey: 'dev',
         rows: {
           kick:   'X..x|...x|..X.|.x.x',
           snare:  '..o.|X.o.|.oo.|X.oo',
@@ -397,6 +424,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'C ブレイク',
+        sectionKey: 'break',
         rows: {
           kick:   'X...|....|..X.|....',
           snare:  '..o.|X...|..o.|X...',
@@ -406,6 +434,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'D フィル',
+        sectionKey: 'fill',
         rows: {
           kick:   'X...|....|X...|....',
           snare:  '..o.|X.oo|X.oX|o.XX',
@@ -433,6 +462,7 @@ export const DEMO_SONGS: DemoSong[] = [
     patterns: [
       {
         name: 'A クラーベ',
+        sectionKey: 'clave',
         rows: {
           rim:    'x..x|..x.|..x.|x...',
           kick:   'X...|..x.|..X.|....',
@@ -442,6 +472,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'B 展開',
+        sectionKey: 'dev',
         rows: {
           rim:    'x..x|..x.|..x.|x...',
           kick:   'X..x|..x.|..X.|..x.',
@@ -452,6 +483,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'C 静か',
+        sectionKey: 'quiet',
         rows: {
           shaker: 'o.x.|o.x.|o.x.|o.x.',
           perc:   'x..o|.x..|x..o|.x..',
@@ -460,6 +492,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'D フィル',
+        sectionKey: 'fill',
         rows: {
           tom3:   'x.x.|....|x.x.|....',
           tom2:   '....|x.x.|....|x...',
@@ -487,6 +520,7 @@ export const DEMO_SONGS: DemoSong[] = [
     patterns: [
       {
         name: 'A 基本',
+        sectionKey: 'basic',
         length: 16,
         rows: {
           kick:   'X...|....|..X.|....',
@@ -499,6 +533,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'B 厚く',
+        sectionKey: 'thicker',
         length: 16,
         rows: {
           kick:   'X...|..x.|..X.|....',
@@ -512,6 +547,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'C 余白',
+        sectionKey: 'space',
         length: 16,
         rows: {
           kick:   'X...|....|....|....',
@@ -523,6 +559,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'D 収束',
+        sectionKey: 'converge',
         length: 16,
         rows: {
           kick:   'X...|X...|X...|X...',
@@ -551,6 +588,7 @@ export const DEMO_SONGS: DemoSong[] = [
     patterns: [
       {
         name: 'A メイン',
+        sectionKey: 'main',
         rows: {
           kick:   'X...|....|X...|....',
           snare:  '....|X...|....|X...',
@@ -560,6 +598,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'B 展開',
+        sectionKey: 'dev',
         rows: {
           kick:   'X...|...x|X...|....',
           snare:  '....|X...|....|X...',
@@ -570,6 +609,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'C ブレイク',
+        sectionKey: 'break',
         rows: {
           ch:     'x.x.|x.x.|x.x.|x.x.',
           clap:   '....|X...|....|X...',
@@ -579,6 +619,7 @@ export const DEMO_SONGS: DemoSong[] = [
       },
       {
         name: 'D フィル',
+        sectionKey: 'fill',
         rows: {
           kick:   'X...|....|X...|....',
           snare:  '....|X...|..x.|x.xX',
@@ -613,7 +654,8 @@ export function loadDemo(demo: DemoSong): Project {
   project.patterns = PATTERN_NAMES.map((label, i) => {
     const src = demo.patterns[i];
     if (!src) return emptyPattern(label, TRACK_IDS, 16);
-    return buildPattern({ ...src, name: `${label} ${src.name.replace(/^[A-H]\s*/, '')}` });
+    const section = src.sectionKey ? t(`section.${src.sectionKey}`) : src.name.replace(/^[A-H]\s*/, '');
+    return buildPattern({ ...src, name: `${label} ${section}` });
   });
   project.song = demo.song.map((slot) => ({ ...slot }));
   project.songMode = true;
