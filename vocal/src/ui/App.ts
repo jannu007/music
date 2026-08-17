@@ -13,7 +13,6 @@ import {
   safeFileName,
   timestampName,
 } from '../audio/export';
-import { ROOM_LABEL } from '../audio/reverb';
 import {
   applyLyrics,
   createNote,
@@ -50,6 +49,8 @@ import {
   textField,
   fieldRootOf,
 } from './controls';
+import { getLocale, onLocaleChange, t, toggleLocale } from './i18n';
+import './strings';
 
 const STORAGE_KEY = 'hoshizora-vocal-v1';
 const HISTORY_LIMIT = 80;
@@ -88,13 +89,15 @@ const DEFAULT_RECORD: RecordSettings = {
   trimStart: true,
 };
 
-const SNAP_OPTIONS: { value: string; label: string }[] = [
-  { value: '1', label: '1/4' },
-  { value: '0.5', label: '1/8' },
-  { value: '0.25', label: '1/16' },
-  { value: '0.3333333333', label: '3連' },
-  { value: '0', label: 'なし' },
-];
+function snapOptions(): { value: string; label: string }[] {
+  return [
+    { value: '1', label: t('snap.quarter') },
+    { value: '0.5', label: t('snap.eighth') },
+    { value: '0.25', label: t('snap.sixteenth') },
+    { value: '0.3333333333', label: t('snap.triplet') },
+    { value: '0', label: t('snap.none') },
+  ];
+}
 
 export class VocalApp {
   private root: HTMLElement;
@@ -150,6 +153,8 @@ export class VocalApp {
 
   constructor(root: HTMLElement) {
     this.root = root;
+    document.documentElement.lang = getLocale();
+    onLocaleChange(() => this.build());
     this.song = this.load();
     this.baseline = this.snapshot();
     this.build();
@@ -217,7 +222,7 @@ export class VocalApp {
     if (prev === undefined) return;
     this.future.push(this.snapshot());
     this.song = normalizeSong(JSON.parse(prev));
-    this.afterSongReplaced('元に戻しました');
+    this.afterSongReplaced(t('flash.undone'));
   }
 
   private redo() {
@@ -225,7 +230,7 @@ export class VocalApp {
     if (next === undefined) return;
     this.history.push(this.snapshot());
     this.song = normalizeSong(JSON.parse(next));
-    this.afterSongReplaced('やり直しました');
+    this.afterSongReplaced(t('flash.redone'));
   }
 
   private afterSongReplaced(message: string) {
@@ -249,11 +254,11 @@ export class VocalApp {
           this.audioReady = true;
           this.engine.onPosition = () => undefined;
           this.engine.onEnd = () => this.stop();
-          this.setStatus('準備ができました');
+          this.setStatus(t('status.audioReady'));
         })
         .catch((err) => {
           this.initPromise = null;
-          this.setStatus(`オーディオを開始できません: ${err}`);
+          this.setStatus(t('status.audioError', { err: String(err) }));
           throw err;
         });
     }
@@ -263,7 +268,7 @@ export class VocalApp {
   private async play(fromBeat = 0) {
     await this.ensureAudio();
     if (this.song.notes.length === 0 && this.song.chords.length === 0) {
-      this.setStatus('音符がありません。ピアノロールに書き込んでください');
+      this.setStatus(t('status.noNotes'));
       return;
     }
     this.engine.updateSettings(this.song.settings, this.song.bpm);
@@ -271,15 +276,15 @@ export class VocalApp {
     this.playFromBeat = fromBeat;
     this.engine.play(compiled);
     this.playing = true;
-    this.playButton.textContent = '■ 停止';
+    this.playButton.textContent = t('transport.stop');
     this.playButton.classList.add('active');
-    this.setStatus('再生中');
+    this.setStatus(t('status.playing'));
   }
 
   private stop() {
     this.engine.stop();
     this.playing = false;
-    this.playButton.textContent = '▶ 再生';
+    this.playButton.textContent = t('transport.play');
     this.playButton.classList.remove('active');
     this.roll.setPlayhead(null);
   }
@@ -332,9 +337,9 @@ export class VocalApp {
     app.append(workspace);
 
     const status = el('div', 'statusbar');
-    this.statusEl = el('span', 'status-text', 'ピアノロールに音符を書いて、再生してみてください');
+    this.statusEl = el('span', 'status-text', t('status.initial'));
     status.append(this.statusEl);
-    const credit = el('span', 'status-credit', 'サンプル音源なし・広告なし・オフライン動作');
+    const credit = el('span', 'status-credit', t('status.credit'));
     status.append(credit);
     app.append(status);
 
@@ -373,17 +378,17 @@ export class VocalApp {
       '</svg>';
     const titles = el('div', 'brand-text');
     titles.append(el('span', 'brand-title', 'Hoshizora Vocal'));
-    titles.append(el('span', 'brand-sub', '日本語 歌声シンセサイザー'));
+    titles.append(el('span', 'brand-sub', t('brand.sub')));
     brand.append(mark, titles);
 
     const transport = el('div', 'transport');
-    this.playButton = button('▶ 再生', 'primary', () => this.toggle());
+    this.playButton = button(t('transport.play'), 'primary', () => this.toggle());
     const rewind = button('⏮', 'icon', () => {
       this.playFromBeat = 0;
       if (this.playing) void this.play(0);
       else this.roll.setPlayhead(0);
     });
-    rewind.title = '先頭へ';
+    rewind.title = t('rewind.title');
     this.positionEl = el('span', 'position', '001 : 1');
 
     const meter = el('div', 'meter');
@@ -392,13 +397,16 @@ export class VocalApp {
 
     transport.append(rewind, this.playButton, this.positionEl, meter);
 
+    const langButton = button(t('lang.toggle'), 'ghost round lang-btn', () => toggleLocale());
+
     const actions = el('div', 'top-actions');
+    actions.append(langButton);
     actions.append(
-      button('書き出し', 'ghost', (
+      button(t('action.export'), 'ghost', (
       ) => this.openExportMenu(actions))
     );
-    actions.append(button('保存', 'ghost', () => this.saveProject()));
-    actions.append(button('読込', 'ghost', () => this.openProject()));
+    actions.append(button(t('action.save'), 'ghost', () => this.saveProject()));
+    actions.append(button(t('action.load'), 'ghost', () => this.openProject()));
 
     bar.append(brand, transport, actions);
     return bar;
@@ -408,21 +416,21 @@ export class VocalApp {
     const bar = el('div', 'roll-toolbar');
 
     const tools: { value: RollTool; label: string; hint: string }[] = [
-      { value: 'pen', label: '✏️ ペン', hint: 'クリックで音符を追加' },
-      { value: 'select', label: '✋ 選択', hint: 'ドラッグで画面移動・Shiftで範囲選択' },
-      { value: 'erase', label: '🧽 消す', hint: 'クリックで音符を削除' },
+      { value: 'pen', label: t('tool.pen.label'), hint: t('tool.pen.hint') },
+      { value: 'select', label: t('tool.select.label'), hint: t('tool.select.hint') },
+      { value: 'erase', label: t('tool.erase.label'), hint: t('tool.erase.hint') },
     ];
     const group = el('div', 'segmented compact');
     const buttons: HTMLButtonElement[] = [];
-    for (const t of tools) {
-      const btn = el('button', 'seg-btn', t.label);
+    for (const tool of tools) {
+      const btn = el('button', 'seg-btn', tool.label);
       btn.type = 'button';
-      btn.title = t.hint;
-      if (t.value === 'pen') btn.classList.add('active');
+      btn.title = tool.hint;
+      if (tool.value === 'pen') btn.classList.add('active');
       btn.addEventListener('click', () => {
         for (const b of buttons) b.classList.remove('active');
         btn.classList.add('active');
-        this.roll.setTool(t.value);
+        this.roll.setTool(tool.value);
       });
       buttons.push(btn);
       group.append(btn);
@@ -430,9 +438,9 @@ export class VocalApp {
     bar.append(group);
 
     const snapWrap = el('label', 'inline-field');
-    snapWrap.append(el('span', 'inline-label', 'スナップ'));
+    snapWrap.append(el('span', 'inline-label', t('roll.snap.label')));
     const snapSelect = el('select', 'select');
-    for (const opt of SNAP_OPTIONS) {
+    for (const opt of snapOptions()) {
       const o = el('option', '', opt.label);
       o.value = opt.value;
       if (opt.value === '0.25') o.selected = true;
@@ -446,9 +454,9 @@ export class VocalApp {
     bar.append(snapWrap);
 
     const lenWrap = el('label', 'inline-field');
-    lenWrap.append(el('span', 'inline-label', '長さ'));
+    lenWrap.append(el('span', 'inline-label', t('roll.length.label')));
     const lenSelect = el('select', 'select');
-    for (const [value, label] of [['2', '2拍'], ['1', '1拍'], ['0.5', '8分'], ['0.25', '16分']]) {
+    for (const [value, label] of [['2', t('length.2beat')], ['1', t('length.1beat')], ['0.5', t('length.eighth')], ['0.25', t('length.sixteenth')]]) {
       const o = el('option', '', label);
       o.value = value;
       if (value === '1') o.selected = true;
@@ -467,20 +475,20 @@ export class VocalApp {
     bar.append(button('＋', 'icon', () => this.roll.zoom(1.25)));
     bar.append(button('⇕−', 'icon', () => this.roll.zoomVertical(1 / 1.2)));
     bar.append(button('⇕＋', 'icon', () => this.roll.zoomVertical(1.2)));
-    bar.append(button('全選択', 'ghost', () => this.roll.selectAll()));
-    bar.append(button('削除', 'ghost danger', () => this.roll.deleteSelection()));
+    bar.append(button(t('roll.selectAll'), 'ghost', () => this.roll.selectAll()));
+    bar.append(button(t('roll.deleteSelection'), 'ghost danger', () => this.roll.deleteSelection()));
     return bar;
   }
 
   private buildTabs(): HTMLElement {
     const tabs = el('div', 'tabs');
     const items: { id: TabId; label: string }[] = [
-      { id: 'voice', label: '声' },
-      { id: 'expression', label: '歌い方' },
-      { id: 'accomp', label: '伴奏' },
-      { id: 'mix', label: 'ミックス' },
-      { id: 'record', label: '録音' },
-      { id: 'song', label: '曲' },
+      { id: 'voice', label: t('tab.voice') },
+      { id: 'expression', label: t('tab.expression') },
+      { id: 'accomp', label: t('tab.accomp') },
+      { id: 'mix', label: t('tab.mix') },
+      { id: 'record', label: t('tab.record') },
+      { id: 'song', label: t('tab.song') },
     ];
     for (const item of items) {
       const btn = el('button', 'tab', item.label);
@@ -532,16 +540,16 @@ export class VocalApp {
 
   private panelVoice() {
     const s = this.song.settings;
-    const list = section('ボイス', '声帯と声道の設定一式');
+    const list = section(t('section.voice.title'), t('section.voice.hint'));
     const grid = el('div', 'voice-grid');
     for (const voice of VOICES) {
       const card = el('button', 'voice-card');
       card.type = 'button';
       if (voice.id === s.voiceId) card.classList.add('active');
-      card.append(el('span', 'voice-name', voice.name));
-      card.append(el('span', 'voice-desc', voice.description));
+      card.append(el('span', 'voice-name', t(`voice.${voice.id}.name`)));
+      card.append(el('span', 'voice-desc', t(`voice.${voice.id}.description`)));
       card.append(
-        el('span', 'voice-range', `得意音域 ${midiToNoteName(voice.range[0])} 〜 ${midiToNoteName(voice.range[1])}`)
+        el('span', 'voice-range', t('voice.range', { lo: midiToNoteName(voice.range[0]), hi: midiToNoteName(voice.range[1]) }))
       );
       card.addEventListener('click', () => {
         const defaults = voiceDefaults(voice.id);
@@ -549,7 +557,7 @@ export class VocalApp {
         s.character = { ...defaults.character };
         s.expression = { ...defaults.expression };
         this.changed('');
-        this.commitSettings(`${voice.name} に切り替えました`);
+        this.commitSettings(t('flash.voiceSwitched', { name: t(`voice.${voice.id}.name`) }));
         this.renderPanel();
       });
       grid.append(card);
@@ -558,48 +566,48 @@ export class VocalApp {
     this.panelBody.append(list);
 
     const c = s.character;
-    const tone = section('声色の調整', 'プリセットを土台に微調整できます');
+    const tone = section(t('section.toneAdjust.title'), t('section.toneAdjust.hint'));
     tone.append(
       slider({
-        label: '声の高さ感（声道の長さ）', min: 0.85, max: 1.4, step: 0.01, value: c.tract,
-        hint: '大きいほど幼く・女性的に、小さいほど太く・男性的になります',
+        label: t('ctl.tract.label'), min: 0.85, max: 1.4, step: 0.01, value: c.tract,
+        hint: t('ctl.tract.hint'),
         format: (v) => v.toFixed(2),
         onInput: (v) => { c.tract = v; this.commitSettings(); },
       }),
       slider({
-        label: '明るさ', min: -1, max: 1, step: 0.01, value: c.brightness,
+        label: t('ctl.brightness.label'), min: -1, max: 1, step: 0.01, value: c.brightness,
         format: (v) => v.toFixed(2),
         onInput: (v) => { c.brightness = v; this.commitSettings(); },
       }),
       slider({
-        label: '息（ブレス感）', min: 0, max: 1, step: 0.01, value: c.breath,
+        label: t('ctl.breath.label'), min: 0, max: 1, step: 0.01, value: c.breath,
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { c.breath = v; this.commitSettings(); },
       }),
       slider({
-        label: '声の張り', min: 0, max: 1, step: 0.01, value: c.tension,
-        hint: '強いほど前に出る硬い声、弱いほど柔らかい声',
+        label: t('ctl.tension.label'), min: 0, max: 1, step: 0.01, value: c.tension,
+        hint: t('ctl.tension.hint'),
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { c.tension = v; this.commitSettings(); },
       }),
       slider({
-        label: '鼻にかかる量', min: 0, max: 1, step: 0.01, value: c.nasality,
+        label: t('ctl.nasality.label'), min: 0, max: 1, step: 0.01, value: c.nasality,
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { c.nasality = v; this.commitSettings(); },
       }),
       slider({
-        label: '声の太さ', min: 0, max: 1, step: 0.01, value: c.body,
+        label: t('ctl.body.label'), min: 0, max: 1, step: 0.01, value: c.body,
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { c.body = v; this.commitSettings(); },
       }),
       slider({
-        label: 'エッジ（うなり）', min: 0, max: 1, step: 0.01, value: c.growl,
-        hint: 'ロック系のかすれ・パワー感',
+        label: t('ctl.growl.label'), min: 0, max: 1, step: 0.01, value: c.growl,
+        hint: t('ctl.growl.hint'),
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { c.growl = v; this.commitSettings(); },
       }),
       slider({
-        label: '基準ピッチ A4', min: 415, max: 466, step: 1, value: s.a4,
+        label: t('ctl.a4.label'), min: 415, max: 466, step: 1, value: s.a4,
         format: (v) => `${v} Hz`,
         onInput: (v) => { s.a4 = v; this.commitSettings(); },
       })
@@ -609,77 +617,77 @@ export class VocalApp {
 
   private panelExpression() {
     const e = this.song.settings.expression;
-    const vib = section('ビブラート');
+    const vib = section(t('section.vibrato.title'));
     vib.append(
       slider({
-        label: '深さ', min: 0, max: 90, step: 1, value: e.vibDepth,
-        format: (v) => `${Math.round(v)} セント`,
+        label: t('ctl.vibDepth.label'), min: 0, max: 90, step: 1, value: e.vibDepth,
+        format: (v) => `${Math.round(v)} ${t('unit.cents')}`,
         onInput: (v) => { e.vibDepth = v; this.commitSettings(); },
       }),
       slider({
-        label: '速さ', min: 3.5, max: 8, step: 0.1, value: e.vibRate,
+        label: t('ctl.vibRate.label'), min: 3.5, max: 8, step: 0.1, value: e.vibRate,
         format: (v) => `${v.toFixed(1)} Hz`,
         onInput: (v) => { e.vibRate = v; this.commitSettings(); },
       }),
       slider({
-        label: 'かかり始め', min: 0, max: 0.9, step: 0.01, value: e.vibDelay,
-        hint: '音符の長さに対する位置。遅いほど「まっすぐ伸ばしてから揺れる」',
+        label: t('ctl.vibDelay.label'), min: 0, max: 0.9, step: 0.01, value: e.vibDelay,
+        hint: t('ctl.vibDelay.hint'),
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { e.vibDelay = v; this.commitSettings(); },
       })
     );
     this.panelBody.append(vib);
 
-    const legato = section('音のつなぎ');
+    const legato = section(t('section.legato.title'));
     legato.append(
       slider({
-        label: 'ポルタメント', min: 0, max: 250, step: 5, value: e.portamento,
-        hint: '次の音へ音程が滑る時間',
+        label: t('ctl.portamento.label'), min: 0, max: 250, step: 5, value: e.portamento,
+        hint: t('ctl.portamento.hint'),
         format: (v) => `${Math.round(v)} ms`,
         onInput: (v) => { e.portamento = v; this.commitSettings(); },
       }),
       slider({
-        label: 'しゃくり', min: 0, max: 1, step: 0.01, value: e.scoop,
-        hint: 'フレーズ頭を下からすくい上げる量',
+        label: t('ctl.scoop.label'), min: 0, max: 1, step: 0.01, value: e.scoop,
+        hint: t('ctl.scoop.hint'),
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { e.scoop = v; this.commitSettings(); },
       }),
       slider({
-        label: '子音の長さ', min: 0.5, max: 1.8, step: 0.01, value: e.consonant,
-        hint: '長いほど言葉がはっきりする',
-        format: (v) => `${v.toFixed(2)} 倍`,
+        label: t('ctl.consonant.label'), min: 0.5, max: 1.8, step: 0.01, value: e.consonant,
+        hint: t('ctl.consonant.hint'),
+        format: (v) => `${v.toFixed(2)} ${t('unit.times')}`,
         onInput: (v) => { e.consonant = v; this.commitSettings(); },
       })
     );
     this.panelBody.append(legato);
 
-    const dyn = section('強弱と息');
+    const dyn = section(t('section.dynamics.title'));
     dyn.append(
       slider({
-        label: '抑揚', min: 0, max: 1, step: 0.01, value: e.dynamics,
-        hint: '音符ごとの強さ（ベロシティ）の効き',
+        label: t('ctl.dynamics.label'), min: 0, max: 1, step: 0.01, value: e.dynamics,
+        hint: t('ctl.dynamics.hint'),
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { e.dynamics = v; this.commitSettings(); },
       }),
       slider({
-        label: '立ち上がり', min: 5, max: 120, step: 1, value: e.attack,
+        label: t('ctl.attack.label'), min: 5, max: 120, step: 1, value: e.attack,
         format: (v) => `${Math.round(v)} ms`,
         onInput: (v) => { e.attack = v; this.commitSettings(); },
       }),
       slider({
-        label: '語尾の消え方', min: 20, max: 400, step: 5, value: e.release,
+        label: t('ctl.release.label'), min: 20, max: 400, step: 5, value: e.release,
         format: (v) => `${Math.round(v)} ms`,
         onInput: (v) => { e.release = v; this.commitSettings(); },
       }),
       slider({
-        label: 'ブレス（息継ぎ音）', min: 0, max: 1, step: 0.01, value: e.breathNoise,
-        hint: 'フレーズの前に入る息の音',
+        label: t('ctl.breathNoise.label'), min: 0, max: 1, step: 0.01, value: e.breathNoise,
+        hint: t('ctl.breathNoise.hint'),
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { e.breathNoise = v; this.commitSettings(); },
       }),
       slider({
-        label: 'ゆらぎ', min: 0, max: 1, step: 0.01, value: e.drift,
-        hint: '人の声らしい微妙なピッチの揺れ',
+        label: t('ctl.drift.label'), min: 0, max: 1, step: 0.01, value: e.drift,
+        hint: t('ctl.drift.hint'),
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { e.drift = v; this.commitSettings(); },
       })
@@ -689,40 +697,40 @@ export class VocalApp {
 
   private panelAccomp() {
     const styles: { value: AccompStyle; label: string }[] = [
-      { value: 'off', label: 'なし' },
-      { value: 'ballad', label: 'バラード' },
-      { value: 'pop', label: 'ポップ' },
-      { value: 'arpeggio', label: 'アルペジオ' },
-      { value: 'pad', label: 'パッド' },
-      { value: 'band', label: 'バンド' },
+      { value: 'off', label: t('style.off') },
+      { value: 'ballad', label: t('style.ballad') },
+      { value: 'pop', label: t('style.pop') },
+      { value: 'arpeggio', label: t('style.arpeggio') },
+      { value: 'pad', label: t('style.pad') },
+      { value: 'band', label: t('style.band') },
     ];
-    const s = section('伴奏スタイル', 'コード進行から自動で伴奏を作ります');
+    const s = section(t('section.accompStyle.title'), t('section.accompStyle.hint'));
     s.append(
       segmented('', styles, this.song.style, (v) => {
         this.song.style = v;
-        this.changed('伴奏を変更');
+        this.changed(t('flash.accompChanged'));
       })
     );
     s.append(
       slider({
-        label: '伴奏の音量', min: 0, max: 1, step: 0.01, value: this.song.settings.mix.accompLevel,
+        label: t('ctl.accompLevel.label'), min: 0, max: 1, step: 0.01, value: this.song.settings.mix.accompLevel,
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { this.song.settings.mix.accompLevel = v; this.commitSettings(); },
       })
     );
     this.panelBody.append(s);
 
-    const chordSection = section('コード進行', '1行 = 1小節。1行に複数書くと小節を分割します');
+    const chordSection = section(t('section.chords.title'), t('section.chords.hint'));
     const area = textArea(
-      'コード',
+      t('field.chords.label'),
       chordsToText(this.song.chords, this.song.beatsPerBar),
       10,
       (v) => {
         this.song.chords = parseChordText(v, this.song.beatsPerBar);
-        this.changed('コードを変更');
+        this.changed(t('flash.chordsChanged'));
         this.roll.refresh();
       },
-      '例）C / Am7 / F G / G7sus4 / F#m7b5 / C/E'
+      t('chords.placeholder')
     );
     this.chordArea = area;
     chordSection.append(fieldRootOf(area));
@@ -731,87 +739,87 @@ export class VocalApp {
 
   private panelMix() {
     const m = this.song.settings.mix;
-    const balance = section('バランス');
+    const balance = section(t('section.balance.title'));
     balance.append(
       slider({
-        label: 'マスター音量', min: 0, max: 1, step: 0.01, value: m.volume,
+        label: t('ctl.masterVolume.label'), min: 0, max: 1, step: 0.01, value: m.volume,
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { m.volume = v; this.commitSettings(); },
       }),
       slider({
-        label: 'ボーカル', min: 0, max: 1, step: 0.01, value: m.vocalLevel,
+        label: t('ctl.vocalLevel.label'), min: 0, max: 1, step: 0.01, value: m.vocalLevel,
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { m.vocalLevel = v; this.commitSettings(); },
       }),
       slider({
-        label: '伴奏', min: 0, max: 1, step: 0.01, value: m.accompLevel,
+        label: t('ctl.accompLevel2.label'), min: 0, max: 1, step: 0.01, value: m.accompLevel,
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { m.accompLevel = v; this.commitSettings(); },
       })
     );
     this.panelBody.append(balance);
 
-    const tone = section('音作り');
+    const tone = section(t('section.mixTone.title'));
     tone.append(
       slider({
-        label: 'トーン（明るさ）', min: -1, max: 1, step: 0.01, value: m.tone,
+        label: t('ctl.mixTone.label'), min: -1, max: 1, step: 0.01, value: m.tone,
         format: (v) => v.toFixed(2),
         onInput: (v) => { m.tone = v; this.commitSettings(); },
       }),
       slider({
-        label: '低域の整理', min: 0, max: 1, step: 0.01, value: m.lowCut,
-        hint: 'こもりを取ってボーカルを前に出します',
+        label: t('ctl.lowCut.label'), min: 0, max: 1, step: 0.01, value: m.lowCut,
+        hint: t('ctl.lowCut.hint'),
         format: (v) => `${Math.round(70 + v * 90)} Hz`,
         onInput: (v) => { m.lowCut = v; this.commitSettings(); },
       }),
       slider({
-        label: 'コンプレッサー', min: 0, max: 1, step: 0.01, value: m.comp,
-        hint: '音量のばらつきをそろえます',
+        label: t('ctl.comp.label'), min: 0, max: 1, step: 0.01, value: m.comp,
+        hint: t('ctl.comp.hint'),
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { m.comp = v; this.commitSettings(); },
       })
     );
     this.panelBody.append(tone);
 
-    const space = section('空間');
+    const space = section(t('section.space.title'));
     space.append(
       slider({
-        label: 'ダブラー（厚み）', min: 0, max: 1, step: 0.01, value: m.doubler,
-        hint: '少しずらした声を左右に重ねます',
+        label: t('ctl.doubler.label'), min: 0, max: 1, step: 0.01, value: m.doubler,
+        hint: t('ctl.doubler.hint'),
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { m.doubler = v; this.commitSettings(); },
       }),
       slider({
-        label: '広がり', min: 0, max: 1, step: 0.01, value: m.width,
+        label: t('ctl.width.label'), min: 0, max: 1, step: 0.01, value: m.width,
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { m.width = v; this.commitSettings(); },
       }),
       segmented<ReverbType>(
-        'リバーブ',
+        t('ctl.reverbType.label'),
         (['off', 'room', 'plate', 'hall', 'church'] as ReverbType[]).map((v) => ({
           value: v,
-          label: ROOM_LABEL[v],
+          label: t(`room.${v}.label`),
         })),
         m.reverbType,
         (v) => { m.reverbType = v; this.commitSettings(); }
       ),
       slider({
-        label: 'リバーブ量', min: 0, max: 1, step: 0.01, value: m.reverbMix,
+        label: t('ctl.reverbMix.label'), min: 0, max: 1, step: 0.01, value: m.reverbMix,
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { m.reverbMix = v; this.commitSettings(); },
       }),
       slider({
-        label: 'ディレイ量', min: 0, max: 1, step: 0.01, value: m.delayMix,
+        label: t('ctl.delayMix.label'), min: 0, max: 1, step: 0.01, value: m.delayMix,
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => { m.delayMix = v; this.commitSettings(); },
       }),
       segmented(
-        'ディレイの間隔',
+        t('ctl.delayBeats.label'),
         [
-          { value: '0.25', label: '16分' },
-          { value: '0.5', label: '8分' },
-          { value: '0.75', label: '付点8分' },
-          { value: '1', label: '4分' },
+          { value: '0.25', label: t('delaybeats.16') },
+          { value: '0.5', label: t('delaybeats.8') },
+          { value: '0.75', label: t('delaybeats.dotted8') },
+          { value: '1', label: t('delaybeats.4') },
         ],
         String(m.delayBeats),
         (v) => { m.delayBeats = Number(v); this.commitSettings(); }
@@ -819,12 +827,12 @@ export class VocalApp {
     );
     this.panelBody.append(space);
 
-    const reset = section('初期化');
+    const reset = section(t('section.reset.title'));
     reset.append(
-      button('ミックスを既定値に戻す', 'ghost', () => {
+      button(t('action.resetMix'), 'ghost', () => {
         this.song.settings.mix = { ...DEFAULT_MIX };
         this.changed('');
-        this.commitSettings('ミックスを戻しました');
+        this.commitSettings(t('flash.mixReset'));
         this.renderPanel();
       })
     );
@@ -836,10 +844,10 @@ export class VocalApp {
   private panelRecord() {
     const s = this.recordSettings;
 
-    const capture = section('マイクから録音', '歌うと音符になってピアノロールへ入ります');
+    const capture = section(t('section.micRecord.title'), t('section.micRecord.hint'));
     if (!micSupported()) {
       capture.append(
-        el('div', 'ctl-hint', 'この端末ではマイクを使えません。HTTPS で開いているか確かめてください。')
+        el('div', 'ctl-hint', t('mic.unsupported'))
       );
       this.panelBody.append(capture);
       return;
@@ -847,7 +855,7 @@ export class VocalApp {
 
     const box = el('div', 'record-box');
     const recordButton = button(
-      this.recording ? '■ 停止して取り込む' : '● 録音開始',
+      this.recording ? t('record.stopAndImport') : t('record.start'),
       this.recording ? 'danger record-main active' : 'primary record-main',
       () => void this.toggleRecording()
     );
@@ -862,14 +870,14 @@ export class VocalApp {
     const checkRow = el('div', 'button-row');
     checkRow.append(
       button(
-        this.monitoring ? 'マイクの確認をやめる' : 'マイクを確かめる',
+        this.monitoring ? t('mic.stopMonitor') : t('mic.checkMic'),
         this.monitoring ? 'ghost active' : 'ghost',
         () => void this.toggleMonitor()
       )
     );
     box.append(checkRow);
     if (this.monitoring) {
-      box.append(el('div', 'ctl-hint', '声を出すと上のバーが動きます。動かないときは端末のマイク設定をご確認ください。'));
+      box.append(el('div', 'ctl-hint', t('mic.monitorHint')));
     }
     if (this.lastLevelNote) box.append(el('div', 'record-note', this.lastLevelNote));
 
@@ -877,23 +885,23 @@ export class VocalApp {
     this.recordUi = { button: recordButton, level: levelFill, status };
     this.panelBody.append(capture);
 
-    const setup = section('録音の設定', 'ハウリングを避けるため、イヤホンの使用をおすすめします');
+    const setup = section(t('section.recordSettings.title'), t('section.recordSettings.hint'));
     setup.append(
-      switchRow('カウントイン', s.countIn, (v) => {
+      switchRow(t('ctl.countIn.label'), s.countIn, (v) => {
         s.countIn = v;
-      }, '1小節分クリックを鳴らしてから録音を始めます'),
-      switchRow('録音中もクリックを鳴らす', s.metronome, (v) => {
+      }, t('ctl.countIn.hint')),
+      switchRow(t('ctl.metronomeDuringRec.label'), s.metronome, (v) => {
         s.metronome = v;
       }),
-      switchRow('最初の音を先頭に詰める', s.trimStart, (v) => {
+      switchRow(t('ctl.trimStart.label'), s.trimStart, (v) => {
         s.trimStart = v;
-      }, 'カウントインに合わせて歌うときはオフにしてください'),
+      }, t('ctl.trimStart.hint')),
       segmented<InsertAt>(
-        '取り込む位置',
+        t('ctl.insertAt.label'),
         [
-          { value: 'start', label: '先頭' },
-          { value: 'playhead', label: '再生位置' },
-          { value: 'end', label: '曲の最後' },
+          { value: 'start', label: t('insertAt.start') },
+          { value: 'playhead', label: t('insertAt.playhead') },
+          { value: 'end', label: t('insertAt.end') },
         ],
         s.insertAt,
         (v) => {
@@ -903,9 +911,9 @@ export class VocalApp {
     );
 
     const snapWrap = el('div', 'ctl');
-    snapWrap.append(el('div', 'ctl-label', '音符の位置合わせ'));
+    snapWrap.append(el('div', 'ctl-label', t('ctl.snapNote.label')));
     const snapSelect = el('select', 'select');
-    for (const opt of SNAP_OPTIONS) {
+    for (const opt of snapOptions()) {
       const o = el('option', '', opt.label);
       o.value = opt.value;
       if (Number(opt.value) === s.snap) o.selected = true;
@@ -919,12 +927,12 @@ export class VocalApp {
 
     setup.append(
       slider({
-        label: '感度',
+        label: t('ctl.sensitivity.label'),
         min: 0,
         max: 1,
         step: 0.01,
         value: s.sensitivity,
-        hint: '音符が抜けるときは上げ、雑音を拾うときは下げてください',
+        hint: t('ctl.sensitivity.hint'),
         format: (v) => `${Math.round(v * 100)}%`,
         onInput: (v) => {
           s.sensitivity = v;
@@ -933,11 +941,11 @@ export class VocalApp {
     );
 
     const lyricOptions: { value: LyricMode; label: string }[] = [
-      { value: 'speech', label: '言葉を聞き取る' },
-      { value: 'vowel', label: '母音を推定' },
-      { value: 'ra', label: '「ら」' },
+      { value: 'speech', label: t('lyricMode.speech') },
+      { value: 'vowel', label: t('lyricMode.vowel') },
+      { value: 'ra', label: t('lyricMode.ra') },
     ];
-    setup.append(segmented<LyricMode>('歌詞の付け方', lyricOptions, s.lyricMode, (v) => {
+    setup.append(segmented<LyricMode>(t('ctl.lyricMode.label'), lyricOptions, s.lyricMode, (v) => {
       s.lyricMode = v;
       this.renderPanel();
     }));
@@ -947,42 +955,42 @@ export class VocalApp {
           'div',
           'ctl-hint',
           speechSupported()
-            ? 'ブラウザの音声認識を使います（インターネット接続が必要です）。聞き取れないときは母音の推定に切り替わります。'
-            : 'この端末は音声認識に対応していません。母音の推定で歌詞を付けます。'
+            ? t('speech.supportedHint')
+            : t('speech.unsupportedHint')
         )
       );
     } else if (s.lyricMode === 'vowel') {
-      setup.append(el('div', 'ctl-hint', '声の響きから あいうえお を推定します（オフラインで動きます）。'));
+      setup.append(el('div', 'ctl-hint', t('vowel.hint')));
     }
     this.panelBody.append(setup);
 
     if (this.lastRecording) {
       const seconds = this.lastRecording.samples.length / this.lastRecording.sampleRate;
-      const last = section('最後の録音', `${seconds.toFixed(1)} 秒`);
+      const last = section(t('section.lastRecording.title'), t('lastRecording.subtitle', { seconds: seconds.toFixed(1) }));
       if (this.lastTranscript) {
-        last.append(el('div', 'ctl-label', '聞き取った言葉'));
+        last.append(el('div', 'ctl-label', t('label.heardWords')));
         last.append(el('div', 'record-transcript', this.lastTranscript));
       } else if (this.speechNote) {
         last.append(el('div', 'ctl-hint', this.speechNote));
       }
       const again = el('div', 'button-row');
       again.append(
-        button('この録音をもう一度取り込む', 'ghost', () => void this.applyRecording())
+        button(t('action.reimport'), 'ghost', () => void this.applyRecording())
       );
       last.append(again);
       last.append(
-        el('div', 'ctl-hint', '感度や位置合わせを変えてから押すと、設定し直した結果を追加できます。')
+        el('div', 'ctl-hint', t('reimport.hint'))
       );
       this.panelBody.append(last);
     }
 
-    const help = section('うまく取り込むコツ');
+    const help = section(t('section.recordTips.title'));
     const tips = el('ul', 'tips');
     for (const tip of [
-      '「ら・ら・ら」のように音を切って歌うと、音符に分かれやすくなります。',
-      'カウントインのクリックに合わせて歌うと、小節の位置がそろいます。',
-      '取り込んだ音符は普通の音符です。ピアノロールで自由に直せます。',
-      '取り込みすぎたときは Ctrl+Z（元に戻す）で戻せます。',
+      t('tip.1'),
+      t('tip.2'),
+      t('tip.3'),
+      t('tip.4'),
     ]) {
       tips.append(el('li', '', tip));
     }
@@ -991,9 +999,9 @@ export class VocalApp {
   }
 
   private recordHint(): string {
-    if (this.recording) return '録音中です。歌い終わったら停止を押してください';
-    if (this.analyzing) return '解析しています…';
-    return 'ボタンを押すとマイクの使用を尋ねます';
+    if (this.recording) return t('status.recordingStop');
+    if (this.analyzing) return t('status.analyzing');
+    return t('status.pressToRecord');
   }
 
   private setRecordStatus(text: string) {
@@ -1004,7 +1012,7 @@ export class VocalApp {
   private updateRecordUi() {
     const ui = this.recordUi;
     if (!ui?.button.isConnected) return;
-    ui.button.textContent = this.recording ? '■ 停止して取り込む' : '● 録音開始';
+    ui.button.textContent = this.recording ? t('record.stopAndImport') : t('record.start');
     ui.button.className = this.recording ? 'btn danger record-main active' : 'btn primary record-main';
     ui.button.disabled = this.analyzing;
     if (!this.recording) ui.level.style.width = '0%';
@@ -1035,7 +1043,7 @@ export class VocalApp {
     try {
       await this.mic.open(ctx);
     } catch (err) {
-      this.setRecordStatus(`マイクを使えません: ${this.errorText(err)}`);
+      this.setRecordStatus(t('status.micUnavailable', { err: this.errorText(err) }));
       return;
     }
     let seen = 0;
@@ -1045,7 +1053,7 @@ export class VocalApp {
         this.recordUi.level.style.width = `${Math.min(100, peak * 140)}%`;
       }
       if (this.recordUi?.status.isConnected) {
-        this.recordUi.status.textContent = `マイク確認中… 現在 ${(peak * 100).toFixed(0)}％ ／ 最大 ${(seen * 100).toFixed(0)}％`;
+        this.recordUi.status.textContent = t('status.micMonitoring', { peak: (peak * 100).toFixed(0), max: (seen * 100).toFixed(0) });
       }
     };
     this.monitoring = true;
@@ -1066,11 +1074,11 @@ export class VocalApp {
     const ctx = this.engine.ctx;
     if (!ctx) return;
 
-    this.setRecordStatus('マイクの使用を許可してください…');
+    this.setRecordStatus(t('status.requestMic'));
     try {
       await this.mic.open(ctx);
     } catch (err) {
-      this.setRecordStatus(`マイクを使えません: ${this.errorText(err)}`);
+      this.setRecordStatus(t('status.micUnavailable', { err: this.errorText(err) }));
       return;
     }
     this.mic.onLevel = (peak) => {
@@ -1090,7 +1098,7 @@ export class VocalApp {
     this.updateRecordUi();
 
     const waitMs = countInBeats * secondsPerBeat * 1000;
-    this.setRecordStatus(countInBeats > 0 ? 'カウントイン…' : '録音中です。歌い終わったら停止を押してください');
+    this.setRecordStatus(countInBeats > 0 ? t('status.countIn') : t('status.recordingStop'));
     this.recordStartTimer = window.setTimeout(() => {
       if (!this.recording) return;
       if (!s.metronome) this.stopClicks();
@@ -1099,7 +1107,7 @@ export class VocalApp {
         const speech = new SpeechCapture();
         if (speech.start()) this.speech = speech;
       }
-      this.setRecordStatus('録音中です。歌い終わったら停止を押してください');
+      this.setRecordStatus(t('status.recordingStop'));
     }, waitMs);
   }
 
@@ -1115,7 +1123,7 @@ export class VocalApp {
     this.updateRecordUi();
 
     if (this.speech) {
-      this.setRecordStatus('聞き取った言葉をまとめています…');
+      this.setRecordStatus(t('status.transcribing'));
       this.lastTranscript = await this.speech.finish();
       this.speechNote = this.lastTranscript ? '' : this.speech.error ?? '';
       this.speech = null;
@@ -1125,22 +1133,22 @@ export class VocalApp {
 
     if (!recording || recording.samples.length < recording.sampleRate * 0.25) {
       this.lastRecording = null;
-      this.setRecordStatus('録音が短すぎます。もう一度お試しください');
+      this.setRecordStatus(t('status.recordingTooShort'));
       this.renderPanel();
       return;
     }
 
     const level = measureLevel(recording);
-    this.lastLevelNote =
-      `録音 ${level.seconds.toFixed(1)} 秒 ／ 最大音量 ${(level.peak * 100).toFixed(1)}％` +
-      `（平均 ${(level.rms * 100).toFixed(2)}％）`;
+    this.lastLevelNote = t('record.levelNote', {
+      seconds: level.seconds.toFixed(1),
+      peak: (level.peak * 100).toFixed(1),
+      rms: (level.rms * 100).toFixed(2),
+    });
 
     // マイクから何も入っていないなら、感度を上げても解決しない。原因を分けて伝える
     if (level.peak < 0.002) {
       this.lastRecording = null;
-      this.setRecordStatus(
-        'マイクから音が入っていませんでした。端末のマイクの許可・別アプリでの使用・外部マイクの接続をご確認ください'
-      );
+      this.setRecordStatus(t('status.noMicSignal'));
       this.renderPanel();
       return;
     }
@@ -1157,7 +1165,7 @@ export class VocalApp {
 
     this.analyzing = true;
     this.updateRecordUi();
-    this.setRecordStatus('解析しています…');
+    this.setRecordStatus(t('status.analyzing'));
 
     let detected;
     try {
@@ -1169,12 +1177,12 @@ export class VocalApp {
           // 言葉を聞き取れなかったときも歌詞が付くよう、母音の推定は保険として動かす
           detectVowels: s.lyricMode === 'vowel' || (s.lyricMode === 'speech' && !this.lastTranscript),
         },
-        (ratio) => this.setRecordStatus(`解析しています… ${Math.round(ratio * 100)}%`)
+        (ratio) => this.setRecordStatus(t('status.analyzingProgress', { pct: Math.round(ratio * 100) }))
       );
     } catch (err) {
       this.analyzing = false;
       this.updateRecordUi();
-      this.setRecordStatus(`解析できませんでした: ${this.errorText(err)}`);
+      this.setRecordStatus(t('status.analyzeFailed', { err: this.errorText(err) }));
       return;
     }
 
@@ -1182,9 +1190,7 @@ export class VocalApp {
     this.updateRecordUi();
 
     if (detected.length === 0) {
-      this.setRecordStatus(
-        '音符を取り出せませんでした。「あー」と声を伸ばして歌うと拾いやすくなります（話し声や小さすぎる声は音程が取れません）'
-      );
+      this.setRecordStatus(t('status.noNotesExtracted'));
       this.renderPanel();
       return;
     }
@@ -1209,14 +1215,14 @@ export class VocalApp {
     let lyricNote = '';
     if (s.lyricMode === 'speech' && this.lastTranscript) {
       const applied = applyLyrics(notes, this.lastTranscript);
-      lyricNote = `・歌詞 ${applied} 文字`;
+      lyricNote = t('lyricNote.suffix', { n: applied });
     } else if (s.lyricMode === 'ra') {
       for (const note of notes) note.lyric = 'ら';
     }
 
     this.song.notes.push(...notes);
     this.song.notes.sort((a, b) => a.start - b.start);
-    this.changed(`${notes.length} 音符を取り込みました${lyricNote}`);
+    this.changed(t('flash.notesImported', { count: notes.length, lyricNote }));
     this.roll.refresh();
     this.renderPanel();
   }
@@ -1238,8 +1244,8 @@ export class VocalApp {
   private errorText(err: unknown): string {
     if (err && typeof err === 'object' && 'name' in err) {
       const name = String((err as Error).name);
-      if (name === 'NotAllowedError') return 'マイクの使用が許可されませんでした';
-      if (name === 'NotFoundError') return 'マイクが見つかりません';
+      if (name === 'NotAllowedError') return t('error.micNotAllowed');
+      if (name === 'NotFoundError') return t('error.micNotFound');
     }
     return err instanceof Error ? err.message : String(err);
   }
@@ -1284,45 +1290,45 @@ export class VocalApp {
   }
 
   private panelSong() {
-    const info = section('曲の設定');
+    const info = section(t('section.songSettings.title'));
     info.append(
       textField({
-        label: '曲名',
+        label: t('field.title.label'),
         value: this.song.title,
         onChange: (v) => {
-          this.song.title = v || '無題';
+          this.song.title = v || t('title.untitled');
           this.changed('');
         },
       }),
-      numberField('テンポ（BPM）', this.song.bpm, 40, 240, (v) => {
+      numberField(t('field.tempo.label'), this.song.bpm, 40, 240, (v) => {
         this.song.bpm = v;
-        this.changed('テンポを変更');
+        this.changed(t('flash.tempoChanged'));
         this.commitSettings();
       }),
-      numberField('1小節の拍数', this.song.beatsPerBar, 2, 7, (v) => {
+      numberField(t('field.beatsPerBar.label'), this.song.beatsPerBar, 2, 7, (v) => {
         this.song.beatsPerBar = v;
-        this.changed('拍子を変更');
+        this.changed(t('flash.timeSigChanged'));
         this.roll.refresh();
       })
     );
     const tools = el('div', 'button-row');
     tools.append(
-      button('半音下げ', 'ghost', () => {
+      button(t('action.semitoneDown'), 'ghost', () => {
         transpose(this.song.notes, -1);
         this.changed('');
         this.roll.refresh();
       }),
-      button('半音上げ', 'ghost', () => {
+      button(t('action.semitoneUp'), 'ghost', () => {
         transpose(this.song.notes, 1);
         this.changed('');
         this.roll.refresh();
       }),
-      button('1オクターブ下', 'ghost', () => {
+      button(t('action.octaveDown'), 'ghost', () => {
         transpose(this.song.notes, -12);
         this.changed('');
         this.roll.refresh();
       }),
-      button('1オクターブ上', 'ghost', () => {
+      button(t('action.octaveUp'), 'ghost', () => {
         transpose(this.song.notes, 12);
         this.changed('');
         this.roll.refresh();
@@ -1331,78 +1337,76 @@ export class VocalApp {
     info.append(tools);
     this.panelBody.append(info);
 
-    const lyrics = section('歌詞のまとめ入力', 'ひらがな・カタカナ・ローマ字で書くと、先頭の音符から順に割り当てます');
+    const lyrics = section(t('section.lyricBulk.title'), t('section.lyricBulk.hint'));
     const area = textArea(
-      '歌詞',
+      t('field.lyrics.label'),
       this.song.notes.map((n) => n.lyric).join(''),
       6,
       () => undefined,
-      '例）よぞらに ひかる ほしのこえ（空白は息継ぎの位置になります）'
+      t('lyrics.placeholder')
     );
     this.lyricArea = area;
     lyrics.append(fieldRootOf(area));
     const lyricButtons = el('div', 'button-row');
     lyricButtons.append(
-      button('先頭から流し込む', 'primary', () => {
+      button(t('action.fillFromStart'), 'primary', () => {
         const applied = applyLyrics(this.song.notes, area.value);
-        this.changed(`${applied} 音符に歌詞を入れました`);
+        this.changed(t('flash.lyricsApplied', { n: applied }));
         this.roll.refresh();
       }),
-      button('選択した音符から', 'ghost', () => {
+      button(t('action.fillFromSelected'), 'ghost', () => {
         const selected = this.roll.selectedNotes();
         if (selected.length === 0) {
-          this.setStatus('先に音符を選んでください');
+          this.setStatus(t('status.selectNoteFirst'));
           return;
         }
         const sorted = [...this.song.notes].sort((a, b) => a.start - b.start);
         const index = sorted.findIndex((n) => n.id === selected[0].id);
         const applied = applyLyrics(this.song.notes, area.value, Math.max(0, index));
-        this.changed(`${applied} 音符に歌詞を入れました`);
+        this.changed(t('flash.lyricsApplied', { n: applied }));
         this.roll.refresh();
       })
     );
     lyrics.append(lyricButtons);
     this.panelBody.append(lyrics);
 
-    const demos = section('デモ曲', 'すべてこのアプリのための書き下ろし（オリジナル）です');
+    const demos = section(t('section.demoSongs.title'), t('section.demoSongs.hint'));
     for (const demo of DEMOS) {
       const row = el('button', 'demo-row');
       row.type = 'button';
-      row.append(el('span', 'demo-title', demo.title));
-      row.append(el('span', 'demo-sub', demo.subtitle));
+      row.append(el('span', 'demo-title', t(`demo.${demo.id}.title`)));
+      row.append(el('span', 'demo-sub', t(`demo.${demo.id}.subtitle`)));
       row.addEventListener('click', () => {
         this.pushHistory();
         this.song = normalizeSong(JSON.parse(JSON.stringify(demo.song)) as Song);
         syncNoteIds(this.song.notes);
-        this.afterSongReplaced(`${demo.title} を読み込みました`);
+        this.afterSongReplaced(t('flash.demoLoaded', { title: t(`demo.${demo.id}.title`) }));
       });
       demos.append(row);
     }
     this.panelBody.append(demos);
 
-    const files = section('ファイル');
+    const files = section(t('section.files.title'));
     const row = el('div', 'button-row');
     row.append(
-      button('新しい曲', 'ghost', () => {
-        if (!confirm('編集中の曲を破棄して新しい曲を作りますか？')) return;
+      button(t('action.newSong'), 'ghost', () => {
+        if (!confirm(t('confirm.discardSong'))) return;
         this.pushHistory();
         this.song = createSong({ notes: [], chords: parseChordText('C\nG\nAm\nF', 4) });
-        this.afterSongReplaced('新しい曲を作りました');
+        this.afterSongReplaced(t('flash.newSongCreated'));
       }),
-      button('プロジェクトを保存', 'ghost', () => this.saveProject()),
-      button('プロジェクトを読込', 'ghost', () => this.openProject())
+      button(t('action.saveProject'), 'ghost', () => this.saveProject()),
+      button(t('action.loadProject'), 'ghost', () => this.openProject())
     );
     files.append(row);
     this.panelBody.append(files);
 
-    const about = section('このアプリについて');
+    const about = section(t('section.about.title'));
     const text = el('p', 'about-text');
-    text.textContent =
-      '音声はすべてその場で計算して作っています（録音素材・外部ライブラリ・課金・広告はありません）。' +
-      '書き出した音源は自由に配信・販売に使えます。';
+    text.textContent = t('about.text');
     about.append(text);
     const links = el('div', 'button-row');
-    links.append(button('プライバシー', 'ghost', () => window.open('./privacy.html', '_blank')));
+    links.append(button(t('action.privacy'), 'ghost', () => window.open('./privacy.html', '_blank')));
     about.append(links);
     this.panelBody.append(about);
   }
@@ -1415,7 +1419,7 @@ export class VocalApp {
     if (notes.length === 0) {
       this.inspector.classList.add('empty');
       this.inspector.append(
-        el('span', 'inspector-hint', 'ペンで音符を追加 → ダブルクリック（またはEnter）で歌詞を入力できます')
+        el('span', 'inspector-hint', t('inspector.hint'))
       );
       return;
     }
@@ -1427,8 +1431,8 @@ export class VocalApp {
         'span',
         'inspector-title',
         notes.length === 1
-          ? `${midiToNoteName(notes[0].note)} ・ ${notes[0].lyric}`
-          : `${notes.length} 音を選択中`
+          ? t('inspector.singleNote', { note: midiToNoteName(notes[0].note), lyric: notes[0].lyric })
+          : t('inspector.multiSelect', { count: notes.length })
       )
     );
     this.inspector.append(head);
@@ -1436,13 +1440,13 @@ export class VocalApp {
     if (notes.length === 1) {
       const note = notes[0];
       const lyricWrap = el('label', 'inline-field grow');
-      lyricWrap.append(el('span', 'inline-label', '歌詞'));
+      lyricWrap.append(el('span', 'inline-label', t('field.lyric.label')));
       const input = el('input', 'text-input');
       input.type = 'text';
       input.value = note.lyric;
       input.addEventListener('change', () => {
         note.lyric = input.value.trim() || note.lyric;
-        this.changed('歌詞を変更');
+        this.changed(t('flash.lyricChanged'));
         this.roll.refresh();
       });
       lyricWrap.append(input);
@@ -1457,7 +1461,7 @@ export class VocalApp {
     };
 
     const velWrap = el('div', 'inline-slider');
-    velWrap.append(el('span', 'inline-label', '強さ'));
+    velWrap.append(el('span', 'inline-label', t('inline.velocity')));
     const vel = el('input', 'ctl-range');
     vel.type = 'range';
     vel.min = '0.2';
@@ -1470,7 +1474,7 @@ export class VocalApp {
     this.inspector.append(velWrap);
 
     const vibWrap = el('div', 'inline-slider');
-    vibWrap.append(el('span', 'inline-label', 'ビブラート'));
+    vibWrap.append(el('span', 'inline-label', t('inline.vibrato')));
     const vib = el('input', 'ctl-range');
     vib.type = 'range';
     vib.min = '0';
@@ -1487,13 +1491,13 @@ export class VocalApp {
     box.type = 'checkbox';
     box.checked = notes[0].breath;
     box.addEventListener('change', () =>
-      apply((n) => (n.breath = box.checked), box.checked ? 'ブレスを入れました' : 'ブレスを外しました')
+      apply((n) => (n.breath = box.checked), box.checked ? t('flash.breathOn') : t('flash.breathOff'))
     );
-    breath.append(box, el('span', '', 'ここでブレス'));
+    breath.append(box, el('span', '', t('check.breathHere')));
     this.inspector.append(breath);
 
     this.inspector.append(
-      button('この音を聴く', 'ghost', () => this.audition(notes[0].note, notes[0].lyric))
+      button(t('action.listenNote'), 'ghost', () => this.audition(notes[0].note, notes[0].lyric))
     );
   }
 
@@ -1503,11 +1507,11 @@ export class VocalApp {
     this.closeMenu();
     const menu = el('div', 'menu');
     const items: [string, () => void][] = [
-      ['WAV（ミックス）', () => void this.exportWav('mix')],
-      ['WAV（ボーカルのみ）', () => void this.exportWav('vocal')],
-      ['WAV（伴奏のみ）', () => void this.exportWav('accomp')],
-      ['MIDI（歌詞つき）', () => this.exportMidi()],
-      ['プロジェクト（JSON）', () => this.saveProject()],
+      [t('menu.wavMix'), () => void this.exportWav('mix')],
+      [t('menu.wavVocal'), () => void this.exportWav('vocal')],
+      [t('menu.wavAccomp'), () => void this.exportWav('accomp')],
+      [t('menu.midiLyrics'), () => this.exportMidi()],
+      [t('menu.projectJson'), () => this.saveProject()],
     ];
     for (const [label, action] of items) {
       const item = el('button', 'menu-item', label);
@@ -1538,11 +1542,11 @@ export class VocalApp {
   private async exportWav(kind: 'mix' | 'vocal' | 'accomp') {
     if (this.exporting) return;
     if (this.song.notes.length === 0 && this.song.chords.length === 0) {
-      this.setStatus('書き出す内容がありません');
+      this.setStatus(t('status.noExportContent'));
       return;
     }
     this.exporting = true;
-    this.setStatus('WAV を書き出しています…');
+    this.setStatus(t('status.exportingWav'));
     try {
       this.stop();
       const compiled = compileSong(this.song);
@@ -1556,9 +1560,9 @@ export class VocalApp {
         encodeWav(buffer),
         `${safeFileName(this.song.title)}${suffix}-${timestampName('', 'wav').slice(1)}`
       );
-      this.setStatus('WAV を書き出しました');
+      this.setStatus(t('status.wavExported'));
     } catch (err) {
-      this.setStatus(`書き出しに失敗しました: ${err}`);
+      this.setStatus(t('status.exportFailed', { err: String(err) }));
     } finally {
       this.exporting = false;
     }
@@ -1566,12 +1570,12 @@ export class VocalApp {
 
   private exportMidi() {
     downloadBlob(encodeMidi(this.song), `${safeFileName(this.song.title)}.mid`);
-    this.setStatus('MIDI を書き出しました');
+    this.setStatus(t('status.midiExported'));
   }
 
   private saveProject() {
     downloadBlob(encodeProject(this.song), `${safeFileName(this.song.title)}.hvocal.json`);
-    this.setStatus('プロジェクトを保存しました');
+    this.setStatus(t('status.projectSaved'));
   }
 
   private openProject() {
@@ -1585,13 +1589,13 @@ export class VocalApp {
       reader.onload = () => {
         const song = decodeProject(String(reader.result));
         if (!song) {
-          this.setStatus('読み込めるプロジェクトではありませんでした');
+          this.setStatus(t('status.invalidProject'));
           return;
         }
         this.pushHistory();
         this.song = normalizeSong(song);
         syncNoteIds(this.song.notes);
-        this.afterSongReplaced('プロジェクトを読み込みました');
+        this.afterSongReplaced(t('flash.projectLoaded'));
       };
       reader.readAsText(file);
     });

@@ -8,6 +8,7 @@
 import { midiToNoteName, snapValue } from '../audio/song';
 import type { ChordEvent, Song, VocalNote } from '../audio/types';
 import { el } from './controls';
+import { t } from './i18n';
 
 export type RollTool = 'pen' | 'select' | 'erase';
 
@@ -141,7 +142,7 @@ export class PianoRoll {
     this.song.notes = this.song.notes.filter((n) => !this.selection.has(n.id));
     this.selection.clear();
     this.cb.onSelect([]);
-    this.cb.onChange('音符を削除');
+    this.cb.onChange(t('roll.noteDeleted'));
     this.draw();
   }
 
@@ -153,7 +154,7 @@ export class PianoRoll {
       n.start = Math.max(0, n.start + dBeat);
       n.note = Math.max(MIN_NOTE, Math.min(MAX_NOTE, n.note + dNote));
     }
-    this.cb.onChange('音符を移動');
+    this.cb.onChange(t('roll.noteMoved'));
     this.draw();
   }
 
@@ -316,7 +317,7 @@ export class PianoRoll {
       if (hit && this.song) {
         this.song.notes = this.song.notes.filter((n) => n.id !== hit.id);
         this.selection.delete(hit.id);
-        this.cb.onChange('音符を削除');
+        this.cb.onChange(t('roll.noteDeleted'));
         this.draw();
       }
       return;
@@ -478,8 +479,8 @@ export class PianoRoll {
       return;
     }
     // 追加そのものは createNote() の中で記録済みなので、ここでは長さ変更だけを記録する
-    if (d.kind === 'move' && d.moved) this.cb.onChange('音符を移動');
-    else if (d.kind === 'resize' && d.moved && !d.created) this.cb.onChange('長さを変更');
+    if (d.kind === 'move' && d.moved) this.cb.onChange(t('roll.noteMoved'));
+    else if (d.kind === 'resize' && d.moved && !d.created) this.cb.onChange(t('roll.lengthChanged'));
     else if (d.kind === 'marquee') this.cb.onSelect([...this.selection]);
     this.draw();
   }
@@ -543,7 +544,7 @@ export class PianoRoll {
     };
     this.song.notes.push(created);
     this.song.notes.sort((a, b) => a.start - b.start);
-    this.cb.onChange('音符を追加');
+    this.cb.onChange(t('roll.noteAdded'));
     return created;
   }
 
@@ -605,7 +606,7 @@ export class PianoRoll {
     input.remove();
     if (note && value && value !== note.lyric) {
       note.lyric = value;
-      this.cb.onChange('歌詞を変更');
+      this.cb.onChange(t('flash.lyricChanged'));
     }
     this.draw();
   }
@@ -852,7 +853,7 @@ export class PianoRoll {
     ctx.fillRect(0, 0, GUTTER, RULER);
     ctx.fillStyle = '#5a6480';
     ctx.font = `10px 'Helvetica Neue', sans-serif`;
-    ctx.fillText('小節', 8, RULER / 2);
+    ctx.fillText(t('roll.measureLabel'), 8, RULER / 2);
 
     if (this.playhead !== null) {
       const x = this.beatToX(this.playhead);
