@@ -6,13 +6,19 @@
 import { PATTERN_SLOTS, type Scene, type Sequencer } from '../audio/Sequencer';
 import { toast } from './widgets';
 import { t } from './i18n';
+import { DEMOS } from './demoSong';
 
 export interface SongViewHandle {
   refresh(): void;
   setActiveScene(index: number): void;
 }
 
-export function buildSongView(container: HTMLElement, sequencer: Sequencer, onChange: () => void): SongViewHandle {
+export function buildSongView(
+  container: HTMLElement,
+  sequencer: Sequencer,
+  onChange: () => void,
+  onLoadDemo: (song: unknown) => void
+): SongViewHandle {
   let activeScene = -1;
 
   function refresh() {
@@ -157,6 +163,38 @@ export function buildSongView(container: HTMLElement, sequencer: Sequencer, onCh
       bpm: sequencer.bpm,
     });
     container.appendChild(total);
+
+    const demoSection = document.createElement('div');
+    demoSection.className = 'song-demos';
+    const demoTitle = document.createElement('h3');
+    demoTitle.textContent = t('song.demos.title');
+    demoSection.appendChild(demoTitle);
+    const demoHint = document.createElement('p');
+    demoHint.className = 'song-demos-hint';
+    demoHint.textContent = t('song.demos.hint');
+    demoSection.appendChild(demoHint);
+    const demoList = document.createElement('div');
+    demoList.className = 'song-demo-list';
+    for (const demo of DEMOS) {
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'song-demo-row';
+      const titleEl = document.createElement('span');
+      titleEl.className = 'song-demo-title';
+      titleEl.textContent = demo.title();
+      const subEl = document.createElement('span');
+      subEl.className = 'song-demo-sub';
+      subEl.textContent = demo.subtitle();
+      row.append(titleEl, subEl);
+      row.addEventListener('click', () => {
+        if (!window.confirm(t('confirm.loadDemo', { title: demo.title() }))) return;
+        onLoadDemo(demo.build());
+        toast(t('flash.demoLoaded', { title: demo.title() }));
+      });
+      demoList.appendChild(row);
+    }
+    demoSection.appendChild(demoList);
+    container.appendChild(demoSection);
   }
 
   function cell(text: string, className: string): HTMLElement {
