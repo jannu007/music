@@ -572,10 +572,12 @@ export class GuitarEngine {
   }
 
   async init(): Promise<void> {
-    if (this.ready) {
-      await this.ctx?.resume();
+    if (this.ready && this.ctx && this.ctx.state !== 'closed') {
+      await this.ctx.resume();
       return;
     }
+    // AudioContext が閉じられていた場合は resume() できないため、一式作り直す
+    this.ready = false;
     const Ctor: typeof AudioContext =
       (window as any).AudioContext || (window as any).webkitAudioContext;
     const ctx = new Ctor({ latencyHint: 'interactive' });
