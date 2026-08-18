@@ -293,7 +293,7 @@ const ja = {
 };
 
 const en: typeof ja = {
-  'lang.toggle': '日',
+  'lang.toggle': 'JP',
   'brand.sub': 'Japanese Singing Voice Synthesizer',
   'transport.play': '▶ Play',
   'transport.stop': '■ Stop',

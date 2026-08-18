@@ -382,7 +382,7 @@ const ja = {
 
 const en: typeof ja = {
   'help.button': '?',
-  'lang.toggle': '日',
+  'lang.toggle': 'JP',
   'brand.subtitle': 'Physically Modeled Guitar',
   'preset.ariaLabel': 'Tone preset',
   'panic.label': 'Stop All',

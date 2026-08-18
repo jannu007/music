@@ -258,7 +258,7 @@ const ja = {
 };
 
 const en: typeof ja = {
-  'lang.toggle': '日',
+  'lang.toggle': 'JP',
   'brand.subtitle': 'Fully Synthesized Drum Machine',
   'kit.selectTitle': 'Kit (tone set)',
   'status.tapToStart': 'Tap the screen to make sound',
