@@ -234,6 +234,7 @@ const ja = {
   'section.space': '余白',
   'section.converge': '収束',
   'section.basic': '基本',
+  'section.climax': 'クライマックス',
 
   'demo.house.name': 'ディープ・ハウス',
   'demo.house.desc': '四つ打ち + 裏拍のオープンハット。クラブ系の基本形',
@@ -255,6 +256,27 @@ const ja = {
   'demo.polymeter.desc': 'シェイカー7歩・パーカッション5歩。トラックごとに長さを変えると模様がゆっくり移り変わる',
   'demo.synthpop.name': 'シンセポップ',
   'demo.synthpop.desc': '80年代風。ゲートのかかった硬いスネアとカウベル',
+
+  'demo.tenmon-01.name': '混沌の序章',
+  'demo.tenmon-01.desc': '天問 - モーダル・スウィング。ミステリアスで間を活かした一曲目',
+  'demo.tenmon-02.name': '誰が空を創ったのか',
+  'demo.tenmon-02.desc': '天問 - ミディアム・スウィングの12小節ブルース',
+  'demo.tenmon-03.name': '星の回廊',
+  'demo.tenmon-03.desc': '天問 - 3拍子のジャズ・ワルツ',
+  'demo.tenmon-04.name': '地の果てへ',
+  'demo.tenmon-04.desc': '天問 - ボサノヴァ。柔らかいリムとシェイカーで',
+  'demo.tenmon-05.name': '問いかける月',
+  'demo.tenmon-05.desc': '天問 - バラード。ブラシとライドだけの静けさ',
+  'demo.tenmon-06.name': '龍の眠り',
+  'demo.tenmon-06.desc': '天問 - ハードバップ。速いテンポで攻める',
+  'demo.tenmon-07.name': '見えない橋',
+  'demo.tenmon-07.desc': '天問 - アフロキューバン・ジャズ。クラーベとライドの融合',
+  'demo.tenmon-08.name': '光と影のあいだ',
+  'demo.tenmon-08.desc': '天問 - モーダル・ジャズ。2コードのヴァンプ',
+  'demo.tenmon-09.name': '天の川を渡る',
+  'demo.tenmon-09.desc': '天問 - アップテンポ・スウィング。リズムチェンジ系',
+  'demo.tenmon-10.name': '終わりなき問い',
+  'demo.tenmon-10.desc': '天問 - バラード。アルバムを締めくくるエピローグ',
 };
 
 const en: typeof ja = {
@@ -491,6 +513,7 @@ const en: typeof ja = {
   'section.space': 'Space',
   'section.converge': 'Converge',
   'section.basic': 'Basic',
+  'section.climax': 'Climax',
 
   'demo.house.name': 'Deep House',
   'demo.house.desc': 'Four-on-the-floor plus offbeat open hats. The basic clubbing groove',
@@ -512,6 +535,27 @@ const en: typeof ja = {
   'demo.polymeter.desc': 'Shaker in 7 steps, percussion in 5. Changing each track\'s length slowly shifts the pattern',
   'demo.synthpop.name': 'Synthpop',
   'demo.synthpop.desc': '80s style. A gated, punchy snare and cowbell',
+
+  'demo.tenmon-01.name': 'Prologue: Chaos',
+  'demo.tenmon-01.desc': 'Tenmon (天問) - Modal swing, mysterious and sparse. Track 1 of the album',
+  'demo.tenmon-02.name': 'Who Made the Sky?',
+  'demo.tenmon-02.desc': 'Tenmon (天問) - A medium-swing 12-bar jazz blues',
+  'demo.tenmon-03.name': 'Corridor of Stars',
+  'demo.tenmon-03.desc': 'Tenmon (天問) - A jazz waltz in 3/4',
+  'demo.tenmon-04.name': 'To the Edge of the Earth',
+  'demo.tenmon-04.desc': 'Tenmon (天問) - Bossa nova, soft rim clicks and shaker',
+  'demo.tenmon-05.name': 'The Questioning Moon',
+  'demo.tenmon-05.desc': 'Tenmon (天問) - Ballad. Just brushes and a whispering ride',
+  'demo.tenmon-06.name': 'Sleep of the Dragon',
+  'demo.tenmon-06.desc': 'Tenmon (天問) - Hard bop, driving at a fast tempo',
+  'demo.tenmon-07.name': 'The Invisible Bridge',
+  'demo.tenmon-07.desc': 'Tenmon (天問) - Afro-Cuban jazz, clave fused with a swung ride',
+  'demo.tenmon-08.name': 'Between Light and Shadow',
+  'demo.tenmon-08.desc': 'Tenmon (天問) - Modal jazz over a two-chord vamp',
+  'demo.tenmon-09.name': 'Crossing the Milky Way',
+  'demo.tenmon-09.desc': 'Tenmon (天問) - Up-tempo swing, rhythm-changes family',
+  'demo.tenmon-10.name': 'Endless Question',
+  'demo.tenmon-10.desc': 'Tenmon (天問) - Ballad epilogue that closes the album',
 };
 
 registerStrings(ja, en);
