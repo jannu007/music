@@ -5,6 +5,27 @@
  * サンプル音源は使用していません（＝配布・商用利用時のライセンス制約がありません）。
  */
 import type { DrumType, Patch } from './types';
+import { t } from '../ui/i18n';
+
+/** 表示名を翻訳するためのカテゴリー識別子（保存データ上のカテゴリー文字列とは別に持つ） */
+const CATEGORY_KEY: Record<string, string> = {
+  'BASS': 'BASS',
+  'LEAD': 'LEAD',
+  'PAD': 'PAD',
+  'KEYS': 'KEYS',
+  'PLUCK / BELL': 'PLUCK_BELL',
+  'BRASS / STRINGS': 'BRASS_STRINGS',
+  'SEQ / ARP': 'SEQ_ARP',
+  'SFX': 'SFX',
+  'DRUM': 'DRUM',
+  'MY PATCH': 'MY_PATCH',
+};
+
+/** カテゴリー名の表示用テキストを返す（保存データの category 値は変えない） */
+export function categoryLabel(category: string): string {
+  const key = CATEGORY_KEY[category];
+  return key ? t(`category.${key}`) : category;
+}
 
 export const CATEGORIES = [
   'BASS',
@@ -536,6 +557,12 @@ export const PRESETS: Patch[] = [
 ];
 
 export const PRESET_MAP = new Map(PRESETS.map((p) => [p.id, p]));
+const FACTORY_IDS = new Set(PRESETS.map((p) => p.id));
+
+/** 音色名の表示用テキストを返す。ファクトリー音色のみ翻訳し、ユーザー保存音色はそのまま表示する */
+export function patchLabel(patch: Patch): string {
+  return FACTORY_IDS.has(patch.id) ? t(`preset.${patch.id}`) : patch.name;
+}
 
 export function clonePatch(p: Patch): Patch {
   return JSON.parse(JSON.stringify(p)) as Patch;

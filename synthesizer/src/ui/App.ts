@@ -5,7 +5,7 @@ import { AudioEngine, defaultMasterSettings, loadWorklets } from '../audio/Audio
 import { Arpeggiator } from '../audio/Arpeggiator';
 import { ComputerKeyboard, MidiInput } from '../audio/MidiInput';
 import { exportMidi } from '../audio/midifile';
-import { PRESETS, clonePatch } from '../audio/presets';
+import { PRESETS, clonePatch, patchLabel } from '../audio/presets';
 import { renderSong } from '../audio/render';
 import { Sequencer, STEPS_PER_BAR, type Track } from '../audio/Sequencer';
 import type { ArpParams, Patch } from '../audio/types';
@@ -537,7 +537,7 @@ export class App {
         b.className = 'patch-btn';
         b.textContent = p.name;
         b.addEventListener('click', () => {
-          const track = this.sequencer.addTrack(p.id, p.name);
+          const track = this.sequencer.addTrack(p.id, patchLabel(p));
           this.selectedTrackId = track.id;
           this.arp.setTarget(this.arpTarget());
           this.mixer?.refresh();
@@ -760,9 +760,9 @@ export class App {
     const lcd = document.getElementById('lcd');
     const track = this.selectedTrack;
     if (!lcd || !track) return;
-    lcd.innerHTML = `<span class="lcd-track">${escapeHtml(track.name)}</span><span class="lcd-patch">${escapeHtml(track.patch.name)}</span><span class="lcd-meta">${track.patch.kind === 'drum' ? 'DRUM' : track.patch.voiceMode.toUpperCase()}</span>`;
+    lcd.innerHTML = `<span class="lcd-track">${escapeHtml(track.name)}</span><span class="lcd-patch">${escapeHtml(patchLabel(track.patch))}</span><span class="lcd-meta">${track.patch.kind === 'drum' ? 'DRUM' : track.patch.voiceMode.toUpperCase()}</span>`;
     const patchName = document.querySelector('.track-row.selected .track-patch');
-    if (patchName) patchName.textContent = track.patch.name;
+    if (patchName) patchName.textContent = patchLabel(track.patch);
   }
 
   private updatePosition(tick: number) {

@@ -1,7 +1,7 @@
 /**
  * Akatsuki Synth — 音色ブラウザ（検索・カテゴリー・ユーザー音色の保存）
  */
-import { CATEGORIES, PRESETS, clonePatch, loadUserPatches, saveUserPatches } from '../audio/presets';
+import { CATEGORIES, PRESETS, categoryLabel, clonePatch, loadUserPatches, patchLabel, saveUserPatches } from '../audio/presets';
 import type { Patch } from '../audio/types';
 import { toast } from './widgets';
 import { t } from './i18n';
@@ -35,7 +35,7 @@ export function buildPatchBrowser(container: HTMLElement, opts: PatchBrowserOpti
   saveBtn.className = 'btn btn-accent';
   saveBtn.textContent = t('patch.save');
   saveBtn.addEventListener('click', () => {
-    const name = window.prompt(t('patch.namePrompt'), opts.currentPatch.name + ' Custom');
+    const name = window.prompt(t('patch.namePrompt'), patchLabel(opts.currentPatch) + t('patch.customSuffix'));
     if (!name) return;
     const copy = clonePatch(opts.currentPatch);
     copy.id = `user_${Date.now().toString(36)}`;
@@ -80,8 +80,8 @@ export function buildPatchBrowser(container: HTMLElement, opts: PatchBrowserOpti
       });
       return b;
     };
-    chips.appendChild(mk('ALL', null));
-    for (const c of allCategories()) chips.appendChild(mk(c, c));
+    chips.appendChild(mk(t('patch.categoryAll'), null));
+    for (const c of allCategories()) chips.appendChild(mk(categoryLabel(c), c));
   }
 
   function renderList() {
@@ -90,7 +90,7 @@ export function buildPatchBrowser(container: HTMLElement, opts: PatchBrowserOpti
     const filtered = pool.filter((p) => {
       if (category && p.category !== category) return false;
       if (!query) return true;
-      return `${p.name} ${p.category}`.toLowerCase().includes(query);
+      return `${p.name} ${patchLabel(p)} ${p.category} ${categoryLabel(p.category)}`.toLowerCase().includes(query);
     });
 
     if (filtered.length === 0) {
@@ -112,7 +112,7 @@ export function buildPatchBrowser(container: HTMLElement, opts: PatchBrowserOpti
       section.className = 'browser-group';
       const title = document.createElement('div');
       title.className = 'browser-group-title';
-      title.textContent = cat;
+      title.textContent = categoryLabel(cat);
       section.appendChild(title);
       const wrap = document.createElement('div');
       wrap.className = 'browser-items';
@@ -121,7 +121,7 @@ export function buildPatchBrowser(container: HTMLElement, opts: PatchBrowserOpti
         btn.type = 'button';
         btn.className = 'patch-btn' + (p.id === opts.currentPatch.id ? ' active' : '');
         const nameEl = document.createElement('span');
-        nameEl.textContent = p.name;
+        nameEl.textContent = patchLabel(p);
         btn.appendChild(nameEl);
         btn.addEventListener('click', () => {
           opts.onSelect(clonePatch(p));
@@ -133,7 +133,7 @@ export function buildPatchBrowser(container: HTMLElement, opts: PatchBrowserOpti
           del.title = t('patch.delete.title');
           del.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (!window.confirm(t('patch.delete.confirm', { name: p.name }))) return;
+            if (!window.confirm(t('patch.delete.confirm', { name: patchLabel(p) }))) return;
             userPatches = userPatches.filter((u) => u.id !== p.id);
             saveUserPatches(userPatches);
             renderChips();

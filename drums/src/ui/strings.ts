@@ -1,7 +1,7 @@
 import { registerStrings } from './i18n';
 
 const ja = {
-  'lang.toggle': 'EN',
+  'lang.toggle': 'JP',
   'brand.subtitle': '完全合成ドラムマシン',
   'kit.selectTitle': 'キット（音色セット）',
   'status.tapToStart': '画面をタップすると音が出ます',
@@ -258,7 +258,7 @@ const ja = {
 };
 
 const en: typeof ja = {
-  'lang.toggle': 'JP',
+  'lang.toggle': 'EN',
   'brand.subtitle': 'Fully Synthesized Drum Machine',
   'kit.selectTitle': 'Kit (tone set)',
   'status.tapToStart': 'Tap the screen to make sound',

@@ -2,7 +2,7 @@ import { registerStrings } from './i18n';
 
 const ja = {
   'help.button': '?',
-  'lang.toggle': 'EN',
+  'lang.toggle': 'JP',
   'brand.subtitle': '物理モデリング・ギター',
   'preset.ariaLabel': '音色プリセット',
   'panic.label': '全停止',
@@ -382,7 +382,7 @@ const ja = {
 
 const en: typeof ja = {
   'help.button': '?',
-  'lang.toggle': 'JP',
+  'lang.toggle': 'EN',
   'brand.subtitle': 'Physically Modeled Guitar',
   'preset.ariaLabel': 'Tone preset',
   'panic.label': 'Stop All',
