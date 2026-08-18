@@ -1,7 +1,7 @@
 import { registerStrings } from './i18n';
 
 const ja = {
-  'lang.toggle': 'EN',
+  'lang.toggle': 'JP',
   'brand.sub': '日本語 歌声シンセサイザー',
   'transport.play': '▶ 再生',
   'transport.stop': '■ 停止',
@@ -293,7 +293,7 @@ const ja = {
 };
 
 const en: typeof ja = {
-  'lang.toggle': 'JP',
+  'lang.toggle': 'EN',
   'brand.sub': 'Japanese Singing Voice Synthesizer',
   'transport.play': '▶ Play',
   'transport.stop': '■ Stop',

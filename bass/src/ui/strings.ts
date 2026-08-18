@@ -272,7 +272,7 @@ const ja = {
   'help.privacy': 'プライバシーポリシー',
   'help.close': '閉じる',
 
-  'lang.toggle': 'EN',
+  'lang.toggle': 'JP',
 };
 
 const en: typeof ja = {
@@ -547,7 +547,7 @@ const en: typeof ja = {
   'help.privacy': 'Privacy Policy',
   'help.close': 'Close',
 
-  'lang.toggle': 'JP',
+  'lang.toggle': 'EN',
 };
 
 registerStrings(ja, en);
