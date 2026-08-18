@@ -284,10 +284,10 @@ const alias = aliasRatioDb(oscResult, 48000, 880);
 check('ノコギリ波のエイリアスが十分小さい (< -35dB)', alias < -35 && Number.isFinite(alias), `${alias.toFixed(1)} dB @880Hz`);
 
 console.log('\n▶ WAV を書き出し…');
-await page.getByRole('button', { name: 'WAV書出' }).click();
+await page.getByRole('button', { name: 'Export WAV' }).click();
 await page.waitForSelector('.modal');
 const downloadPromise = page.waitForEvent('download', { timeout: 120000 });
-await page.getByRole('button', { name: '書き出す' }).click();
+await page.getByRole('button', { name: 'Export', exact: true }).click();
 const download = await downloadPromise;
 const path = await download.path();
 const wav = await readFile(path);
@@ -318,7 +318,7 @@ check('ステレオ 24bit で書き出される', a.channels === 2 && a.bits ===
 
 console.log('\n▶ MIDI を書き出し…');
 const midiPromise = page.waitForEvent('download', { timeout: 30000 });
-await page.getByRole('button', { name: 'MIDI書出' }).click();
+await page.getByRole('button', { name: 'Export MIDI' }).click();
 const midi = await midiPromise;
 const midiData = await readFile(await midi.path());
 check('MIDI がダウンロードされる', midiData.length > 40 && midiData.subarray(0, 4).toString() === 'MThd', `${midiData.length} bytes`);
