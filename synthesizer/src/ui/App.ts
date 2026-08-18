@@ -428,7 +428,7 @@ export class App {
     } else if (this.tab === 'master') {
       buildMasterPanel(body, this.engine, () => this.autosaveSoon());
     } else {
-      this.songView = buildSongView(body, this.sequencer, () => this.autosaveSoon());
+      this.songView = buildSongView(body, this.sequencer, () => this.autosaveSoon(), (song) => this.applySong(song));
     }
   }
 

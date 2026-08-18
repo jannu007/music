@@ -76,6 +76,19 @@ const ja = {
   'help.reloadDemo': 'デモ曲を読み込み直す',
   'confirm.reloadDemo': '現在の曲は失われます。よろしいですか？',
 
+  'song.demos.title': 'デモ曲',
+  'song.demos.hint': 'クリックすると現在の曲と入れ替わります。',
+  'confirm.loadDemo': '現在の曲は失われます。「{title}」を読み込みますか？',
+  'flash.demoLoaded': '「{title}」を読み込みました',
+  'demo.sunrise.title': '陽だまりのグルーヴ',
+  'demo.sunrise.subtitle': 'アップテンポなハウス',
+  'demo.midnight.title': '真夜中のドリフト',
+  'demo.midnight.subtitle': '静かなアンビエント',
+  'demo.neon.title': 'ネオン・ランナー',
+  'demo.neon.subtitle': '80年代風シンセウェイブ',
+  'demo.pixel.title': 'ピクセル・ラッシュ',
+  'demo.pixel.subtitle': '軽快なチップチューン',
+
   'modal.close': '閉じる',
 
   'mixer.track': 'トラック',
@@ -423,6 +436,19 @@ const en: typeof ja = {
   'help.title': 'How to Use',
   'help.reloadDemo': 'Reload Demo Song',
   'confirm.reloadDemo': 'The current song will be lost. Continue?',
+
+  'song.demos.title': 'Demo Songs',
+  'song.demos.hint': 'Click one to swap in for the current song.',
+  'confirm.loadDemo': 'The current song will be lost. Load "{title}"?',
+  'flash.demoLoaded': 'Loaded "{title}"',
+  'demo.sunrise.title': 'Sunrise Groove',
+  'demo.sunrise.subtitle': 'Upbeat house',
+  'demo.midnight.title': 'Midnight Drift',
+  'demo.midnight.subtitle': 'Calm ambient',
+  'demo.neon.title': 'Neon Runner',
+  'demo.neon.subtitle': '80s-style synthwave',
+  'demo.pixel.title': 'Pixel Rush',
+  'demo.pixel.subtitle': 'Bouncy chiptune',
 
   'modal.close': 'Close',
 

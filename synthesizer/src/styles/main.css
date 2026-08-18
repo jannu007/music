@@ -1138,6 +1138,51 @@ select {
   font-size: 11.5px;
   margin-top: 10px;
 }
+.song-demos {
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.song-demos h3 {
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  margin: 0 0 4px;
+}
+.song-demos-hint {
+  color: var(--text-mute);
+  font-size: 11px;
+  margin: 0 0 8px;
+}
+.song-demo-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px;
+}
+.song-demo-row {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.song-demo-row:hover {
+  border-color: var(--accent);
+}
+.song-demo-title {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 600;
+}
+.song-demo-sub {
+  font-size: 10.5px;
+  color: var(--text-mute);
+}
 
 /* ------------------------------------------------------------------ modal */
 .modal-overlay {
