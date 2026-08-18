@@ -159,7 +159,7 @@ const ja = {
 };
 
 const en: typeof ja = {
-  'lang.toggle': '日',
+  'lang.toggle': 'JP',
   'loading': 'Loading…',
   'boot.error': 'Your browser does not support AudioWorklet, so this app cannot start.<br>Please use a recent version of Chrome / Edge / Firefox / Safari.',
 

@@ -17,9 +17,9 @@ function detectLocale(): Locale {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === 'ja' || saved === 'en') return saved;
   } catch {
-    /* プライベートモード等で読めない場合は言語検出にフォールバック */
+    /* プライベートモード等で読めない場合は既定値にフォールバック */
   }
-  return navigator.language.toLowerCase().startsWith('ja') ? 'ja' : 'en';
+  return 'en'; // 世界中で販売するため既定は英語。日本語は明示的に切り替えたときのみ
 }
 
 let current: Locale = detectLocale();

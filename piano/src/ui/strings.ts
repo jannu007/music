@@ -198,7 +198,7 @@ const en: Record<string, string> = {
   'panic.title': 'Stop all sound (Esc)',
   'panic.ariaLabel': 'Stop all sound',
   'help.button': '?',
-  'lang.toggle': '日',
+  'lang.toggle': 'JP',
 
   'tab.tone': 'Tone',
   'tab.space': 'Space',

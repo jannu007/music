@@ -547,7 +547,7 @@ const en: typeof ja = {
   'help.privacy': 'Privacy Policy',
   'help.close': 'Close',
 
-  'lang.toggle': '日',
+  'lang.toggle': 'JP',
 };
 
 registerStrings(ja, en);
