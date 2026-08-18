@@ -5,6 +5,7 @@ import type { Sequencer, Track } from '../audio/Sequencer';
 import { createKnob } from './widgets';
 import { createMeterRow } from './Visualizers';
 import { t } from './i18n';
+import { patchLabel } from '../audio/presets';
 
 export interface MixerOptions {
   sequencer: Sequencer;
@@ -105,7 +106,7 @@ export function buildMixer(container: HTMLElement, opts: MixerOptions): MixerHan
 
       const patchName = document.createElement('div');
       patchName.className = 'track-patch';
-      patchName.textContent = track.patch.name;
+      patchName.textContent = patchLabel(track.patch);
       row.appendChild(patchName);
 
       const controls = document.createElement('div');
