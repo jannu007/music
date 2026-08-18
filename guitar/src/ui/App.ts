@@ -166,7 +166,12 @@ export class GuitarApp {
   // ------------------------------------------------------------------ 音声
 
   private async ensureAudio(): Promise<void> {
-    if (this.audioReady) return;
+    if (this.audioReady) {
+      // 画面ロックやタブの背面化でブラウザ側が AudioContext を止めていることがあるため、
+      // 演奏操作のたびに念のため再開を試みる（すでに動作中なら resume() は即座に解決する）
+      if (this.engine.ctx?.state === 'suspended') void this.engine.ctx.resume();
+      return;
+    }
     if (!this.initPromise) {
       this.initPromise = this.engine
         .init()
@@ -1444,6 +1449,7 @@ export class GuitarApp {
       <ul>
         <li>${t('help.play.tap')}</li>
         <li>${t('help.play.bendSlide')}</li>
+        <li>${t('help.play.vibrato')}</li>
         <li>${t('help.play.strumBar')}</li>
         <li>${t('help.play.chordPad')}</li>
       </ul>

@@ -226,14 +226,14 @@ export class Fretboard {
       const dy = e.clientY - state.startY;
       const dx = e.clientX - state.startX;
 
-      // 縦の動きが大きければチョーキング
-      if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) {
-        const semis = Math.max(-1, Math.min(2, (-dy - Math.sign(-dy) * 12) / 55));
+      // 縦の動きが大きければチョーキング。一度チョーキングと判定したら、指を
+      // 戻す動き（ビブラート）も含めて追従し続ける（戻したところで固まらないように）
+      if (state.bent || (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx))) {
+        const semis = Math.max(-1, Math.min(2, -dy / 55));
         this.handlers.onBend(state.string, semis);
         state.bent = true;
         return;
       }
-      if (state.bent) return;
 
       // 横の動きなら同じ弦の上をスライド
       const hit = this.cellFromPoint(e.clientX, e.clientY);
