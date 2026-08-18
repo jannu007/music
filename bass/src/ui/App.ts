@@ -157,7 +157,12 @@ export class BassApp {
   // ------------------------------------------------------------------ audio
 
   private async ensureAudio(): Promise<void> {
-    if (this.audioReady) return;
+    if (this.audioReady) {
+      // 画面ロックやタブの背面化でブラウザ側が AudioContext を止めていることがあるため、
+      // 演奏操作のたびに念のため再開を試みる（すでに動作中なら resume() は即座に解決する）
+      if (this.engine.ctx?.state === 'suspended') void this.engine.ctx.resume();
+      return;
+    }
     if (!this.initPromise) {
       this.initPromise = this.engine
         .init()
@@ -232,9 +237,13 @@ export class BassApp {
     const base = positionFrequency(tuning, str, fret, this.settings.a4);
     const freq = base * Math.pow(2, cents / 1200);
     const note = positionNote(tuning, str, fret);
-    if (!this.audioReady) return;
-    this.engine.bend(str, freq);
-    this.recorder.capture({ type: 'bend', str, note, freq, cents }, this.engine.now);
+
+    // pluck() の直後（オーディオ初期化がまだ終わっていない間）に上下へドラッグされた
+    // チョーキングを取りこぼさないよう、pluck/slide と同じく初期化を待ってから反映する
+    void this.ensureAudio().then(() => {
+      this.engine.bend(str, freq);
+      this.recorder.capture({ type: 'bend', str, note, freq, cents }, this.engine.now);
+    });
   }
 
   private mute(str: number) {
@@ -1173,6 +1182,7 @@ export class BassApp {
         <li><strong>${t('help.play.term')}</strong> … ${t('help.play.desc')}</li>
         <li><strong>${t('help.slide.term')}</strong> … ${t('help.slide.desc')}</li>
         <li><strong>${t('help.bend.term')}</strong> … ${t('help.bend.desc')}</li>
+        <li><strong>${t('help.vibrato.term')}</strong> … ${t('help.vibrato.desc')}</li>
         <li><strong>${t('help.technique.term')}</strong> … ${t('help.technique.desc')}</li>
         <li><strong>${t('help.pcKeys.term')}</strong> … ${t('help.pcKeys.desc')}</li>
         <li><strong>${t('help.rhythm.term')}</strong> … ${t('help.rhythm.desc')}</li>
