@@ -11,6 +11,7 @@ import {
   type VocalNote,
   type VocalSettings,
 } from './types';
+import { t } from '../ui/i18n';
 
 const NOTE_LETTERS: Record<string, number> = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };
 const SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -68,7 +69,7 @@ export function createSong(patch: Partial<Song> = {}): Song {
     ...patch.settings,
   };
   return {
-    title: '新しい曲',
+    title: t('song.newSongTitle'),
     bpm: 96,
     beatsPerBar: 4,
     notes: [],

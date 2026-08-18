@@ -65,6 +65,8 @@ export function notationLength(notation: string): number {
 
 export interface PatternSource {
   name: string;
+  /** 表示名の翻訳キー（省略時は name をそのまま使う） */
+  sectionKey?: string;
   length?: number;
   /** トラックID → 記法。書かれていないトラックは無音 */
   rows: Record<string, string>;

@@ -1,6 +1,7 @@
 import { QUALITIES, chordName, findQuality, type Chord } from '../music/chords';
 import { NOTE_NAMES } from '../music/tunings';
 import { el } from './controls';
+import { t } from './i18n';
 
 export interface ChordPadHandlers {
   /** パッドを弾いた（ストローク） */
@@ -66,7 +67,7 @@ export class ChordPads {
 
     // ---- キー選択 ----
     const keyRow = el('div', 'chord-keyrow');
-    const keyLabel = el('span', 'ctl-label', 'キー');
+    const keyLabel = el('span', 'ctl-label', t('chordpad.key'));
     const keySelect = el('select', 'ctl-select compact');
     for (let i = 0; i < 12; i++) {
       const o = el('option', undefined, NOTE_NAMES[i]);
@@ -80,7 +81,7 @@ export class ChordPads {
     });
 
     const modeSelect = el('select', 'ctl-select compact');
-    for (const [value, label] of [['major', 'メジャー'], ['minor', 'マイナー']]) {
+    for (const [value, label] of [['major', t('chordpad.major')], ['minor', t('chordpad.minor')]]) {
       const o = el('option', undefined, label);
       o.value = value;
       modeSelect.append(o);
@@ -95,7 +96,7 @@ export class ChordPads {
 
     // ---- 自由選択 ----
     const freeRow = el('div', 'chord-keyrow');
-    freeRow.append(el('span', 'ctl-label', '任意'));
+    freeRow.append(el('span', 'ctl-label', t('chordpad.free')));
     const rootSelect = el('select', 'ctl-select compact');
     for (let i = 0; i < 12; i++) {
       const o = el('option', undefined, NOTE_NAMES[i]);
@@ -105,7 +106,7 @@ export class ChordPads {
     rootSelect.value = String(this.freeRoot);
     const qualitySelect = el('select', 'ctl-select compact wide');
     for (const q of QUALITIES) {
-      const o = el('option', undefined, `${q.suffix || '（メジャー）'} — ${q.name}`);
+      const o = el('option', undefined, `${q.suffix || t('chordpad.majorSuffix')} — ${t(`quality.${q.id}.name`)}`);
       o.value = q.id;
       qualitySelect.append(o);
     }
@@ -119,7 +120,7 @@ export class ChordPads {
     };
     rootSelect.addEventListener('change', addFree);
     qualitySelect.addEventListener('change', addFree);
-    const playFree = el('button', 'btn small', '鳴らす');
+    const playFree = el('button', 'btn small', t('chordpad.play'));
     playFree.type = 'button';
     playFree.addEventListener('click', addFree);
     freeRow.append(rootSelect, qualitySelect, playFree);

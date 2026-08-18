@@ -16,6 +16,8 @@ import { Metronome } from './Metronome';
 import { PianoKeyboard, type LabelMode } from './Keyboard';
 import { StringView } from './StringView';
 import { button, el, segmented, slider, switchRow } from './controls';
+import { getLocale, onLocaleChange, t, toggleLocale } from './i18n';
+import './strings';
 
 const STORAGE_KEY = 'aozora-piano-v1';
 
@@ -81,14 +83,17 @@ export class PianoApp {
   private recordButton!: HTMLButtonElement;
   private audioReady = false;
   private initPromise: Promise<void> | null = null;
+  private globalListenersBound = false;
 
   constructor(root: HTMLElement) {
     this.root = root;
     this.load();
     this.player = new Player(this.engine);
+    document.documentElement.lang = getLocale();
     this.build();
     this.bindGlobalKeys();
     this.startMeterLoop();
+    onLocaleChange(() => this.build());
   }
 
   // ------------------------------------------------------------ persistence
@@ -146,7 +151,7 @@ export class PianoApp {
         })
         .catch((err) => {
           this.initPromise = null;
-          this.setStatus(`オーディオを開始できません: ${err}`);
+          this.setStatus(t('status.audioError', { err }));
           throw err;
         });
     }
@@ -216,14 +221,14 @@ export class PianoApp {
       <span class="brand-mark" aria-hidden="true"></span>
       <span class="brand-text">
         <strong>Aozora Grand Piano</strong>
-        <small>物理モデリング・グランドピアノ</small>
+        <small>${t('brand.subtitle')}</small>
       </span>`;
 
     const presetWrap = el('div', 'preset-wrap');
     const presetSelect = el('select', 'preset-select');
-    presetSelect.setAttribute('aria-label', '音色プリセット');
+    presetSelect.setAttribute('aria-label', t('preset.ariaLabel'));
     for (const preset of PRESETS) {
-      const option = el('option', undefined, preset.name);
+      const option = el('option', undefined, t(`preset.${preset.id}.name`));
       option.value = preset.id;
       presetSelect.append(option);
     }
@@ -239,12 +244,15 @@ export class PianoApp {
       '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
       + '<circle cx="12" cy="12" r="9.4" fill="none" stroke="currentColor" stroke-width="1.7" />'
       + '<rect x="8.6" y="8.6" width="6.8" height="6.8" rx="1.2" fill="currentColor" />'
-      + '</svg><span class="btn-text">全停止</span>';
-    panicButton.title = 'すべての音を止める（Esc）';
-    panicButton.setAttribute('aria-label', 'すべての音を止める');
+      + `</svg><span class="btn-text">${t('panic.label')}</span>`;
+    panicButton.title = t('panic.title');
+    panicButton.setAttribute('aria-label', t('panic.ariaLabel'));
+
+    const langButton = button(t('lang.toggle'), 'ghost round lang-btn', () => toggleLocale());
+    langButton.title = 'Switch language / 言語を切り替え';
 
     const headerActions = el('div', 'header-actions');
-    headerActions.append(panicButton, button('?', 'ghost round', () => this.toggleHelp()));
+    headerActions.append(langButton, panicButton, button(t('help.button'), 'ghost round', () => this.toggleHelp()));
 
     header.append(brand, presetWrap, this.statusEl, headerActions);
 
@@ -266,11 +274,11 @@ export class PianoApp {
     const panel = el('section', 'panel');
     const tabs = el('nav', 'tabs');
     const tabDefs: { id: string; label: string }[] = [
-      { id: 'tone', label: '音色' },
-      { id: 'space', label: '響き' },
-      { id: 'play', label: '演奏' },
-      { id: 'rec', label: '録音' },
-      { id: 'demo', label: 'デモ' },
+      { id: 'tone', label: t('tab.tone') },
+      { id: 'space', label: t('tab.space') },
+      { id: 'play', label: t('tab.play') },
+      { id: 'rec', label: t('tab.rec') },
+      { id: 'demo', label: t('tab.demo') },
     ];
     for (const def of tabDefs) {
       const btn = el('button', 'tab', def.label);
@@ -291,20 +299,20 @@ export class PianoApp {
     const keyboardArea = el('footer', 'keyboard-area');
     const pedalBar = el('div', 'pedal-bar');
 
-    this.softButton = button('ソフト', 'pedal', () => this.setSoft(!this.softOn));
-    this.sostenutoButton = button('ソステヌート', 'pedal', () =>
+    this.softButton = button(t('pedal.soft'), 'pedal', () => this.setSoft(!this.softOn));
+    this.sostenutoButton = button(t('pedal.sostenuto'), 'pedal', () =>
       this.setSostenuto(!this.sostenutoOn)
     );
-    this.sustainButton = button('サステイン', 'pedal wide', () => {
+    this.sustainButton = button(t('pedal.sustain'), 'pedal wide', () => {
       this.sustainLatched = !this.sustainLatched;
       this.updateSustainFromInputs();
     });
 
-    const octaveDown = button('◀ オクターブ', 'ghost small octave-btn', () => this.shiftOctave(-1));
-    const octaveUp = button('オクターブ ▶', 'ghost small octave-btn', () => this.shiftOctave(1));
+    const octaveDown = button(t('octave.down'), 'ghost small octave-btn', () => this.shiftOctave(-1));
+    const octaveUp = button(t('octave.up'), 'ghost small octave-btn', () => this.shiftOctave(1));
     const octaveLabel = el('span', 'octave-label');
     this.updateOctaveLabel = () => {
-      octaveLabel.textContent = `PCキー: C${this.computerOctave}`;
+      octaveLabel.textContent = t('octave.label', { n: this.computerOctave });
     };
     this.updateOctaveLabel();
 
@@ -336,15 +344,18 @@ export class PianoApp {
     this.keyboard.setRange(this.ui.rangeLow, this.ui.rangeHigh);
     this.applyKeyWidth();
     this.fitKeyboard();
-    window.addEventListener('resize', () => this.fitKeyboard());
 
     this.showTab(this.activeTab);
     this.setStatus();
 
-    // 最初の操作でオーディオを起動する（ブラウザの自動再生制限対策）
-    const kick = () => void this.ensureAudio().catch(() => {});
-    app.addEventListener('pointerdown', kick, { once: true });
-    window.addEventListener('keydown', kick, { once: true });
+    if (!this.globalListenersBound) {
+      this.globalListenersBound = true;
+      window.addEventListener('resize', () => this.fitKeyboard());
+      // 最初の操作でオーディオを起動する（ブラウザの自動再生制限対策）
+      const kick = () => void this.ensureAudio().catch(() => {});
+      window.addEventListener('pointerdown', kick, { once: true });
+      window.addEventListener('keydown', kick, { once: true });
+    }
   }
 
   private updateOctaveLabel: () => void = () => {};
@@ -384,9 +395,9 @@ export class PianoApp {
       return;
     }
     const parts: string[] = [];
-    parts.push(this.audioReady ? '準備完了' : '鍵盤を押すと開始');
+    parts.push(this.audioReady ? t('status.ready') : t('status.pressKey'));
     if (this.midi && this.midi.devices.length > 0) {
-      parts.push(`MIDI: ${this.midi.devices.join(', ')}`);
+      parts.push(t('status.midi', { devices: this.midi.devices.join(', ') }));
     }
     this.statusEl.textContent = parts.join(' ・ ');
   }
@@ -414,66 +425,69 @@ export class PianoApp {
       const card = el('button', 'preset-card');
       card.type = 'button';
       if (preset.id === this.ui.presetId) card.classList.add('active');
-      card.append(el('strong', undefined, preset.name), el('span', undefined, preset.description));
+      card.append(
+        el('strong', undefined, t(`preset.${preset.id}.name`)),
+        el('span', undefined, t(`preset.${preset.id}.description`))
+      );
       card.addEventListener('click', () => {
         this.selectPreset(preset.id);
         this.showTab('tone');
       });
       grid.append(card);
     }
-    body.append(el('h2', 'panel-title', '音色プリセット'), grid);
+    body.append(el('h2', 'panel-title', t('tone.presetsTitle')), grid);
 
     const controls = el('div', 'ctl-grid');
     controls.append(
       slider({
-        label: 'ハンマーの硬さ（明るさ）',
+        label: t('tone.brightness'),
         min: 0, max: 1, step: 0.01, value: this.settings.brightness,
         format: (v) => `${Math.round(v * 100)}`,
-        hint: 'フェルト ← → ブライト',
+        hint: t('tone.brightness.hint'),
         onInput: (v) => { this.settings.brightness = v; this.commit(); },
       }),
       slider({
-        label: '打弦位置',
+        label: t('tone.strikePos'),
         min: 0, max: 1, step: 0.01, value: this.settings.strikePos,
         format: (v) => `${Math.round(v * 100)}`,
-        hint: '端寄り（硬い） ← → 中央寄り（丸い）',
+        hint: t('tone.strikePos.hint'),
         onInput: (v) => { this.settings.strikePos = v; this.commit(); },
       }),
       slider({
-        label: '減衰（余韻の長さ）',
+        label: t('tone.decay'),
         min: 0.4, max: 1.8, step: 0.01, value: this.settings.decay,
         format: (v) => `${v.toFixed(2)}×`,
         onInput: (v) => { this.settings.decay = v; this.commit(); },
       }),
       slider({
-        label: '弦の共鳴',
+        label: t('tone.stringRes'),
         min: 0, max: 1, step: 0.01, value: this.settings.stringRes,
         format: (v) => `${Math.round(v * 100)}`,
-        hint: 'ペダルを踏んだときに他の弦が共鳴する量',
+        hint: t('tone.stringRes.hint'),
         onInput: (v) => { this.settings.stringRes = v; this.commit(); },
       }),
       slider({
-        label: 'ユニゾンのうなり',
+        label: t('tone.unison'),
         min: 0, max: 1, step: 0.01, value: this.settings.unison,
         format: (v) => `${Math.round(v * 100)}`,
-        hint: '1つの音に張られた複数弦のズレ',
+        hint: t('tone.unison.hint'),
         onInput: (v) => { this.settings.unison = v; this.commit(); },
       }),
       slider({
-        label: '打弦ノイズ',
+        label: t('tone.hammerNoise'),
         min: 0, max: 1, step: 0.01, value: this.settings.hammerNoise,
         format: (v) => `${Math.round(v * 100)}`,
         onInput: (v) => { this.settings.hammerNoise = v; this.commit(); },
       }),
       slider({
-        label: '離鍵ノイズ',
+        label: t('tone.releaseNoise'),
         min: 0, max: 1, step: 0.01, value: this.settings.releaseNoise,
         format: (v) => `${Math.round(v * 100)}`,
-        hint: 'ダンパーが弦に触れる音',
+        hint: t('tone.releaseNoise.hint'),
         onInput: (v) => { this.settings.releaseNoise = v; this.commit(); },
       })
     );
-    body.append(el('h2', 'panel-title', '音づくり'), controls);
+    body.append(el('h2', 'panel-title', t('tone.soundTitle')), controls);
   }
 
   private buildSpaceTab() {
@@ -481,49 +495,48 @@ export class PianoApp {
     const controls = el('div', 'ctl-grid');
 
     const reverbOptions: { value: ReverbType; label: string }[] = [
-      { value: 'off', label: 'オフ' },
+      { value: 'off', label: t('space.reverbOff') },
       ...(Object.keys(ROOMS) as (keyof typeof ROOMS)[]).map((key) => ({
         value: key as ReverbType,
-        label: ROOMS[key].label,
+        label: t(`reverb.${key}`),
       })),
     ];
 
     controls.append(
       slider({
-        label: '大屋根の開き',
+        label: t('space.lid'),
         min: 0, max: 1, step: 0.01, value: this.settings.lid,
         format: (v) => `${Math.round(v * 100)}%`,
-        hint: '閉じるほど丸く、開くほど華やかに',
+        hint: t('space.lid.hint'),
         onInput: (v) => { this.settings.lid = v; this.commit(); },
       }),
       slider({
-        label: 'トーン',
+        label: t('space.tone'),
         min: -1, max: 1, step: 0.01, value: this.settings.tone,
         format: (v) => (v > 0 ? `+${v.toFixed(2)}` : v.toFixed(2)),
         onInput: (v) => { this.settings.tone = v; this.commit(); },
       }),
-      segmented('残響空間', reverbOptions, this.settings.reverbType, (v) => {
+      segmented(t('space.reverbType'), reverbOptions, this.settings.reverbType, (v) => {
         this.settings.reverbType = v;
         this.commit();
       }),
       slider({
-        label: '残響の量',
+        label: t('space.reverbMix'),
         min: 0, max: 0.8, step: 0.01, value: this.settings.reverbMix,
         format: (v) => `${Math.round(v * 125)}`,
         onInput: (v) => { this.settings.reverbMix = v; this.commit(); },
       }),
       slider({
-        label: 'マスター音量',
+        label: t('space.volume'),
         min: 0, max: 1, step: 0.01, value: this.settings.volume,
         format: (v) => `${Math.round(v * 100)}`,
         onInput: (v) => { this.settings.volume = v; this.commit(); },
       })
     );
-    body.append(el('h2', 'panel-title', '空間と響き'), controls);
+    body.append(el('h2', 'panel-title', t('space.title')), controls);
 
     const note = el('p', 'panel-note');
-    note.textContent =
-      '残響はインパルス応答をその場で生成しています。音声ファイルのダウンロードは一切ありません。';
+    note.textContent = t('space.note');
     body.append(note);
   }
 
@@ -533,41 +546,41 @@ export class PianoApp {
 
     controls.append(
       slider({
-        label: 'ベロシティカーブ',
+        label: t('play.velCurve'),
         min: 0.6, max: 2, step: 0.01, value: this.settings.velCurve,
         format: (v) => v.toFixed(2),
-        hint: '大きいほど強く弾かないと音量が出ません',
+        hint: t('play.velCurve.hint'),
         onInput: (v) => { this.settings.velCurve = v; this.commit(); },
       }),
       slider({
-        label: 'ダイナミクス',
+        label: t('play.dynamics'),
         min: 0.4, max: 1.4, step: 0.01, value: this.settings.dynamics,
         format: (v) => v.toFixed(2),
-        hint: '小さいほど強弱の差が圧縮されます',
+        hint: t('play.dynamics.hint'),
         onInput: (v) => { this.settings.dynamics = v; this.commit(); },
       }),
       slider({
-        label: '基準ピッチ A4',
+        label: t('play.a4'),
         min: 415, max: 448, step: 0.5, value: this.settings.a4,
         format: (v) => `${v.toFixed(1)} Hz`,
         onInput: (v) => { this.settings.a4 = v; this.commit(); },
       }),
       slider({
-        label: 'ストレッチ調律',
+        label: t('play.stretch'),
         min: 0, max: 1.5, step: 0.01, value: this.settings.stretch,
         format: (v) => `${v.toFixed(2)}×`,
-        hint: '低音を低く・高音を高く。実際の調律に近づきます',
+        hint: t('play.stretch.hint'),
         onInput: (v) => { this.settings.stretch = v; this.commit(); },
       }),
       slider({
-        label: '最大同時発音数',
+        label: t('play.maxVoices'),
         min: 12, max: 48, step: 1, value: this.settings.maxVoices,
         format: (v) => `${v}`,
-        hint: '動作が重いときは減らしてください',
+        hint: t('play.maxVoices.hint'),
         onInput: (v) => { this.settings.maxVoices = v; this.commit(); },
       }),
       slider({
-        label: '鍵盤の大きさ',
+        label: t('play.keyWidth'),
         min: 20, max: 62, step: 1, value: this.ui.keyWidth,
         format: (v) => `${v}px`,
         onInput: (v) => {
@@ -578,17 +591,17 @@ export class PianoApp {
         },
       })
     );
-    body.append(el('h2', 'panel-title', 'タッチと調律'), controls);
+    body.append(el('h2', 'panel-title', t('play.touchTuningTitle')), controls);
 
     const options = el('div', 'ctl-grid');
     options.append(
       segmented<LabelMode>(
-        '鍵盤の音名表示',
+        t('play.labelMode'),
         [
-          { value: 'off', label: 'なし' },
-          { value: 'c', label: 'Cのみ' },
-          { value: 'all', label: '英語' },
-          { value: 'ja', label: 'ドレミ' },
+          { value: 'off', label: t('play.labelMode.off') },
+          { value: 'c', label: t('play.labelMode.c') },
+          { value: 'all', label: t('play.labelMode.all') },
+          { value: 'ja', label: t('play.labelMode.ja') },
         ],
         this.ui.labelMode,
         (v) => {
@@ -598,23 +611,23 @@ export class PianoApp {
         }
       ),
       segmented(
-        '表示する鍵盤の範囲',
+        t('play.range'),
         [
-          { value: 'full', label: '88鍵' },
-          { value: 'wide', label: '61鍵' },
-          { value: 'mid', label: '49鍵' },
-          { value: 'small', label: '25鍵' },
+          { value: 'full', label: t('play.range.full') },
+          { value: 'wide', label: t('play.range.wide') },
+          { value: 'mid', label: t('play.range.mid') },
+          { value: 'small', label: t('play.range.small') },
         ],
         this.rangeKind(),
         (v) => this.setRangeKind(v)
       ),
       segmented(
-        '鍵盤のベロシティ',
+        t('play.velocityMode'),
         [
-          { value: 'touch', label: '打鍵位置で変化' },
-          { value: 'soft', label: '固定 (弱)' },
-          { value: 'mid', label: '固定 (中)' },
-          { value: 'loud', label: '固定 (強)' },
+          { value: 'touch', label: t('play.velocityMode.touch') },
+          { value: 'soft', label: t('play.velocityMode.soft') },
+          { value: 'mid', label: t('play.velocityMode.mid') },
+          { value: 'loud', label: t('play.velocityMode.loud') },
         ],
         this.velocityKind(),
         (v) => {
@@ -631,7 +644,7 @@ export class PianoApp {
     const metroBox = el('div', 'ctl-grid');
     metroBox.append(
       slider({
-        label: 'メトロノーム テンポ',
+        label: t('play.metroTempo'),
         min: 40, max: 208, step: 1, value: this.ui.bpm,
         format: (v) => `${v} BPM`,
         onInput: (v) => {
@@ -640,49 +653,49 @@ export class PianoApp {
           this.save();
         },
       }),
-      switchRow('メトロノームを鳴らす', this.metronome.running, (on) => {
+      switchRow(t('play.metroToggle'), this.metronome.running, (on) => {
         void this.ensureAudio().then(() => {
           if (on) this.metronome.start(this.ui.bpm);
           else this.metronome.stop();
         });
       })
     );
-    body.append(el('h2', 'panel-title', '練習ツール'), metroBox);
+    body.append(el('h2', 'panel-title', t('play.practiceTitle')), metroBox);
 
     // MIDI
     const midiBox = el('div', 'midi-box');
     if (MidiInput.supported) {
       const connect = button(
-        this.midi ? 'MIDI 再検出' : 'MIDIキーボードを接続',
+        this.midi ? t('play.midiRescan') : t('play.midiConnect'),
         'primary',
         () => void this.connectMidi()
       );
       midiBox.append(connect);
       const list = el('span', 'panel-note');
       list.textContent = this.midi?.devices.length
-        ? `接続中: ${this.midi.devices.join(', ')}`
-        : '外部MIDIキーボードを接続すると、そのまま演奏できます。';
+        ? t('play.midiConnected', { devices: this.midi.devices.join(', ') })
+        : t('play.midiHint');
       midiBox.append(list);
     } else {
       midiBox.append(
-        el('span', 'panel-note', 'このブラウザは Web MIDI に対応していません（Chrome / Edge 推奨）。')
+        el('span', 'panel-note', t('play.midiUnsupported'))
       );
     }
-    body.append(el('h2', 'panel-title', 'MIDI'), midiBox);
+    body.append(el('h2', 'panel-title', t('play.midiTitle')), midiBox);
   }
 
   private buildRecordTab() {
     const body = this.panelBody;
-    body.append(el('h2', 'panel-title', '録音と書き出し'));
+    body.append(el('h2', 'panel-title', t('rec.title')));
 
     const row = el('div', 'button-row');
     this.recordButton = button(
-      this.recorder.recording ? '■ 録音停止' : '● 録音開始',
+      this.recorder.recording ? t('rec.stop') : t('rec.start'),
       this.recorder.recording ? 'danger' : 'primary',
       () => this.toggleRecording()
     );
-    const playBtn = button('▶ 再生', 'ghost', () => this.playRecording());
-    const clearBtn = button('クリア', 'ghost', () => {
+    const playBtn = button(t('rec.play'), 'ghost', () => this.playRecording());
+    const clearBtn = button(t('rec.clear'), 'ghost', () => {
       this.recorder.clear();
       this.lastSequence = null;
       this.showTab('rec');
@@ -693,52 +706,51 @@ export class PianoApp {
     const info = el('p', 'panel-note');
     const count = this.recorder.events.filter((e) => e.type === 'note').length;
     info.textContent = this.recorder.isEmpty
-      ? '録音すると、演奏がイベントとして記録されます。あとから音色を変えて書き出せます。'
-      : `録音済み: ${count} 音 / ${this.formatTime(this.recorder.duration(0))}`;
+      ? t('rec.empty')
+      : t('rec.count', { count, time: this.formatTime(this.recorder.duration(0)) });
     body.append(info);
 
     const exportRow = el('div', 'button-row');
-    const wavBtn = button('WAV で書き出し', 'primary', () => void this.exportWav());
-    const midiBtn = button('MIDI で書き出し', 'ghost', () => this.exportMidi());
+    const wavBtn = button(t('rec.exportWav'), 'primary', () => void this.exportWav());
+    const midiBtn = button(t('rec.exportMidi'), 'ghost', () => this.exportMidi());
     if (this.exporting) {
       wavBtn.disabled = true;
-      wavBtn.textContent = '書き出し中…';
+      wavBtn.textContent = t('rec.exporting');
     }
     exportRow.append(wavBtn, midiBtn);
-    body.append(el('h2', 'panel-title', 'ファイル'), exportRow);
+    body.append(el('h2', 'panel-title', t('rec.filesTitle')), exportRow);
 
     const note = el('p', 'panel-note');
-    note.textContent =
-      'WAV は 48kHz / 24bit・ステレオで、現在の音色設定のまま再合成して書き出します。'
-      + '作成した音源の利用に制限はありません（商用利用も自由です）。';
+    note.textContent = t('rec.note');
     body.append(note);
   }
 
   private buildDemoTab() {
     const body = this.panelBody;
-    body.append(el('h2', 'panel-title', 'デモ演奏'));
+    body.append(el('h2', 'panel-title', t('demo.title')));
 
     const list = el('div', 'demo-list');
     for (const demo of DEMOS) {
       const card = el('div', 'demo-card');
       const texts = el('div', 'demo-texts');
+      const noteKey = demo.note === '本アプリ書き下ろし' ? 'demo.note.original' : 'demo.note.publicDomain';
       texts.append(
-        el('strong', undefined, demo.title),
-        el('span', undefined, `${demo.composer} ・ ${demo.note}`)
+        el('strong', undefined, t(`demo.${demo.id}.title`)),
+        el('span', undefined, `${t(`demo.${demo.id}.composer`)} ・ ${t(noteKey)}`)
       );
-      const play = button('▶ 再生', 'primary', () => this.playDemo(demo.id));
+      const play = button(t('demo.play'), 'primary', () => this.playDemo(demo.id));
       card.append(texts, play);
       list.append(card);
     }
     body.append(list);
 
     const row = el('div', 'button-row');
-    row.append(button('■ 停止', 'ghost', () => this.stopPlayback()));
+    row.append(button(t('demo.stop'), 'ghost', () => this.stopPlayback()));
     body.append(row);
 
     body.append(
       switchRow(
-        '推奨音色に切り替えて再生する',
+        t('demo.useDemoPreset'),
         this.ui.useDemoPreset,
         (v) => {
           this.ui.useDemoPreset = v;
@@ -748,9 +760,7 @@ export class PianoApp {
     );
 
     const note = el('p', 'panel-note');
-    note.textContent =
-      'デモはすべて権利処理が不要な楽曲です（パブリックドメイン作品と本アプリのオリジナル曲）。'
-      + '再生中の演奏もそのまま WAV / MIDI に書き出せます。';
+    note.textContent = t('demo.note');
     body.append(note);
   }
 
@@ -794,7 +804,7 @@ export class PianoApp {
     const select = this.root.querySelector('.preset-select') as HTMLSelectElement | null;
     if (select) select.value = id;
     const preset = PRESETS.find((p) => p.id === id);
-    if (preset) this.flashNowPlaying(`音色: ${preset.name}`);
+    if (preset) this.flashNowPlaying(t('flash.presetChanged', { name: t(`preset.${preset.id}.name`) }));
     if (this.activeTab === 'tone' || this.activeTab === 'space') this.showTab(this.activeTab);
   }
 
@@ -814,7 +824,7 @@ export class PianoApp {
     this.updateSustainFromInputs();
     this.resetTransport();
     this.restoreDemoPreset();
-    this.flashNowPlaying('すべての音を停止しました');
+    this.flashNowPlaying(t('flash.allStopped'));
   }
 
   /** 再生位置の表示を初期状態に戻す */
@@ -861,7 +871,7 @@ export class PianoApp {
     }
     await this.ensureAudio();
     const ok = await this.midi.init();
-    this.setStatus(ok ? undefined : 'MIDIデバイスに接続できませんでした');
+    this.setStatus(ok ? undefined : t('flash.midiConnectFailed'));
     if (this.activeTab === 'play') this.showTab('play');
   }
 
@@ -871,11 +881,11 @@ export class PianoApp {
         this.recorder.stop(this.engine.now);
         this.lastSequence = { events: this.recorder.events, name: 'recording' };
         this.resetTransport();
-        this.flashNowPlaying('録音を停止しました');
+        this.flashNowPlaying(t('flash.recStopped'));
       } else {
         this.player.stop();
         this.recorder.start(this.engine.now);
-        this.flashNowPlaying('● 録音中');
+        this.flashNowPlaying(t('flash.recording'));
       }
       if (this.activeTab === 'rec') this.showTab('rec');
     });
@@ -885,7 +895,7 @@ export class PianoApp {
     if (this.recorder.isEmpty) return;
     void this.ensureAudio().then(() => {
       this.recorder.stop(this.engine.now);
-      this.startPlayback(this.recorder.events, '録音した演奏');
+      this.startPlayback(this.recorder.events, t('flash.recordedPerformance'));
     });
   }
 
@@ -903,7 +913,7 @@ export class PianoApp {
     }
     void this.ensureAudio().then(() => {
       const events = demo.build();
-      this.startPlayback(events, `${demo.title} / ${demo.composer}`);
+      this.startPlayback(events, `${t(`demo.${demo.id}.title`)} / ${t(`demo.${demo.id}.composer`)}`);
     });
   }
 
@@ -925,7 +935,7 @@ export class PianoApp {
       this.view.allOff();
       this.resetTransport();
       this.restoreDemoPreset();
-      this.flashNowPlaying('再生が終了しました');
+      this.flashNowPlaying(t('flash.playbackEnded'));
     };
     this.player.play(events);
     this.flashNowPlaying(`▶ ${label}`);
@@ -947,19 +957,19 @@ export class PianoApp {
   private async exportWav() {
     const source = this.exportEvents();
     if (!source || source.events.length === 0) {
-      this.flashNowPlaying('書き出す演奏がありません');
+      this.flashNowPlaying(t('flash.nothingToExport'));
       return;
     }
     this.exporting = true;
     if (this.activeTab === 'rec') this.showTab('rec');
-    this.flashNowPlaying('WAV を書き出しています…');
+    this.flashNowPlaying(t('flash.exportingWav'));
     try {
       const last = source.events.reduce((max, ev) => Math.max(max, ev.time), 0);
       const buffer = await renderPerformance(source.events, this.settings, last + 6);
       downloadBlob(encodeWav(buffer), timestampName('aozora-piano', 'wav'));
-      this.flashNowPlaying('WAV を保存しました');
+      this.flashNowPlaying(t('flash.wavSaved'));
     } catch (err) {
-      this.flashNowPlaying(`書き出しに失敗しました: ${err}`);
+      this.flashNowPlaying(t('flash.exportFailed', { err: String(err) }));
     } finally {
       this.exporting = false;
       if (this.activeTab === 'rec') this.showTab('rec');
@@ -969,11 +979,11 @@ export class PianoApp {
   private exportMidi() {
     const source = this.exportEvents();
     if (!source || source.events.length === 0) {
-      this.flashNowPlaying('書き出す演奏がありません');
+      this.flashNowPlaying(t('flash.nothingToExport'));
       return;
     }
     downloadBlob(encodeMidi(source.events), timestampName('aozora-piano', 'mid'));
-    this.flashNowPlaying('MIDI を保存しました');
+    this.flashNowPlaying(t('flash.midiSaved'));
   }
 
   private toggleHelp() {
@@ -985,27 +995,23 @@ export class PianoApp {
     const modal = el('div', 'help-modal');
     const card = el('div', 'help-card');
     card.innerHTML = `
-      <h2>使い方</h2>
+      <h2>${t('help.title')}</h2>
       <ul>
-        <li><strong>演奏</strong> … 画面の鍵盤をクリック／タッチ（マルチタッチ対応）。鍵盤の手前を押すほど強い音になります。</li>
-        <li><strong>PCキーボード</strong> … Z S X D C V G B H N J M , L . ; / と Q 2 W 3 E R 5 T 6 Y 7 U で2オクターブ。←→ でオクターブ移動。</li>
-        <li><strong>ペダル</strong> … スペースキーでサステイン。Shift でソフト（弱音）ペダル。</li>
-        <li><strong>MIDI</strong> … 「演奏」タブから MIDI キーボードを接続できます（CC64/66/67 のペダルにも対応）。</li>
-        <li><strong>録音</strong> … 「録音」タブで演奏を記録し、WAV（48kHz/24bit）や MIDI として保存できます。</li>
+        <li><strong>${t('help.play.term')}</strong> … ${t('help.play.desc')}</li>
+        <li><strong>${t('help.pcKeys.term')}</strong> … ${t('help.pcKeys.desc')}</li>
+        <li><strong>${t('help.pedals.term')}</strong> … ${t('help.pedals.desc')}</li>
+        <li><strong>${t('help.midi.term')}</strong> … ${t('help.midi.desc')}</li>
+        <li><strong>${t('help.rec.term')}</strong> … ${t('help.rec.desc')}</li>
       </ul>
-      <h2>この音について</h2>
-      <p>
-        録音済みのピアノ音源（サンプル）は使っていません。88鍵それぞれの弦の部分音・不協和度・
-        打弦位置・ダンパー・共鳴を計算して、その場で音を合成しています。
-        そのためアプリ本体は数百KBで、追加ダウンロードも通信も不要です。
-      </p>
-      <p class="help-free">広告なし・追跡なし・アカウント登録なし。オフラインでも動作します。</p>
+      <h2>${t('help.aboutSoundTitle')}</h2>
+      <p>${t('help.aboutSound')}</p>
+      <p class="help-free">${t('help.free')}</p>
       <p class="help-small">
-        書き出した音源はご自由にお使いいただけます（商用利用可・クレジット表記不要）。
-        <a href="./privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>
+        ${t('help.usage')}
+        <a href="./privacy.html" target="_blank" rel="noopener">${t('help.privacy')}</a>
       </p>
     `;
-    const close = button('閉じる', 'primary', () => modal.remove());
+    const close = button(t('help.close'), 'primary', () => modal.remove());
     card.append(close);
     modal.append(card);
     modal.addEventListener('click', (e) => {

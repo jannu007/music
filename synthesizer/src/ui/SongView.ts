@@ -5,6 +5,7 @@
  */
 import { PATTERN_SLOTS, type Scene, type Sequencer } from '../audio/Sequencer';
 import { toast } from './widgets';
+import { t } from './i18n';
 
 export interface SongViewHandle {
   refresh(): void;
@@ -19,8 +20,7 @@ export function buildSongView(container: HTMLElement, sequencer: Sequencer, onCh
 
     const intro = document.createElement('p');
     intro.className = 'song-intro';
-    intro.textContent =
-      'シーンを縦に並べて曲の構成を作ります。各セルはトラックが鳴らすパターン（A〜D）です。「ソング」モードで再生すると上から順に演奏されます。';
+    intro.textContent = t('song.intro');
     container.appendChild(intro);
 
     const table = document.createElement('div');
@@ -29,8 +29,8 @@ export function buildSongView(container: HTMLElement, sequencer: Sequencer, onCh
     // ヘッダー行
     const header = document.createElement('div');
     header.className = 'song-row song-header';
-    header.appendChild(cell('シーン', 'song-name-cell'));
-    header.appendChild(cell('小節', 'song-bars-cell'));
+    header.appendChild(cell(t('song.sceneHeader'), 'song-name-cell'));
+    header.appendChild(cell(t('song.barsHeader'), 'song-bars-cell'));
     for (const t of sequencer.tracks) header.appendChild(cell(t.name, 'song-cell'));
     header.appendChild(cell('', 'song-actions-cell'));
     table.appendChild(header);
@@ -73,7 +73,7 @@ export function buildSongView(container: HTMLElement, sequencer: Sequencer, onCh
           const o = document.createElement('option');
           o.value = String(i);
           const count = track.patterns[i]?.notes.length ?? 0;
-          o.textContent = `${String.fromCharCode(65 + i)}${count > 0 ? '' : '（空）'}`;
+          o.textContent = `${String.fromCharCode(65 + i)}${count > 0 ? '' : t('song.emptySuffix')}`;
           sel.appendChild(o);
         }
         sel.value = String(scene.patterns[track.id] ?? 0);
@@ -87,7 +87,7 @@ export function buildSongView(container: HTMLElement, sequencer: Sequencer, onCh
 
       const actions = cell('', 'song-actions-cell');
       actions.appendChild(
-        miniButton('複製', () => {
+        miniButton(t('song.duplicate'), () => {
           const copy: Scene = { name: `${scene.name}'`, bars: scene.bars, patterns: { ...scene.patterns } };
           sequencer.scenes.splice(index + 1, 0, copy);
           refresh();
@@ -95,7 +95,7 @@ export function buildSongView(container: HTMLElement, sequencer: Sequencer, onCh
         })
       );
       actions.appendChild(
-        miniButton('↑', () => {
+        miniButton(t('song.moveUp'), () => {
           if (index === 0) return;
           const [s] = sequencer.scenes.splice(index, 1);
           sequencer.scenes.splice(index - 1, 0, s);
@@ -104,7 +104,7 @@ export function buildSongView(container: HTMLElement, sequencer: Sequencer, onCh
         })
       );
       actions.appendChild(
-        miniButton('↓', () => {
+        miniButton(t('song.moveDown'), () => {
           if (index >= sequencer.scenes.length - 1) return;
           const [s] = sequencer.scenes.splice(index, 1);
           sequencer.scenes.splice(index + 1, 0, s);
@@ -113,9 +113,9 @@ export function buildSongView(container: HTMLElement, sequencer: Sequencer, onCh
         })
       );
       actions.appendChild(
-        miniButton('×', () => {
+        miniButton(t('song.delete'), () => {
           if (sequencer.scenes.length <= 1) {
-            toast('シーンは最低1つ必要です');
+            toast(t('toast.sceneMinimum'));
             return;
           }
           sequencer.scenes.splice(index, 1);
@@ -132,10 +132,10 @@ export function buildSongView(container: HTMLElement, sequencer: Sequencer, onCh
     const add = document.createElement('button');
     add.type = 'button';
     add.className = 'btn btn-accent';
-    add.textContent = '＋ シーンを追加';
+    add.textContent = t('song.addScene');
     add.addEventListener('click', () => {
       const patterns: Record<string, number> = {};
-      for (const t of sequencer.tracks) patterns[t.id] = t.activePattern;
+      for (const track of sequencer.tracks) patterns[track.id] = track.activePattern;
       sequencer.scenes.push({
         name: String.fromCharCode(65 + (sequencer.scenes.length % 26)),
         bars: 4,
@@ -150,7 +150,12 @@ export function buildSongView(container: HTMLElement, sequencer: Sequencer, onCh
     total.className = 'song-total';
     const bars = sequencer.songLengthBars;
     const seconds = (bars * 4 * 60) / sequencer.bpm;
-    total.textContent = `全 ${bars} 小節 / 約 ${Math.floor(seconds / 60)}分${Math.round(seconds % 60)}秒（${sequencer.bpm} BPM）`;
+    total.textContent = t('song.total', {
+      bars,
+      min: Math.floor(seconds / 60),
+      sec: Math.round(seconds % 60),
+      bpm: sequencer.bpm,
+    });
     container.appendChild(total);
   }
 

@@ -3,18 +3,21 @@
  */
 import type { AudioEngine } from '../audio/AudioEngine';
 import { createKnob, createSelect, createToggle, moduleBox } from './widgets';
+import { t } from './i18n';
 
 const pctFmt = (v: number) => `${Math.round(v * 100)}%`;
 const dbFmt = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`;
 
-const DIVISIONS = [
-  { value: '2', text: '2拍' },
-  { value: '1', text: '1拍' },
-  { value: '0.75', text: '付点8分' },
-  { value: '0.5', text: '8分' },
-  { value: '0.3333', text: '3連8分' },
-  { value: '0.25', text: '16分' },
-];
+function divisions() {
+  return [
+    { value: '2', text: t('division.2beat') },
+    { value: '1', text: t('division.1beat') },
+    { value: '0.75', text: t('division.dotted8') },
+    { value: '0.5', text: t('division.8') },
+    { value: '0.3333', text: t('division.triplet8') },
+    { value: '0.25', text: t('division.16') },
+  ];
+}
 
 export function buildMasterPanel(container: HTMLElement, engine: AudioEngine, onChange: () => void) {
   container.innerHTML = '';
@@ -71,7 +74,7 @@ export function buildMasterPanel(container: HTMLElement, engine: AudioEngine, on
 
   // ---- ディレイ ----
   const timeKnob = createKnob({ label: 'Time', min: 0.02, max: 2, curve: 'log', value: s.delay.time, format: (v) => `${Math.round(v * 1000)}ms`, onChange: (v) => { s.delay.time = v; apply(); } });
-  const divSel = createSelect('音符', DIVISIONS, String(s.delay.division), (v) => { s.delay.division = Number(v); apply(); });
+  const divSel = createSelect(t('ctl.delayNote'), divisions(), String(s.delay.division), (v) => { s.delay.division = Number(v); apply(); });
   const syncRefresh = () => {
     timeKnob.style.display = s.delay.sync ? 'none' : '';
     divSel.style.display = s.delay.sync ? '' : 'none';
