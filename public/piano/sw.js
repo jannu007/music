@@ -1,11 +1,7 @@
 /* Aozora Grand Piano — オフライン用サービスワーカー（スコープ: /piano/） */
-const CACHE = 'aozora-piano-v1';
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png'];
+const CACHE = 'aozora-piano-v2';
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(SHELL)).catch(() => undefined)
-  );
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
@@ -18,37 +14,20 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// ネットワーク優先・失敗したらキャッシュ（オフラインでも演奏できるようにする）。
+// アセット（JS/CSS/worklet）をキャッシュ優先にすると、新しいビルドを配信しても
+// 既存の訪問者にはいつまでも古いコードが配られ続けてしまうため、HTML と同じく
+// 常にネットワークを優先し、オフライン時のみキャッシュへフォールバックする。
 self.addEventListener('fetch', (event) => {
-  const request = event.request;
-  if (request.method !== 'GET') return;
-
-  const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return;
-
-  // HTML はネットワーク優先（更新をすぐ反映）、それ以外はキャッシュ優先で高速起動
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE).then((cache) => cache.put(request, copy));
-          return response;
-        })
-        .catch(() => caches.match(request).then((hit) => hit || caches.match('./index.html')))
-    );
-    return;
-  }
+  if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(request).then((hit) => {
-      if (hit) return hit;
-      return fetch(request).then((response) => {
-        if (response.ok && response.type === 'basic') {
-          const copy = response.clone();
-          caches.open(CACHE).then((cache) => cache.put(request, copy));
-        }
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE).then((cache) => cache.put(event.request, copy));
         return response;
-      });
-    })
+      })
+      .catch(() => caches.match(event.request))
   );
 });
