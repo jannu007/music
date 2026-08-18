@@ -161,7 +161,14 @@ export class BassApp {
       // 画面ロックやタブの背面化でブラウザ側が AudioContext を止めていることがあるため、
       // 演奏操作のたびに念のため再開を試みる（すでに動作中なら resume() は即座に解決する）
       if (this.engine.ctx?.state === 'suspended') void this.engine.ctx.resume();
-      return;
+      // 長時間バックグラウンドに置かれるなどして AudioContext 自体が閉じられていた場合、
+      // resume() では復帰できないため、初期化からやり直す
+      if (this.engine.ctx?.state === 'closed') {
+        this.audioReady = false;
+        this.initPromise = null;
+      } else {
+        return;
+      }
     }
     if (!this.initPromise) {
       this.initPromise = this.engine
