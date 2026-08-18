@@ -246,6 +246,36 @@ Dm`,
     mix: { reverbType: 'church', reverbMix: 0.4, delayMix: 0.05, accompLevel: 0.46, lowCut: 0.25 },
     expression: { vibDepth: 30, portamento: 100 },
   },
+  {
+    // 英語ネイティブのユーザー向けデモ。歌詞は英単語を和製ローマ字の
+    // モーラ（子音+母音、撥音は「ん」）単位に区切って書いている。1音符=1モーラ。
+    id: 'shine',
+    title: 'Shine, New Day',
+    subtitle: 'Upbeat Pop｜Sou',
+    voiceId: 'sou',
+    bpm: 118,
+    beatsPerBar: 4,
+    style: 'pop',
+    chords: `G
+D
+Em
+C
+D
+G`,
+    seq: `
+      r:1
+      sha:D4:0.5 i:E4:0.5 ん:F#4:0.5 sha:E4:0.5 i:F#4:0.5 ん:G4:0.5
+      ma:A4:0.5 i:G4:0.5 su:F#4:0.5 ta:E4:0.5 a:D4:0.5
+      fu:E4:0.5 ra:F#4:0.5 i:G4:0.5 ha:A4:1 i:G4:1.5
+      r:0.5
+      ra:D4:0.5 bu:E4:0.5 nyu:F#4:0.5 u:G4:0.5 de:A4:0.5 i:G4:0.5
+      shi:F#4:0.5 ん:E4:0.5 gu:D4:0.5 so:E4:0.5 ん:F#4:0.5 gu:G4:0.5
+      to:A4:1 ru:G4:0.5 u:F#4:0.5 ha:E4:0.5 a:D4:0.5 to:G4:1.5
+      r:2.5
+    `,
+    mix: { reverbType: 'room', reverbMix: 0.22, delayMix: 0.15, accompLevel: 0.6, tone: 0.2 },
+    expression: { vibDepth: 28, consonant: 1.0, scoop: 0.3 },
+  },
 ];
 
 export interface DemoSong {

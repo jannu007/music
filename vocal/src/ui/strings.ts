@@ -288,6 +288,8 @@ const ja = {
   'demo.machi.subtitle': '夜のシティポップ｜陸',
   'demo.akatsuki.title': 'あかつきの こえ',
   'demo.akatsuki.subtitle': '低音の讃歌｜響',
+  'demo.shine.title': 'シャイン、あたらしい日',
+  'demo.shine.subtitle': '英語詞のアップテンポなポップ｜蒼',
 
   'song.newSongTitle': '新しい曲',
 };
@@ -580,6 +582,8 @@ const en: typeof ja = {
   'demo.machi.subtitle': 'Nighttime city pop ｜ Riku',
   'demo.akatsuki.title': 'Voice of the Dawn',
   'demo.akatsuki.subtitle': 'A low anthem ｜ Hibiki',
+  'demo.shine.title': 'Shine, New Day',
+  'demo.shine.subtitle': 'Upbeat pop (English lyrics) ｜ Sou',
 
   'song.newSongTitle': 'New Song',
 };
