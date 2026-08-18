@@ -3,6 +3,7 @@
  */
 import { createKnob, createSelect, createToggle, moduleBox } from './widgets';
 import { createEnvelopeView, createFilterView } from './Visualizers';
+import { t } from './i18n';
 import type {
   ArpParams, ArpMode, DrumType, Envelope, FilterModel, FilterType, LfoParams, LfoTarget, LfoWave,
   ModWheelTarget, OscParams, OscWave, Patch, SubWave, VoiceMode,
@@ -31,10 +32,12 @@ const FILTER_TYPE_OPTIONS: { value: FilterType; text: string }[] = [
   { value: 'notch', text: 'Notch' },
 ];
 
-const FILTER_MODEL_OPTIONS: { value: FilterModel; text: string }[] = [
-  { value: 'ladder', text: 'Ladder (太い)' },
-  { value: 'svf', text: 'Clean SVF' },
-];
+function filterModelOptions(): { value: FilterModel; text: string }[] {
+  return [
+    { value: 'ladder', text: t('filterModel.ladder') },
+    { value: 'svf', text: 'Clean SVF' },
+  ];
+}
 
 const LFO_WAVE_OPTIONS: { value: LfoWave; text: string }[] = [
   { value: 'triangle', text: 'Triangle' },
@@ -55,14 +58,16 @@ const LFO_TARGET_OPTIONS: { value: LfoTarget; text: string }[] = [
   { value: 'fm', text: 'FM Amount' },
 ];
 
-const DIVISION_OPTIONS = [
-  { value: '4', text: '1小節' },
-  { value: '2', text: '2拍' },
-  { value: '1', text: '1拍' },
-  { value: '0.5', text: '1/2拍' },
-  { value: '0.25', text: '1/4拍' },
-  { value: '0.1667', text: '3連符' },
-];
+function divisionOptions() {
+  return [
+    { value: '4', text: t('lfoDiv.bar1') },
+    { value: '2', text: t('lfoDiv.beat2') },
+    { value: '1', text: t('lfoDiv.beat1') },
+    { value: '0.5', text: t('lfoDiv.beat0_5') },
+    { value: '0.25', text: t('lfoDiv.beat0_25') },
+    { value: '0.1667', text: t('lfoDiv.triplet') },
+  ];
+}
 
 const VOICE_MODE_OPTIONS: { value: VoiceMode; text: string }[] = [
   { value: 'poly', text: 'Poly' },
@@ -133,7 +138,7 @@ export function buildSynthPanel(container: HTMLElement, opts: SynthPanelOptions)
   const oscModule = (title: string, o: OscParams, showSpread: boolean) =>
     moduleBox(
       title,
-      createSelect('波形', WAVE_OPTIONS, o.wave, (v) => {
+      createSelect(t('ctl.waveform'), WAVE_OPTIONS, o.wave, (v) => {
         o.wave = v;
         change();
       }),
@@ -156,7 +161,7 @@ export function buildSynthPanel(container: HTMLElement, opts: SynthPanelOptions)
       'MIXER / MOD',
       createKnob({ label: 'OSC Mix', min: 0, max: 1, bipolar: true, value: patch.oscMix, format: (v) => (v < 0.5 ? `OSC1 ${Math.round((1 - v * 2) * 100)}%` : v > 0.5 ? `OSC2 ${Math.round((v - 0.5) * 200)}%` : 'CENTER'), onChange: (v) => { patch.oscMix = v; change(); } }),
       createKnob({ label: 'FM', min: 0, max: 1, value: patch.fmAmount, format: pctFmt, onChange: (v) => { patch.fmAmount = v; change(); } }),
-      createSelect('SUB波形', SUB_WAVE_OPTIONS, patch.sub.wave, (v) => { patch.sub.wave = v; change(); }),
+      createSelect(t('ctl.subWaveform'), SUB_WAVE_OPTIONS, patch.sub.wave, (v) => { patch.sub.wave = v; change(); }),
       createKnob({ label: 'Sub Lv', min: 0, max: 1, value: patch.sub.level, format: pctFmt, onChange: (v) => { patch.sub.level = v; change(); } }),
       createKnob({ label: 'Sub Oct', min: -2, max: -1, step: 1, value: patch.sub.octave, format: (v) => `${v}`, onChange: (v) => { patch.sub.octave = v === -2 ? -2 : -1; change(); } }),
       createSelect('Noise', [{ value: 'white', text: 'White' }, { value: 'pink', text: 'Pink' }] as const, patch.noise.type, (v) => { patch.noise.type = v; change(); }),
@@ -174,9 +179,9 @@ export function buildSynthPanel(container: HTMLElement, opts: SynthPanelOptions)
   };
   const filterModule = moduleBox(
     'FILTER',
-    createSelect('モデル', FILTER_MODEL_OPTIONS, patch.filter.model, (v) => { patch.filter.model = v; filterChange(); }),
-    createSelect('タイプ', FILTER_TYPE_OPTIONS, patch.filter.type, (v) => { patch.filter.type = v; filterChange(); }),
-    createSelect('スロープ', [{ value: '12', text: '12 dB/oct' }, { value: '24', text: '24 dB/oct' }], String(patch.filter.slope), (v) => { patch.filter.slope = v === '24' ? 24 : 12; filterChange(); }),
+    createSelect(t('ctl.filterModel'), filterModelOptions(), patch.filter.model, (v) => { patch.filter.model = v; filterChange(); }),
+    createSelect(t('ctl.filterType'), FILTER_TYPE_OPTIONS, patch.filter.type, (v) => { patch.filter.type = v; filterChange(); }),
+    createSelect(t('ctl.slope'), [{ value: '12', text: '12 dB/oct' }, { value: '24', text: '24 dB/oct' }], String(patch.filter.slope), (v) => { patch.filter.slope = v === '24' ? 24 : 12; filterChange(); }),
     createKnob({ label: 'Cutoff', min: 20, max: 18000, curve: 'log', value: patch.filter.cutoff, format: hzFmt, onChange: (v) => { patch.filter.cutoff = v; filterChange(); } }),
     createKnob({ label: 'Reso', min: 0, max: 1, value: patch.filter.resonance, format: pctFmt, onChange: (v) => { patch.filter.resonance = v; filterChange(); } }),
     createKnob({ label: 'Drive', min: 0, max: 1, value: patch.filter.drive, format: pctFmt, onChange: (v) => { patch.filter.drive = v; change(); } }),
@@ -210,15 +215,15 @@ export function buildSynthPanel(container: HTMLElement, opts: SynthPanelOptions)
   // ------------------------------------------------------------ LFO
   const lfoModule = (title: string, l: LfoParams) => {
     const rateKnob = createKnob({ label: 'Rate', min: 0.02, max: 24, curve: 'log', value: l.rate, format: (v) => `${v.toFixed(2)}Hz`, onChange: (v) => { l.rate = v; change(); } });
-    const divSelect = createSelect('同期', DIVISION_OPTIONS, String(l.division), (v) => { l.division = Number(v); change(); });
+    const divSelect = createSelect(t('ctl.sync'), divisionOptions(), String(l.division), (v) => { l.division = Number(v); change(); });
     const refresh = () => {
       rateKnob.style.display = l.sync ? 'none' : '';
       divSelect.style.display = l.sync ? '' : 'none';
     };
     const box = moduleBox(
       title,
-      createSelect('波形', LFO_WAVE_OPTIONS, l.wave, (v) => { l.wave = v; change(); }),
-      createSelect('変調先', LFO_TARGET_OPTIONS, l.target, (v) => { l.target = v; change(); }),
+      createSelect(t('ctl.waveform'), LFO_WAVE_OPTIONS, l.wave, (v) => { l.wave = v; change(); }),
+      createSelect(t('ctl.modTarget'), LFO_TARGET_OPTIONS, l.target, (v) => { l.target = v; change(); }),
       createToggle('Tempo Sync', l.sync, (v) => { l.sync = v; refresh(); change(); }),
       rateKnob,
       divSelect,
@@ -236,7 +241,7 @@ export function buildSynthPanel(container: HTMLElement, opts: SynthPanelOptions)
   grid.appendChild(
     moduleBox(
       'VOICE',
-      createSelect('モード', VOICE_MODE_OPTIONS, patch.voiceMode, (v) => { patch.voiceMode = v; change(); }),
+      createSelect(t('ctl.voiceMode'), VOICE_MODE_OPTIONS, patch.voiceMode, (v) => { patch.voiceMode = v; change(); }),
       createKnob({ label: 'Glide', min: 0, max: 2, value: patch.glide, format: secFmt, onChange: (v) => { patch.glide = v; change(); } }),
       createKnob({ label: 'Bend', min: 0, max: 24, step: 1, value: patch.bendRange, format: (v) => `±${v.toFixed(0)}`, onChange: (v) => { patch.bendRange = v; change(); } }),
       createKnob({ label: 'Vel→Amp', min: 0, max: 1, value: patch.velSens, format: pctFmt, onChange: (v) => { patch.velSens = v; change(); } }),
@@ -266,9 +271,9 @@ function arpModule(arp: ArpParams, onArpChange: () => void): HTMLElement {
     'ARPEGGIATOR',
     createToggle('ARP ON', arp.enabled, (v) => { arp.enabled = v; onArpChange(); }),
     createToggle('Latch', arp.latch, (v) => { arp.latch = v; onArpChange(); }),
-    createSelect('モード', ARP_MODE_OPTIONS, arp.mode, (v) => { arp.mode = v as ArpMode; onArpChange(); }),
+    createSelect(t('ctl.arpMode'), ARP_MODE_OPTIONS, arp.mode, (v) => { arp.mode = v as ArpMode; onArpChange(); }),
     createKnob({ label: 'Octaves', min: 1, max: 4, step: 1, value: arp.octaves, format: (v) => v.toFixed(0), onChange: (v) => { arp.octaves = v; onArpChange(); } }),
-    createKnob({ label: 'Rate', min: 1, max: 8, step: 1, value: arp.rate, format: (v) => `${v.toFixed(0)}/拍`, onChange: (v) => { arp.rate = v; onArpChange(); } }),
+    createKnob({ label: 'Rate', min: 1, max: 8, step: 1, value: arp.rate, format: (v) => `${v.toFixed(0)}${t('unit.perBeat')}`, onChange: (v) => { arp.rate = v; onArpChange(); } }),
     createKnob({ label: 'Gate', min: 0.05, max: 1, value: arp.gate, format: pctFmt, onChange: (v) => { arp.gate = v; onArpChange(); } }),
     createKnob({ label: 'Swing', min: 0, max: 1, value: arp.swing, format: pctFmt, onChange: (v) => { arp.swing = v; onArpChange(); } })
   );
@@ -282,13 +287,13 @@ function buildDrumPanel(grid: HTMLElement, opts: SynthPanelOptions) {
   const preview = document.createElement('button');
   preview.type = 'button';
   preview.className = 'btn btn-accent drum-preview';
-  preview.textContent = '▶ 試聴';
+  preview.textContent = t('drum.preview');
   preview.addEventListener('click', () => opts.onPreviewDrum());
 
   grid.appendChild(
     moduleBox(
       'DRUM VOICE',
-      createSelect('音色', DRUM_OPTIONS, d.type, (v) => { d.type = v; change(); opts.onPreviewDrum(); }),
+      createSelect(t('ctl.drumVoice'), DRUM_OPTIONS, d.type, (v) => { d.type = v; change(); opts.onPreviewDrum(); }),
       createKnob({ label: 'Tune', min: -24, max: 24, step: 1, bipolar: true, value: d.tune, format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(0)}`, onChange: (v) => { d.tune = v; change(); } }),
       createKnob({ label: 'Decay', min: 0.05, max: 4, curve: 'log', value: d.decay, format: (v) => `${v.toFixed(2)}x`, onChange: (v) => { d.decay = v; change(); } }),
       createKnob({ label: 'Tone', min: 0, max: 1, value: d.tone, format: pctFmt, onChange: (v) => { d.tone = v; change(); } }),

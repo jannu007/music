@@ -20,6 +20,8 @@ import { buildVirtualKeyboard, type KeyboardHandle } from './Keyboard';
 import { createAnalyzerBar, type AnalyzerBarHandle } from './Visualizers';
 import { createButton, createKnob, openModal, toast, type KnobHandle } from './widgets';
 import { demoSong } from './demoSong';
+import { getLocale, onLocaleChange, t, toggleLocale } from './i18n';
+import './strings';
 
 const AUTOSAVE_KEY = 'mss.autosave.v2';
 
@@ -49,7 +51,9 @@ export class App {
 
   constructor(root: HTMLElement) {
     this.root = root;
-    this.root.innerHTML = '<div class="loading">読み込み中…</div>';
+    document.documentElement.lang = getLocale();
+    onLocaleChange(() => this.buildLayout());
+    this.root.innerHTML = `<div class="loading">${t('loading')}</div>`;
     void this.boot();
   }
 
@@ -61,7 +65,7 @@ export class App {
     try {
       await loadWorklets(this.ctx);
     } catch (err) {
-      this.root.innerHTML = `<div class="loading"><p>お使いのブラウザは AudioWorklet に対応していないため起動できません。<br>最新の Chrome / Edge / Firefox / Safari をお使いください。</p><pre>${String(err)}</pre></div>`;
+      this.root.innerHTML = `<div class="loading"><p>${t('boot.error')}</p><pre>${String(err)}</pre></div>`;
       return;
     }
 
@@ -196,17 +200,17 @@ export class App {
     const tabs = document.createElement('div');
     tabs.className = 'tabs';
     const tabDefs: { id: CenterTab; label: string }[] = [
-      { id: 'synth', label: 'シンセ' },
-      { id: 'master', label: 'マスターFX' },
-      { id: 'song', label: 'ソング構成' },
+      { id: 'synth', label: t('tab.synth') },
+      { id: 'master', label: t('tab.master') },
+      { id: 'song', label: t('tab.song') },
     ];
-    for (const t of tabDefs) {
+    for (const def of tabDefs) {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'tab' + (this.tab === t.id ? ' on' : '');
-      b.textContent = t.label;
-      b.dataset.tab = t.id;
-      b.addEventListener('click', () => this.setTab(t.id));
+      b.className = 'tab' + (this.tab === def.id ? ' on' : '');
+      b.textContent = def.label;
+      b.dataset.tab = def.id;
+      b.addEventListener('click', () => this.setTab(def.id));
       tabs.appendChild(b);
     }
     center.appendChild(tabs);
@@ -270,16 +274,16 @@ export class App {
 
     const playBtn = createButton('▶', () => this.togglePlay(), 'btn-transport btn-play');
     playBtn.id = 'play-btn';
-    playBtn.title = '再生 / 停止（スペースキー）';
+    playBtn.title = t('transport.play.title');
     transport.appendChild(playBtn);
 
     const stopBtn = createButton('■', () => this.stopAll(), 'btn-transport');
-    stopBtn.title = '停止＆全音消音';
+    stopBtn.title = t('transport.stop.title');
     transport.appendChild(stopBtn);
 
     const recBtn = createButton('●', () => this.toggleRecord(), 'btn-transport btn-rec');
     recBtn.id = 'rec-btn';
-    recBtn.title = 'リアルタイム録音（WAV）';
+    recBtn.title = t('transport.rec.title');
     transport.appendChild(recBtn);
 
     const position = document.createElement('div');
@@ -290,7 +294,7 @@ export class App {
 
     const modeWrap = document.createElement('div');
     modeWrap.className = 'seg';
-    for (const [value, label] of [['pattern', 'パターン'], ['song', 'ソング']] as const) {
+    for (const [value, label] of [['pattern', t('mode.pattern')], ['song', t('mode.song')]] as const) {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'seg-btn' + (this.sequencer.mode === value ? ' on' : '');
@@ -337,13 +341,13 @@ export class App {
       })
     );
     const tap = createButton('TAP', () => this.tapTempo(), 'btn-sm');
-    tap.title = 'タップテンポ';
+    tap.title = t('tap.title');
     tempo.appendChild(tap);
     const metro = createButton('🔔', () => {
       this.sequencer.metronome = !this.sequencer.metronome;
       metro.classList.toggle('on', this.sequencer.metronome);
     }, 'btn-sm btn-icon');
-    metro.title = 'メトロノーム';
+    metro.title = t('metro.title');
     tempo.appendChild(metro);
     bar.appendChild(tempo);
 
@@ -368,18 +372,19 @@ export class App {
     // --- ファイル操作 ---
     const actions = document.createElement('div');
     actions.className = 'actions';
-    actions.appendChild(createButton('WAV書出', () => void this.exportWav(), 'btn-sm btn-accent'));
-    actions.appendChild(createButton('MIDI書出', () => this.exportMidiFile(), 'btn-sm'));
-    actions.appendChild(createButton('保存', () => this.saveSongFile(), 'btn-sm'));
+    actions.appendChild(createButton(t('lang.toggle'), () => toggleLocale(), 'btn-sm lang-btn'));
+    actions.appendChild(createButton(t('action.exportWav'), () => void this.exportWav(), 'btn-sm btn-accent'));
+    actions.appendChild(createButton(t('action.exportMidi'), () => this.exportMidiFile(), 'btn-sm'));
+    actions.appendChild(createButton(t('action.save'), () => this.saveSongFile(), 'btn-sm'));
 
     const loadInput = document.createElement('input');
     loadInput.type = 'file';
     loadInput.accept = 'application/json,.mss.json';
     loadInput.style.display = 'none';
     loadInput.addEventListener('change', () => this.loadSongFile(loadInput));
-    actions.appendChild(createButton('読込', () => loadInput.click(), 'btn-sm'));
+    actions.appendChild(createButton(t('action.load'), () => loadInput.click(), 'btn-sm'));
     actions.appendChild(loadInput);
-    actions.appendChild(createButton('？', () => this.showHelp(), 'btn-sm btn-icon'));
+    actions.appendChild(createButton(t('action.help'), () => this.showHelp(), 'btn-sm btn-icon'));
     bar.appendChild(actions);
 
     return bar;
@@ -547,7 +552,7 @@ export class App {
       }
       content.appendChild(wrap);
     }
-    close = openModal('トラックを追加：音色を選択', content);
+    close = openModal(t('addTrack.title'), content);
   }
 
   // ------------------------------------------------------------------
@@ -589,7 +594,7 @@ export class App {
     const bpm = Math.max(40, Math.min(240, Math.round(60000 / avg)));
     this.sequencer.setBpm(bpm);
     this.bpmKnob?.setKnobValue(bpm);
-    toast(`テンポ: ${bpm} BPM`);
+    toast(t('toast.tempo', { bpm }));
   }
 
   private toggleRecord() {
@@ -600,16 +605,16 @@ export class App {
       if (result) {
         const blob = encodeWav(result.channels, result.sampleRate, 24);
         this.download(blob, `akatsuki-recording-${stamp()}.wav`);
-        toast('録音を WAV で保存しました');
+        toast(t('toast.recordSaved'));
       } else {
-        toast('録音データがありません');
+        toast(t('toast.noRecordData'));
       }
     } else {
       if (this.engine.startRecording()) {
         btn?.classList.add('on');
-        toast('録音中… もう一度押すと停止して WAV を保存します');
+        toast(t('toast.recording'));
       } else {
-        toast('この環境では録音を開始できませんでした');
+        toast(t('toast.recordUnavailable'));
       }
     }
   }
@@ -622,12 +627,11 @@ export class App {
     content.className = 'export-dialog';
 
     const info = document.createElement('p');
-    info.textContent =
-      'オフラインレンダリングで高品質な WAV（24bit）を書き出します。リアルタイム録音と違い音切れがなく、実時間より短時間で完了します。';
+    info.textContent = t('export.info');
     content.appendChild(info);
 
-    const barsInput = labeledInput('小節数', 'number', String(this.sequencer.mode === 'song' ? this.sequencer.songLengthBars : 4));
-    const repeatInput = labeledInput('繰り返し', 'number', '1');
+    const barsInput = labeledInput(t('export.bars'), 'number', String(this.sequencer.mode === 'song' ? this.sequencer.songLengthBars : 4));
+    const repeatInput = labeledInput(t('export.repeat'), 'number', '1');
     const rateSelect = document.createElement('select');
     rateSelect.className = 'field-select';
     for (const r of [44100, 48000, 96000]) {
@@ -641,7 +645,7 @@ export class App {
     rateWrap.className = 'field';
     const rateLabel = document.createElement('span');
     rateLabel.className = 'field-label';
-    rateLabel.textContent = 'サンプルレート';
+    rateLabel.textContent = t('export.sampleRate');
     rateWrap.append(rateLabel, rateSelect);
 
     content.append(barsInput.wrap, repeatInput.wrap, rateWrap);
@@ -651,9 +655,9 @@ export class App {
     content.appendChild(progress);
 
     let close = () => {};
-    const go = createButton('書き出す', async () => {
+    const go = createButton(t('export.go'), async () => {
       go.disabled = true;
-      progress.textContent = 'レンダリング中…';
+      progress.textContent = t('export.rendering');
       try {
         const data = this.sequencer.toJSON();
         const buffer = await renderSong(data, {
@@ -664,25 +668,25 @@ export class App {
         });
         const blob = audioBufferToWav(buffer, 24);
         this.download(blob, `akatsuki-song-${stamp()}.wav`);
-        progress.textContent = '完了しました';
-        toast('WAV を書き出しました');
+        progress.textContent = t('export.done');
+        toast(t('toast.wavExported'));
         close();
       } catch (err) {
-        progress.textContent = `失敗しました: ${String(err)}`;
+        progress.textContent = t('export.failed', { err: String(err) });
         go.disabled = false;
       }
     }, 'btn-accent');
 
-    close = openModal('WAV 書き出し', content, [go]);
+    close = openModal(t('export.modalTitle'), content, [go]);
   }
 
   private exportMidiFile() {
     try {
       const blob = exportMidi(this.sequencer);
       this.download(blob, `akatsuki-song-${stamp()}.mid`);
-      toast('MIDI ファイルを書き出しました');
+      toast(t('toast.midiExported'));
     } catch (err) {
-      toast(`MIDI 書き出しに失敗しました: ${String(err)}`);
+      toast(t('toast.midiExportFailed', { err: String(err) }));
     }
   }
 
@@ -691,7 +695,7 @@ export class App {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     this.download(blob, `akatsuki-song-${stamp()}.json`);
     this.autosave();
-    toast('曲データを保存しました');
+    toast(t('toast.songSaved'));
   }
 
   private loadSongFile(input: HTMLInputElement) {
@@ -702,9 +706,9 @@ export class App {
       try {
         const data = JSON.parse(String(reader.result));
         this.applySong(data);
-        toast('曲データを読み込みました');
+        toast(t('toast.songLoaded'));
       } catch (err) {
-        toast(`読み込みに失敗しました: ${String(err)}`);
+        toast(t('toast.loadFailed', { err: String(err) }));
       }
     };
     reader.readAsText(file);
@@ -780,51 +784,51 @@ export class App {
   private updateStatus() {
     const el = document.getElementById('status');
     if (!el) return;
-    const midi = this.midi?.connectedNames.length ? `MIDI: ${this.midi.connectedNames.join(', ')}` : 'MIDI: 未接続';
-    const oct = `キーボード基準: C${Math.floor(this.computerKeys.octaveBase / 12) - 1}（← →で変更）`;
-    el.innerHTML = `<span>${escapeHtml(midi)}</span><span>${escapeHtml(oct)}</span><span>Space: 再生/停止 ・ Ctrl+Z: 元に戻す ・ Alt+クリック: ノート削除</span>`;
+    const midi = this.midi?.connectedNames.length
+      ? t('status.midiConnected', { names: this.midi.connectedNames.join(', ') })
+      : t('status.midiDisconnected');
+    const oct = t('status.keyboardBase', { oct: Math.floor(this.computerKeys.octaveBase / 12) - 1 });
+    el.innerHTML = `<span>${escapeHtml(midi)}</span><span>${escapeHtml(oct)}</span><span>${escapeHtml(t('status.hints'))}</span>`;
   }
 
   private showHelp() {
     const content = document.createElement('div');
     content.className = 'help';
     content.innerHTML = `
-      <h3>基本操作</h3>
+      <h3>${t('help.basics.heading')}</h3>
       <ul>
-        <li><b>演奏</b>：画面下の鍵盤、PCキーボード（Z S X D C… / Q 2 W 3 E…）、MIDIキーボード。</li>
-        <li><b>オクターブ</b>：← → キー、または OCT ボタン。</li>
-        <li><b>打ち込み</b>：ピアノロールをクリックでノート追加。右端をドラッグで長さ変更、ドラッグで移動、Alt+クリックまたは右クリックで削除。</li>
-        <li><b>ベロシティ</b>：ピアノロール下部のレーンを上下ドラッグ。</li>
-        <li><b>パターン</b>：A〜D の 4 スロットを切り替えて別フレーズを作れます。</li>
-        <li><b>ソング</b>：「ソング構成」タブでシーンを並べ、トランスポートを「ソング」に切り替えて再生。</li>
+        <li>${t('help.basics.play')}</li>
+        <li>${t('help.basics.octave')}</li>
+        <li>${t('help.basics.input')}</li>
+        <li>${t('help.basics.velocity')}</li>
+        <li>${t('help.basics.pattern')}</li>
+        <li>${t('help.basics.song')}</li>
       </ul>
-      <h3>音づくり</h3>
+      <h3>${t('help.tone.heading')}</h3>
       <ul>
-        <li><b>OSC</b>：波形・オクターブ・デチューン。Super Saw は 7 基のノコギリ波を重ねた厚い音。</li>
-        <li><b>FILTER</b>：Ladder は独特の粘りがあるアナログ風、Clean SVF は素直な特性。</li>
-        <li><b>LFO</b>：テンポ同期に切り替えると BPM に追従します。</li>
-        <li><b>音色保存</b>：ブラウザ内に保存され、次回起動時も残ります。</li>
+        <li>${t('help.tone.osc')}</li>
+        <li>${t('help.tone.filter')}</li>
+        <li>${t('help.tone.lfo')}</li>
+        <li>${t('help.tone.save')}</li>
       </ul>
-      <h3>アナライザー</h3>
+      <h3>${t('help.analyzer.heading')}</h3>
       <ul>
-        <li>画面最上部にマスター出力を常時表示します。左のラベルをクリックすると
-          「波形＋スペクトラム → スペクトラム → 波形」の順に切り替わります（選択は記憶されます）。</li>
-        <li>右側は L / R のピークメーター。白い線はピークホールド、数値は dBFS です。
-          0.0 に近づくと赤くなるので、書き出し前の音量確認に使えます。</li>
+        <li>${t('help.analyzer.top')}</li>
+        <li>${t('help.analyzer.meter')}</li>
       </ul>
-      <h3>書き出し</h3>
+      <h3>${t('help.export.heading')}</h3>
       <ul>
-        <li><b>WAV書出</b>：オフラインレンダリングで高音質・音切れなしの WAV を生成。</li>
-        <li><b>MIDI書出</b>：他の DAW に読み込める標準MIDIファイル。</li>
-        <li><b>保存 / 読込</b>：曲データ（JSON）。作業内容はブラウザにも自動保存されます。</li>
+        <li>${t('help.export.wav')}</li>
+        <li>${t('help.export.midi')}</li>
+        <li>${t('help.export.save')}</li>
       </ul>
-      <h3>ライセンス</h3>
-      <p>音はすべてコード生成（サンプル音源不使用）。作った曲の権利は制作者であるあなたのものです。商用利用も自由です。</p>`;
+      <h3>${t('help.license.heading')}</h3>
+      <p>${t('help.license.text')}</p>`;
 
-    const reset = createButton('デモ曲を読み込み直す', () => {
-      if (window.confirm('現在の曲は失われます。よろしいですか？')) this.applySong(demoSong());
+    const reset = createButton(t('help.reloadDemo'), () => {
+      if (window.confirm(t('confirm.reloadDemo'))) this.applySong(demoSong());
     }, 'btn-sm');
-    openModal('使い方', content, [reset]);
+    openModal(t('help.title'), content, [reset]);
   }
 
   private startAnimationLoop() {

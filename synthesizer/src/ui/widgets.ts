@@ -2,6 +2,7 @@
  * Akatsuki Synth — 共通UIコンポーネント
  * ノブ・スイッチ・セレクト・モジュール枠など、ハードウェアシンセ風の部品群。
  */
+import { t } from './i18n';
 
 export interface KnobOptions {
   label: string;
@@ -266,7 +267,7 @@ export function openModal(title: string, content: HTMLElement, actions?: HTMLEle
   h.textContent = title;
   const close = document.createElement('button');
   close.className = 'modal-close';
-  close.setAttribute('aria-label', '閉じる');
+  close.setAttribute('aria-label', t('modal.close'));
   close.textContent = '×';
   head.append(h, close);
 

@@ -6,6 +6,7 @@
  */
 import { PATTERN_SLOTS, PIANO_ROLL_MAX, PIANO_ROLL_MIN, STEPS_PER_BAR, type Pattern, type SeqNote, type Track } from '../audio/Sequencer';
 import { toast } from './widgets';
+import { t } from './i18n';
 
 const KEY_W = 46;
 const RULER_H = 20;
@@ -60,7 +61,7 @@ export function createPianoRoll(container: HTMLElement, opts: PianoRollOptions):
     b.type = 'button';
     b.className = 'slot-btn';
     b.textContent = String.fromCharCode(65 + i);
-    b.title = `パターン ${String.fromCharCode(65 + i)}`;
+    b.title = t('roll.slotTitle', { letter: String.fromCharCode(65 + i) });
     b.addEventListener('click', () => {
       const track = opts.getTrack();
       if (!track) return;
@@ -78,7 +79,7 @@ export function createPianoRoll(container: HTMLElement, opts: PianoRollOptions):
   for (const len of [8, 16, 24, 32, 48, 64]) {
     const o = document.createElement('option');
     o.value = String(len);
-    o.textContent = `${len} steps (${(len / STEPS_PER_BAR).toFixed(len % STEPS_PER_BAR ? 2 : 0)}小節)`;
+    o.textContent = t('roll.lengthOption', { steps: len, bars: (len / STEPS_PER_BAR).toFixed(len % STEPS_PER_BAR ? 2 : 0) });
     lengthSel.appendChild(o);
   }
   lengthSel.addEventListener('change', () => {
@@ -90,24 +91,24 @@ export function createPianoRoll(container: HTMLElement, opts: PianoRollOptions):
     refresh();
     opts.onChange();
   });
-  toolbar.appendChild(labeled('長さ', lengthSel));
+  toolbar.appendChild(labeled(t('roll.length'), lengthSel));
 
   const noteLenSel = document.createElement('select');
   noteLenSel.className = 'field-select';
-  for (const [v, t] of [
-    ['1', '16分'],
-    ['2', '8分'],
-    ['4', '4分'],
-    ['8', '2分'],
-    ['16', '全音符'],
+  for (const [v, key] of [
+    ['1', 'notelen.16'],
+    ['2', 'notelen.8'],
+    ['4', 'notelen.4'],
+    ['8', 'notelen.2'],
+    ['16', 'notelen.whole'],
   ] as const) {
     const o = document.createElement('option');
     o.value = v;
-    o.textContent = t;
+    o.textContent = t(key);
     noteLenSel.appendChild(o);
   }
   noteLenSel.value = '1';
-  toolbar.appendChild(labeled('入力長', noteLenSel));
+  toolbar.appendChild(labeled(t('roll.inputLength'), noteLenSel));
 
   const velInput = document.createElement('input');
   velInput.type = 'range';
@@ -115,7 +116,7 @@ export function createPianoRoll(container: HTMLElement, opts: PianoRollOptions):
   velInput.max = '100';
   velInput.value = '90';
   velInput.className = 'roll-vel-input';
-  toolbar.appendChild(labeled('強さ', velInput));
+  toolbar.appendChild(labeled(t('roll.velocity'), velInput));
 
   const spacer = document.createElement('div');
   spacer.className = 'flex-spacer';
@@ -133,23 +134,23 @@ export function createPianoRoll(container: HTMLElement, opts: PianoRollOptions):
   };
 
   let clipboard: Pattern | null = null;
-  mkBtn('コピー', 'このパターンをコピー', () => {
+  mkBtn(t('roll.copy'), t('roll.copy.title'), () => {
     const track = opts.getTrack();
     if (!track) return;
     clipboard = JSON.parse(JSON.stringify(track.pattern));
-    toast('パターンをコピーしました');
+    toast(t('toast.patternCopied'));
   });
-  mkBtn('貼付', 'コピーしたパターンを貼り付け', () => {
+  mkBtn(t('roll.paste'), t('roll.paste.title'), () => {
     const track = opts.getTrack();
     if (!track || !clipboard) return;
     pushUndo();
     track.patterns[track.activePattern] = JSON.parse(JSON.stringify(clipboard));
     refresh();
     opts.onChange();
-    toast('パターンを貼り付けました');
+    toast(t('toast.patternPasted'));
   });
-  mkBtn('元に戻す', 'Ctrl+Z', () => undo());
-  mkBtn('クリア', 'このパターンのノートを全消去', () => {
+  mkBtn(t('roll.undo'), 'Ctrl+Z', () => undo());
+  mkBtn(t('roll.clear'), t('roll.clear.title'), () => {
     const track = opts.getTrack();
     if (!track) return;
     pushUndo();
@@ -157,8 +158,8 @@ export function createPianoRoll(container: HTMLElement, opts: PianoRollOptions):
     refresh();
     opts.onChange();
   });
-  mkBtn('−', '縮小', () => setRowH(rowH - 3));
-  mkBtn('＋', '拡大', () => setRowH(rowH + 3));
+  mkBtn('−', t('roll.zoomOut.title'), () => setRowH(rowH - 3));
+  mkBtn('＋', t('roll.zoomIn.title'), () => setRowH(rowH + 3));
 
   // ------------------------------------------------------------ canvas
   const canvasWrap = document.createElement('div');

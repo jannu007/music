@@ -4,6 +4,7 @@
 import type { Sequencer, Track } from '../audio/Sequencer';
 import { createKnob } from './widgets';
 import { createMeterRow } from './Visualizers';
+import { t } from './i18n';
 
 export interface MixerOptions {
   sequencer: Sequencer;
@@ -27,11 +28,11 @@ export function buildMixer(container: HTMLElement, opts: MixerOptions): MixerHan
 
     const head = document.createElement('div');
     head.className = 'mixer-head';
-    head.innerHTML = '<span>トラック</span>';
+    head.innerHTML = `<span>${t('mixer.track')}</span>`;
     const addBtn = document.createElement('button');
     addBtn.type = 'button';
     addBtn.className = 'btn btn-sm btn-accent';
-    addBtn.textContent = '＋ 追加';
+    addBtn.textContent = t('mixer.addTrack');
     addBtn.addEventListener('click', () => opts.onAddTrack());
     head.appendChild(addBtn);
     container.appendChild(head);
@@ -65,7 +66,7 @@ export function buildMixer(container: HTMLElement, opts: MixerOptions): MixerHan
       mute.type = 'button';
       mute.className = 'mini-btn' + (track.muted ? ' on' : '');
       mute.textContent = 'M';
-      mute.title = 'ミュート';
+      mute.title = t('mixer.mute.title');
       mute.addEventListener('click', () => {
         track.muted = !track.muted;
         if (track.muted) track.allNotesOff();
@@ -77,7 +78,7 @@ export function buildMixer(container: HTMLElement, opts: MixerOptions): MixerHan
       solo.type = 'button';
       solo.className = 'mini-btn solo' + (track.solo ? ' on' : '');
       solo.textContent = 'S';
-      solo.title = 'ソロ';
+      solo.title = t('mixer.solo.title');
       solo.addEventListener('click', () => {
         track.solo = !track.solo;
         solo.classList.toggle('on', track.solo);
@@ -89,10 +90,10 @@ export function buildMixer(container: HTMLElement, opts: MixerOptions): MixerHan
       del.type = 'button';
       del.className = 'mini-btn danger';
       del.textContent = '×';
-      del.title = 'トラックを削除';
+      del.title = t('mixer.delete.title');
       del.addEventListener('click', () => {
         if (opts.sequencer.tracks.length <= 1) return;
-        if (!window.confirm(`トラック「${track.name}」を削除しますか？`)) return;
+        if (!window.confirm(t('mixer.delete.confirm', { name: track.name }))) return;
         opts.sequencer.removeTrack(track.id);
         if (opts.getSelectedId() === track.id) opts.onSelect(opts.sequencer.tracks[0].id);
         refresh();

@@ -4,6 +4,7 @@
 import { CATEGORIES, PRESETS, clonePatch, loadUserPatches, saveUserPatches } from '../audio/presets';
 import type { Patch } from '../audio/types';
 import { toast } from './widgets';
+import { t } from './i18n';
 
 export interface PatchBrowserOptions {
   currentPatch: Patch;
@@ -23,7 +24,7 @@ export function buildPatchBrowser(container: HTMLElement, opts: PatchBrowserOpti
   const search = document.createElement('input');
   search.type = 'search';
   search.className = 'browser-search';
-  search.placeholder = '音色を検索…';
+  search.placeholder = t('patch.searchPlaceholder');
   search.addEventListener('input', () => {
     query = search.value.trim().toLowerCase();
     renderList();
@@ -32,9 +33,9 @@ export function buildPatchBrowser(container: HTMLElement, opts: PatchBrowserOpti
   const saveBtn = document.createElement('button');
   saveBtn.type = 'button';
   saveBtn.className = 'btn btn-accent';
-  saveBtn.textContent = '＋ 音色を保存';
+  saveBtn.textContent = t('patch.save');
   saveBtn.addEventListener('click', () => {
-    const name = window.prompt('音色名を入力してください', opts.currentPatch.name + ' Custom');
+    const name = window.prompt(t('patch.namePrompt'), opts.currentPatch.name + ' Custom');
     if (!name) return;
     const copy = clonePatch(opts.currentPatch);
     copy.id = `user_${Date.now().toString(36)}`;
@@ -45,7 +46,7 @@ export function buildPatchBrowser(container: HTMLElement, opts: PatchBrowserOpti
     opts.onRename(name);
     renderChips();
     renderList();
-    toast(`「${name}」を保存しました`);
+    toast(t('toast.patchSaved', { name }));
   });
 
   head.append(search, saveBtn);
@@ -95,7 +96,7 @@ export function buildPatchBrowser(container: HTMLElement, opts: PatchBrowserOpti
     if (filtered.length === 0) {
       const empty = document.createElement('p');
       empty.className = 'browser-empty';
-      empty.textContent = '該当する音色がありません';
+      empty.textContent = t('patch.empty');
       list.appendChild(empty);
       return;
     }
@@ -129,10 +130,10 @@ export function buildPatchBrowser(container: HTMLElement, opts: PatchBrowserOpti
           const del = document.createElement('span');
           del.className = 'patch-del';
           del.textContent = '×';
-          del.title = '削除';
+          del.title = t('patch.delete.title');
           del.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (!window.confirm(`「${p.name}」を削除しますか？`)) return;
+            if (!window.confirm(t('patch.delete.confirm', { name: p.name }))) return;
             userPatches = userPatches.filter((u) => u.id !== p.id);
             saveUserPatches(userPatches);
             renderChips();

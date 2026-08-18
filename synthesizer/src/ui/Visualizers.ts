@@ -3,6 +3,7 @@
  * オシロスコープ／スペクトラム／エンベロープ／フィルター特性のリアルタイム表示。
  */
 import type { Envelope, FilterParams } from '../audio/types';
+import { t } from './i18n';
 
 function fitCanvas(canvas: HTMLCanvasElement): CanvasRenderingContext2D | null {
   const ctx = canvas.getContext('2d');
@@ -321,7 +322,7 @@ export function createAnalyzerBar(engine: {
   const title = document.createElement('button');
   title.type = 'button';
   title.className = 'analyzer-mode';
-  title.title = '表示を切り替え';
+  title.title = t('analyzer.switchDisplay');
 
   const canvasWrap = document.createElement('div');
   canvasWrap.className = 'analyzer-canvas-wrap';
