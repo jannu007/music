@@ -116,13 +116,52 @@ function encodeWav16(left, right, sampleRate) {
   return buf;
 }
 
+/**
+ * 配信サイズ制限（1ファイル30MB）に収めるため、最終ミックスを 48kHz→24kHz に
+ * ダウンサンプルする。ウィンドウ付き sinc のローパス FIR でエイリアシングを
+ * 抑えてから間引く（単純な間引きだけだと折り返しノイズが乗る）。
+ */
+function makeLowpassKernel(taps, cutoffRatio) {
+  // cutoffRatio: 新しいナイキスト周波数 / 元のサンプルレート（例: 12000/48000=0.25）
+  const kernel = new Float32Array(taps);
+  const center = (taps - 1) / 2;
+  let sum = 0;
+  for (let i = 0; i < taps; i++) {
+    const x = i - center;
+    const sinc = x === 0 ? 2 * cutoffRatio : Math.sin(2 * Math.PI * cutoffRatio * x) / (Math.PI * x);
+    // Hann window
+    const w = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (taps - 1));
+    kernel[i] = sinc * w;
+    sum += kernel[i];
+  }
+  for (let i = 0; i < taps; i++) kernel[i] /= sum; // DCゲインを1に正規化
+  return kernel;
+}
+
+function downsampleBy2(input, kernel) {
+  const taps = kernel.length;
+  const half = (taps - 1) / 2;
+  const outLen = Math.floor(input.length / 2);
+  const out = new Float32Array(outLen);
+  for (let o = 0; o < outLen; o++) {
+    const center = o * 2;
+    let acc = 0;
+    for (let k = 0; k < taps; k++) {
+      const idx = center + (k - half);
+      if (idx >= 0 && idx < input.length) acc += input[idx] * kernel[k];
+    }
+    out[o] = acc;
+  }
+  return out;
+}
+
 function equalPowerPan(pan) {
   // pan: -1(左) .. 0(中央) .. +1(右)
   const angle = ((pan + 1) * Math.PI) / 4; // 0..pi/2
   return { l: Math.cos(angle), r: Math.sin(angle) };
 }
 
-function analyze(left, right) {
+function analyze(left, right, sampleRate) {
   let peak = 0;
   let sumSq = 0;
   let dcL = 0;
@@ -146,7 +185,7 @@ function analyze(left, right) {
     rms: Math.sqrt(sumSq / Math.max(1, n * 2)),
     dc: (Math.abs(dcL) + Math.abs(dcR)) / Math.max(1, n * 2),
     nan,
-    seconds: n / 48000,
+    seconds: n / sampleRate,
   };
 }
 
@@ -200,13 +239,19 @@ async function mixTrack(id) {
     }
   }
 
-  const wav = encodeWav16(outL, outR, sampleRate);
+  // 配信サイズを1ファイル30MB制限内に収めるため 48kHz -> 24kHz にダウンサンプル
+  const lpKernel = makeLowpassKernel(31, 0.25); // 24kHz出力のナイキスト(12kHz)/48kHz = 0.25
+  const dsL = downsampleBy2(outL, lpKernel);
+  const dsR = downsampleBy2(outR, lpKernel);
+  const outSampleRate = sampleRate / 2;
+
+  const wav = encodeWav16(dsL, dsR, outSampleRate);
   await mkdir(OUT_DIR, { recursive: true });
   const outPath = resolve(OUT_DIR, `${id}.wav`);
   await writeFile(outPath, wav);
 
-  const stats = analyze(outL, outR);
-  return { id, outPath, sampleRate, limited: peak > 0.98, prelimitPeak: peak, ...stats };
+  const stats = analyze(dsL, dsR, outSampleRate);
+  return { id, outPath, sampleRate: outSampleRate, limited: peak > 0.98, prelimitPeak: peak, ...stats };
 }
 
 async function main() {
