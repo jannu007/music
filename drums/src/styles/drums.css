@@ -4,15 +4,15 @@
 
 :root {
   /* --- 宇宙空間 ------------------------------------------------------- */
-  --void: #05070f;
-  --ink: #05070f;
+  --void: #07040f;
+  --ink: #07040f;
   --ink-2: rgba(10, 16, 32, 0.5);
   --panel: rgba(16, 26, 50, 0.62);
   --panel-2: rgba(26, 40, 72, 0.7);
 
   /* 星明かりの縁取り */
-  --line: rgba(120, 200, 230, 0.2);
-  --line-strong: rgba(150, 220, 245, 0.36);
+  --line: rgba(178, 142, 255, 0.22);
+  --line-strong: rgba(198, 164, 255, 0.4);
 
   /* --- 星・惑星の色 --------------------------------------------------- */
   --amber: #ffa63c;      /* 橙の惑星 */
@@ -28,8 +28,8 @@
   --screen-2: rgba(4, 7, 18, 0.94);
 
   /* --- 文字 ----------------------------------------------------------- */
-  --text: #eaf3ff;
-  --text-dim: #97aecb;
+  --text: #f2ecff;
+  --text-dim: #bcaae2;
 
   --head-w: 132px;
   --cell: 34px;
@@ -98,20 +98,12 @@ html, body {
   height: 100dvh;
   min-height: 100%;
   background-image: var(--stars-near), var(--stars-mid), var(--stars-far),
-    /* 青い惑星（右上）と橙の惑星（左下）。縁を光らせて球体に見せる */
-    radial-gradient(circle 132px at 84% 20%, rgba(150, 210, 255, 0.5) 0 40%,
-      rgba(46, 108, 190, 0.42) 62%, rgba(10, 26, 56, 0.3) 88%, transparent 100%),
-    radial-gradient(circle 86px at 13% 76%, rgba(255, 196, 130, 0.44) 0 42%,
-      rgba(200, 108, 34, 0.34) 66%, rgba(60, 26, 8, 0.22) 90%, transparent 100%),
-    /* 銀河のコアとその腕 */
-    radial-gradient(58% 30% at 50% 46%, rgba(140, 255, 240, 0.42), transparent 62%),
-    radial-gradient(40% 22% at 50% 46%, rgba(255, 255, 255, 0.3), transparent 64%),
-    radial-gradient(70% 46% at 44% 50%, rgba(87, 226, 213, 0.34), transparent 70%),
-    radial-gradient(60% 50% at 72% 34%, rgba(106, 168, 255, 0.4), transparent 70%),
-    radial-gradient(52% 44% at 22% 24%, rgba(255, 140, 60, 0.3), transparent 70%),
-    radial-gradient(64% 56% at 10% 80%, rgba(140, 110, 255, 0.4), transparent 72%),
-    radial-gradient(56% 48% at 92% 88%, rgba(87, 226, 213, 0.3), transparent 72%),
-    linear-gradient(180deg, #0a1430 0%, #070e22 46%, #03060f 100%);
+    radial-gradient(62% 50% at 16% 12%, rgba(236, 92, 200, 0.5), transparent 66%),
+    radial-gradient(56% 48% at 80% 22%, rgba(96, 132, 255, 0.48), transparent 68%),
+    radial-gradient(52% 46% at 60% 74%, rgba(120, 96, 255, 0.42), transparent 68%),
+    radial-gradient(46% 42% at 6% 84%, rgba(87, 226, 213, 0.3), transparent 66%),
+    radial-gradient(38% 34% at 92% 88%, rgba(255, 140, 60, 0.22), transparent 66%),
+    linear-gradient(180deg, #150a2e 0%, #0e0722 46%, #07040f 100%);
   background-size: 340px 340px, 340px 340px, 340px 340px, 340px 340px,
     340px 340px, 340px 340px, 340px 340px, 240px 240px,
     240px 240px, 240px 240px, 240px 240px, 240px 240px,
@@ -121,9 +113,7 @@ html, body {
     170px 170px, 170px 170px, 170px 170px, 170px 170px,
     170px 170px, 170px 170px, 170px 170px, 170px 170px,
     170px 170px, 170px 170px, 100% 100%, 100% 100%,
-    100% 100%, 100% 100%, 100% 100%, 100% 100%,
-    100% 100%, 100% 100%, 100% 100%, 100% 100%,
-    100% 100%, 100% 100%;
+    100% 100%, 100% 100%, 100% 100%, 100% 100%;
   background-attachment: fixed;
 }
 
@@ -146,8 +136,8 @@ html, body {
   padding: 0.5rem 0.9rem;
   padding-top: max(0.5rem, env(safe-area-inset-top));
   border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(12, 20, 42, 0.26), rgba(6, 11, 26, 0.32));
-  backdrop-filter: blur(7px);
+  background: linear-gradient(180deg, rgba(30, 18, 58, 0.46), rgba(14, 8, 32, 0.54));
+  backdrop-filter: blur(9px);
   flex: none;
 }
 
@@ -275,8 +265,8 @@ html, body {
   gap: 0.5rem;
   padding: 0.5rem 0.9rem;
   border-bottom: 1px solid var(--line);
-  background: rgba(8, 14, 30, 0.2);
-  backdrop-filter: blur(7px);
+  background: rgba(14, 8, 32, 0.44);
+  backdrop-filter: blur(9px);
   flex: none;
   overflow-x: auto;
   scrollbar-width: thin;
@@ -452,10 +442,11 @@ html, body {
   flex: 1;
   min-width: 0;
   display: flex;
-  background: linear-gradient(180deg, rgba(14, 24, 48, 0.16), rgba(6, 11, 26, 0.22));
+  background: linear-gradient(180deg, rgba(40, 24, 76, 0.58), rgba(16, 9, 36, 0.66));
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   overflow: hidden;
 }
 
@@ -473,8 +464,8 @@ html, body {
   position: sticky;
   top: 0;
   z-index: 3;
-  background: linear-gradient(180deg, rgba(10, 18, 38, 0.62), rgba(10, 18, 38, 0.42));
-  backdrop-filter: blur(6px);
+  background: linear-gradient(180deg, rgba(24, 14, 48, 0.92), rgba(24, 14, 48, 0.82));
+  backdrop-filter: blur(8px);
 }
 
 .track-head {
@@ -487,11 +478,11 @@ html, body {
   align-items: center;
   gap: 0.3rem;
   padding: 0 0.35rem 0 0.1rem;
-  background: linear-gradient(90deg, rgba(10, 18, 38, 0.6) 78%, rgba(10, 18, 38, 0.34));
-  backdrop-filter: blur(6px);
+  background: linear-gradient(90deg, rgba(24, 14, 48, 0.9) 78%, rgba(20, 12, 42, 0.74));
+  backdrop-filter: blur(8px);
 }
 
-.ruler-head { background: rgba(10, 18, 38, 0.62); }
+.ruler-head { background: rgba(24, 14, 48, 0.92); }
 .ruler-title { font-size: 0.6rem; color: var(--text-dim); letter-spacing: 0.16em; padding-left: 0.35rem; }
 
 .track-name {
@@ -592,8 +583,8 @@ html, body {
   height: var(--cell);
   flex: none;
   border-radius: 8px;
-  border: 1px solid rgba(150, 200, 235, 0.22);
-  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(190, 170, 255, 0.24);
+  background: rgba(255, 255, 255, 0.07);
   cursor: pointer;
   padding: 0;
   position: relative;
@@ -601,7 +592,7 @@ html, body {
   transition: background 0.08s linear, box-shadow 0.08s linear, border-color 0.08s linear;
 }
 
-.step-cell.beat { background: rgba(255, 255, 255, 0.06); border-color: rgba(150, 200, 235, 0.34); }
+.step-cell.beat { background: rgba(255, 255, 255, 0.13); border-color: rgba(200, 180, 255, 0.34); }
 .step-cell:hover { border-color: var(--line-strong); }
 
 .step-cell.on {
@@ -653,8 +644,8 @@ html, body {
 .panel {
   flex: none;
   border-top: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(12, 20, 42, 0.3), rgba(5, 9, 22, 0.42));
-  backdrop-filter: blur(8px);
+  background: linear-gradient(180deg, rgba(26, 16, 50, 0.56), rgba(10, 6, 24, 0.64));
+  backdrop-filter: blur(10px);
   max-height: 47vh;
   display: flex;
   flex-direction: column;
@@ -900,8 +891,8 @@ html, body {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.45rem 0.55rem;
-  background: rgba(16, 26, 50, 0.3);
-  backdrop-filter: blur(6px);
+  background: rgba(30, 18, 58, 0.52);
+  backdrop-filter: blur(8px);
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
@@ -934,8 +925,8 @@ html, body {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.3rem 0.45rem;
-  background: rgba(16, 26, 50, 0.3);
-  backdrop-filter: blur(6px);
+  background: rgba(30, 18, 58, 0.52);
+  backdrop-filter: blur(8px);
 }
 
 .song-index { font-size: 0.7rem; color: var(--text-dim); width: 1.4rem; flex: none; }
@@ -969,8 +960,8 @@ html, body {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.5rem 0.6rem;
-  background: rgba(16, 26, 50, 0.3);
-  backdrop-filter: blur(6px);
+  background: rgba(30, 18, 58, 0.52);
+  backdrop-filter: blur(8px);
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
