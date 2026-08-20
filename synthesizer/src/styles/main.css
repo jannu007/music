@@ -1,46 +1,46 @@
 /* =========================================================================
-   Micro Sakura Studio — コズミック（青い星雲）テーマ
+   Micro Sakura Studio — コズミック（星雲）テーマ
    深宇宙の星雲を背景に、半透明のガラス板が浮かんでいるイメージ。
    星は CSS のグラデーションだけで描いているので画像素材は不要。
    ========================================================================= */
 :root {
   /* --- 宇宙空間 ------------------------------------------------------- */
-  --bg: #04080f;
-  --bg-2: rgba(12, 21, 40, 0.86);
-  --panel: rgba(17, 31, 59, 0.92);
-  --panel-2: rgba(23, 42, 79, 0.93);
-  --panel-3: rgba(30, 55, 104, 0.94);
+  --bg: #07040f;
+  --bg-2: rgba(19, 12, 40, 0.86);
+  --panel: rgba(30, 18, 58, 0.92);
+  --panel-2: rgba(41, 26, 76, 0.93);
+  --panel-3: rgba(56, 36, 98, 0.94);
 
   /* 星明かりの縁取り */
-  --line: rgba(156, 211, 255, 0.34);
-  --line-2: rgba(186, 223, 255, 0.6);
-  --grid: rgba(160, 213, 255, 0.12);
+  --line: rgba(186, 156, 255, 0.34);
+  --line-2: rgba(212, 186, 255, 0.6);
+  --grid: rgba(190, 160, 255, 0.12);
 
   /* --- 文字 ----------------------------------------------------------- */
-  --text: #f4faff;
-  --text-dim: #bcd5e8;
-  --text-mute: #94b0c6;
+  --text: #f7f4ff;
+  --text-dim: #c9bce8;
+  --text-mute: #a294c6;
 
-  /* --- 星の色（アクセント。青を基調に、金色だけ暖色で残す） ---------- */
-  --accent: #4f9dff;    /* 星雲の青 */
-  --accent-2: #7fe6ff;  /* 青白い星 */
+  /* --- 星の色（アクセント） ------------------------------------------ */
+  --accent: #ff77d9;    /* 星雲のマゼンタ */
+  --accent-2: #7fd4ff;  /* 青白い星 */
   --accent-3: #ffd479;  /* 金色の星 */
   --danger: #ff6f8b;
   --ok: #7ff0c4;
 
   /* --- 深宇宙の窓（LCD相当） ------------------------------------------ */
-  --screen: rgba(6, 12, 24, 0.96);
-  --screen-2: rgba(3, 7, 16, 0.98);
+  --screen: rgba(10, 6, 24, 0.96);
+  --screen-2: rgba(6, 3, 16, 0.98);
 
-  --roll-bg: #060c19;
-  --roll-bg-alt: #0a1222;
-  --roll-line: rgba(160, 213, 255, 0.07);
-  --roll-line-strong: rgba(185, 223, 255, 0.22);
-  --roll-chrome: #0e1930;
+  --roll-bg: #0a0619;
+  --roll-bg-alt: #0f0a22;
+  --roll-line: rgba(190, 160, 255, 0.07);
+  --roll-line-strong: rgba(210, 185, 255, 0.22);
+  --roll-chrome: #17102e;
 
   --radius: 12px;
   --shadow: 0 14px 44px rgba(0, 0, 0, 0.66);
-  --glow: 0 0 22px rgba(119, 149, 255, 0.28);
+  --glow: 0 0 22px rgba(255, 119, 217, 0.28);
   --font: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
   --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
@@ -51,13 +51,13 @@
     radial-gradient(circle at 28px 97px, rgba(255,255,255,0.95) 0 0.8px, transparent 1.4px),
     radial-gradient(circle at 133px 58px, rgba(255,236,200,0.9) 0 0.6px, transparent 1.2px),
     radial-gradient(circle at 115px 111px, rgba(255,255,255,0.95) 0 0.6px, transparent 1.2px),
-    radial-gradient(circle at 27px 145px, rgba(208, 218, 255,0.85) 0 0.8px, transparent 1.4px),
+    radial-gradient(circle at 27px 145px, rgba(255,208,240,0.85) 0 0.8px, transparent 1.4px),
     radial-gradient(circle at 148px 35px, rgba(255,255,255,0.95) 0 1.0px, transparent 1.6px),
     radial-gradient(circle at 165px 164px, rgba(200,226,255,0.9) 0 0.8px, transparent 1.4px),
     radial-gradient(circle at 19px 151px, rgba(255,255,255,0.95) 0 0.8px, transparent 1.4px),
     radial-gradient(circle at 16px 60px, rgba(255,236,200,0.9) 0 0.6px, transparent 1.2px),
     radial-gradient(circle at 38px 78px, rgba(255,255,255,0.95) 0 0.8px, transparent 1.4px),
-    radial-gradient(circle at 142px 34px, rgba(208, 218, 255,0.85) 0 0.8px, transparent 1.4px),
+    radial-gradient(circle at 142px 34px, rgba(255,208,240,0.85) 0 0.8px, transparent 1.4px),
     radial-gradient(circle at 147px 50px, rgba(255,255,255,0.95) 0 0.6px, transparent 1.2px),
     radial-gradient(circle at 150px 52px, rgba(200,226,255,0.9) 0 0.7px, transparent 1.2999999999999998px),
     radial-gradient(circle at 144px 20px, rgba(255,255,255,0.95) 0 0.8px, transparent 1.4px),
@@ -67,12 +67,12 @@
     radial-gradient(circle at 123px 153px, rgba(200,226,255,0.9) 0 1.5px, transparent 2.1px),
     radial-gradient(circle at 96px 80px, rgba(255,236,200,0.9) 0 1.1px, transparent 1.7000000000000002px),
     radial-gradient(circle at 50px 182px, rgba(255,255,255,0.95) 0 1.4px, transparent 2.0px),
-    radial-gradient(circle at 24px 151px, rgba(208, 218, 255,0.85) 0 1.2px, transparent 1.7999999999999998px),
+    radial-gradient(circle at 24px 151px, rgba(255,208,240,0.85) 0 1.2px, transparent 1.7999999999999998px),
     radial-gradient(circle at 130px 228px, rgba(255,255,255,0.95) 0 1.2px, transparent 1.7999999999999998px),
     radial-gradient(circle at 118px 77px, rgba(200,226,255,0.9) 0 1.3px, transparent 1.9px),
     radial-gradient(circle at 22px 34px, rgba(255,236,200,0.9) 0 1.3px, transparent 1.9px),
     radial-gradient(circle at 46px 197px, rgba(255,255,255,0.95) 0 1.2px, transparent 1.7999999999999998px),
-    radial-gradient(circle at 129px 111px, rgba(208, 218, 255,0.85) 0 1.0px, transparent 1.6px),
+    radial-gradient(circle at 129px 111px, rgba(255,208,240,0.85) 0 1.0px, transparent 1.6px),
     radial-gradient(circle at 175px 23px, rgba(255,255,255,0.95) 0 1.4px, transparent 2.0px);
   --stars-near:
     radial-gradient(circle at 297px 164px, rgba(255,255,255,0.95) 0 1.9px, transparent 2.5px),
@@ -103,12 +103,12 @@ body {
 /* 星雲の雲＋3層の星野を重ねて深宇宙を作る */
 body {
   background-image: var(--stars-near), var(--stars-mid), var(--stars-far),
-    radial-gradient(62% 50% at 16% 12%, rgba(64, 120, 255, 0.66), transparent 66%),
-    radial-gradient(56% 48% at 80% 22%, rgba(46, 190, 255, 0.54), transparent 68%),
-    radial-gradient(52% 46% at 60% 74%, rgba(58, 92, 226, 0.58), transparent 68%),
-    radial-gradient(46% 42% at 6% 84%, rgba(120, 96, 255, 0.44), transparent 66%),
-    radial-gradient(38% 34% at 92% 88%, rgba(60, 210, 226, 0.36), transparent 66%),
-    linear-gradient(180deg, #0b2250 0%, #071634 46%, #030b1c 100%);
+    radial-gradient(62% 50% at 16% 12%, rgba(236, 92, 200, 0.62), transparent 66%),
+    radial-gradient(56% 48% at 80% 22%, rgba(96, 132, 255, 0.58), transparent 68%),
+    radial-gradient(52% 46% at 60% 74%, rgba(186, 84, 236, 0.5), transparent 68%),
+    radial-gradient(46% 42% at 6% 84%, rgba(255, 128, 176, 0.44), transparent 66%),
+    radial-gradient(38% 34% at 92% 88%, rgba(120, 96, 255, 0.4), transparent 66%),
+    linear-gradient(180deg, #1a0b33 0%, #12082a 46%, #0a0518 100%);
   background-size: 340px 340px, 340px 340px, 340px 340px, 340px 340px,
     340px 340px, 340px 340px, 340px 340px, 240px 240px,
     240px 240px, 240px 240px, 240px 240px, 240px 240px,
@@ -149,13 +149,13 @@ select {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(116, 169, 214, 0.55);
+  background: rgba(150, 116, 214, 0.55);
   border-radius: 6px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(160, 211, 255, 0.75);
+  background: rgba(196, 160, 255, 0.75);
   background-clip: content-box;
 }
 
@@ -175,7 +175,7 @@ select {
   align-items: stretch;
   gap: 10px;
   padding: 6px 12px;
-  background: linear-gradient(180deg, rgba(10, 19, 38, 0.9), rgba(5, 11, 24, 0.93));
+  background: linear-gradient(180deg, rgba(17, 10, 38, 0.9), rgba(10, 5, 24, 0.93));
   border-bottom: 1px solid var(--line);
   height: 84px;
   flex: 0 0 auto;
@@ -184,7 +184,7 @@ select {
   flex: 0 0 auto;
   width: 92px;
   align-self: center;
-  background: rgba(35, 64, 122, 0.72);
+  background: rgba(66, 47, 110, 0.72);
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text-mute);
@@ -209,7 +209,7 @@ select {
   background: var(--screen-2);
   border: 1px solid var(--line);
   border-radius: 10px;
-  box-shadow: inset 0 0 30px rgba(80, 146, 200, 0.16);
+  box-shadow: inset 0 0 30px rgba(120, 80, 200, 0.16);
   overflow: hidden;
 }
 .analyzer-canvas-wrap canvas {
@@ -285,7 +285,7 @@ select {
   align-items: center;
   gap: 14px;
   padding: 8px 12px;
-  background: linear-gradient(180deg, rgba(19, 34, 64, 0.9), rgba(10, 19, 38, 0.93));
+  background: linear-gradient(180deg, rgba(33, 20, 63, 0.9), rgba(17, 10, 38, 0.93));
   border-bottom: 1px solid var(--line);
   flex-wrap: wrap;
 }
@@ -296,7 +296,7 @@ select {
   height: 26px;
   border-radius: 50%;
   background: conic-gradient(from 200deg, var(--accent), var(--accent-2), var(--accent-3), var(--accent));
-  box-shadow: 0 0 18px rgba(119, 149, 255, 0.55), 0 0 34px rgba(127, 212, 255, 0.28);
+  box-shadow: 0 0 18px rgba(255, 119, 217, 0.55), 0 0 34px rgba(127, 212, 255, 0.28);
   position: relative;
 }
 .brand-mark::after {
@@ -304,7 +304,7 @@ select {
   position: absolute;
   inset: 7px;
   border-radius: 50%;
-  background: radial-gradient(circle at 36% 30%, #172a51, #050b18);
+  background: radial-gradient(circle at 36% 30%, #2a1a4e, #0a0518);
 }
 .brand {
   display: flex;
@@ -353,7 +353,7 @@ select {
 
 /* buttons ------------------------------------------------------------ */
 .btn {
-  background: linear-gradient(180deg, rgba(41, 75, 143, 0.8), rgba(27, 49, 93, 0.8));
+  background: linear-gradient(180deg, rgba(78, 56, 128, 0.8), rgba(48, 32, 88, 0.8));
   border: 1px solid var(--line);
   color: var(--text);
   border-radius: 9px;
@@ -363,8 +363,8 @@ select {
   white-space: nowrap;
 }
 .btn:hover {
-  border-color: rgba(119, 149, 255, 0.55);
-  box-shadow: 0 0 16px rgba(119, 149, 255, 0.22);
+  border-color: rgba(255, 119, 217, 0.55);
+  box-shadow: 0 0 16px rgba(255, 119, 217, 0.22);
 }
 .btn:active {
   transform: translateY(1px);
@@ -382,18 +382,18 @@ select {
   text-align: center;
 }
 .btn-accent {
-  background: linear-gradient(180deg, #9bb1ff, #4f6ed9);
-  color: #0a152a;
+  background: linear-gradient(180deg, #ff9be3, #d94fb4);
+  color: #2a0a20;
   border-color: transparent;
   font-weight: 700;
-  box-shadow: 0 0 20px rgba(119, 149, 255, 0.45);
+  box-shadow: 0 0 20px rgba(255, 119, 217, 0.45);
 }
 /* 点灯＝星が灯るイメージ */
 .btn.on {
   border-color: var(--accent);
   color: #fff;
-  box-shadow: inset 0 0 14px rgba(119, 149, 255, 0.28), 0 0 18px rgba(119, 149, 255, 0.4);
-  text-shadow: 0 0 10px rgba(119, 149, 255, 0.8);
+  box-shadow: inset 0 0 14px rgba(255, 119, 217, 0.28), 0 0 18px rgba(255, 119, 217, 0.4);
+  text-shadow: 0 0 10px rgba(255, 119, 217, 0.8);
 }
 .btn-transport {
   width: 40px;
@@ -429,7 +429,7 @@ select {
   overflow: hidden;
 }
 .seg-btn {
-  background: rgba(32, 57, 109, 0.75);
+  background: rgba(58, 40, 100, 0.75);
   border: none;
   padding: 8px 12px;
   font-size: 12px;
@@ -437,13 +437,13 @@ select {
   color: var(--text-dim);
 }
 .seg-btn.on {
-  background: linear-gradient(180deg, rgba(119, 149, 255, 0.34), rgba(127, 212, 255, 0.18));
+  background: linear-gradient(180deg, rgba(255, 119, 217, 0.34), rgba(127, 212, 255, 0.18));
   color: #fff;
-  text-shadow: 0 0 10px rgba(119, 149, 255, 0.7);
+  text-shadow: 0 0 10px rgba(255, 119, 217, 0.7);
 }
 
 .mini-btn {
-  background: rgba(38, 69, 132, 0.75);
+  background: rgba(72, 52, 118, 0.75);
   border: 1px solid var(--line);
   color: var(--text-dim);
   width: 24px;
@@ -458,11 +458,11 @@ select {
   border-color: var(--line-2);
 }
 .mini-btn.on {
-  background: linear-gradient(180deg, var(--accent), #4f6ed9);
-  color: #0a152a;
+  background: linear-gradient(180deg, var(--accent), #d94fb4);
+  color: #2a0a20;
   border-color: transparent;
   font-weight: 700;
-  box-shadow: 0 0 12px rgba(119, 149, 255, 0.55);
+  box-shadow: 0 0 12px rgba(255, 119, 217, 0.55);
 }
 .mini-btn.solo.on {
   background: linear-gradient(180deg, var(--accent-3), #e0a53c);
@@ -503,7 +503,7 @@ select {
 }
 .knob-track {
   fill: none;
-  stroke: rgba(160, 213, 255, 0.16);
+  stroke: rgba(190, 160, 255, 0.16);
   stroke-width: 3.5;
   stroke-linecap: round;
 }
@@ -513,15 +513,15 @@ select {
   stroke: var(--accent);
   stroke-width: 3.5;
   stroke-linecap: round;
-  filter: drop-shadow(0 0 6px rgba(119, 149, 255, 0.85));
+  filter: drop-shadow(0 0 6px rgba(255, 119, 217, 0.85));
 }
 .knob-cap {
   fill: url(#knobMetal);
-  stroke: rgba(164, 213, 255, 0.4);
+  stroke: rgba(198, 164, 255, 0.4);
   stroke-width: 1;
 }
 .knob-pointer {
-  stroke: #eff7ff;
+  stroke: #f6efff;
   stroke-width: 2;
   stroke-linecap: round;
 }
@@ -572,21 +572,21 @@ select {
   color: var(--text);
 }
 .field-select option {
-  background: #0c172c;
+  background: #140c2c;
   color: var(--text);
 }
 .field-select:focus,
 .field-input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 14px rgba(119, 149, 255, 0.3);
+  box-shadow: 0 0 14px rgba(255, 119, 217, 0.3);
 }
 
 .switch {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background: rgba(38, 69, 132, 0.75);
+  background: rgba(72, 52, 118, 0.75);
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 7px 11px;
@@ -598,12 +598,12 @@ select {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: rgba(160, 213, 255, 0.25);
+  background: rgba(190, 160, 255, 0.25);
   transition: background 0.15s, box-shadow 0.15s;
 }
 .switch.on {
   color: var(--text);
-  border-color: rgba(119, 149, 255, 0.5);
+  border-color: rgba(255, 119, 217, 0.5);
 }
 .switch.on .switch-led {
   background: var(--accent);
@@ -638,7 +638,7 @@ select {
   text-transform: uppercase;
   position: sticky;
   top: 0;
-  background: linear-gradient(180deg, rgba(10, 19, 38, 0.97), rgba(10, 19, 38, 0.94));
+  background: linear-gradient(180deg, rgba(17, 10, 38, 0.97), rgba(17, 10, 38, 0.94));
   border-bottom: 1px solid var(--line);
   z-index: 2;
 }
@@ -664,8 +664,8 @@ select {
 }
 .track-row.selected {
   border-color: var(--accent);
-  background: linear-gradient(180deg, rgba(119, 149, 255, 0.16), var(--panel));
-  box-shadow: 0 0 20px rgba(119, 149, 255, 0.24);
+  background: linear-gradient(180deg, rgba(255, 119, 217, 0.16), var(--panel));
+  box-shadow: 0 0 20px rgba(255, 119, 217, 0.24);
 }
 .track-top {
   display: flex;
@@ -769,7 +769,7 @@ select {
   background: var(--panel);
   border-color: var(--line);
   color: var(--text);
-  box-shadow: inset 0 2px 0 var(--accent), 0 0 18px rgba(119, 149, 255, 0.2);
+  box-shadow: inset 0 2px 0 var(--accent), 0 0 18px rgba(255, 119, 217, 0.2);
 }
 
 /* 曲名表示は星空をのぞく窓 */
@@ -779,7 +779,7 @@ select {
   gap: 12px;
   margin: 8px;
   padding: 8px 14px;
-  background: linear-gradient(180deg, rgba(10, 20, 40, 0.9), rgba(4, 9, 20, 0.94));
+  background: linear-gradient(180deg, rgba(18, 10, 40, 0.9), rgba(8, 4, 20, 0.94));
   border: 1px solid rgba(127, 212, 255, 0.26);
   border-radius: 10px;
   font-family: var(--mono);
@@ -818,7 +818,7 @@ select {
 
 /* 各モジュール＝宇宙に浮かぶガラス板 */
 .module {
-  background: linear-gradient(180deg, rgba(23, 42, 80, 0.93), rgba(12, 23, 44, 0.95));
+  background: linear-gradient(180deg, rgba(41, 25, 78, 0.93), rgba(20, 12, 44, 0.95));
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
@@ -829,7 +829,7 @@ select {
   letter-spacing: 0.16em;
   color: var(--text-dim);
   padding: 7px 10px;
-  background: linear-gradient(90deg, rgba(119, 149, 255, 0.14), rgba(127, 212, 255, 0.08));
+  background: linear-gradient(90deg, rgba(255, 119, 217, 0.14), rgba(127, 212, 255, 0.08));
   border-bottom: 1px solid var(--line);
   text-transform: uppercase;
 }
@@ -866,7 +866,7 @@ select {
   background: var(--screen-2);
   border: 1px solid var(--line);
   border-radius: 10px;
-  box-shadow: inset 0 0 26px rgba(80, 146, 200, 0.16);
+  box-shadow: inset 0 0 26px rgba(120, 80, 200, 0.16);
   margin-bottom: 8px;
   overflow: hidden;
 }
@@ -912,7 +912,7 @@ select {
 .browser-search:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 14px rgba(119, 149, 255, 0.28);
+  box-shadow: 0 0 14px rgba(255, 119, 217, 0.28);
 }
 .browser-chips {
   display: flex;
@@ -924,7 +924,7 @@ select {
   scrollbar-width: thin;
 }
 .chip {
-  background: rgba(35, 64, 122, 0.75);
+  background: rgba(66, 47, 110, 0.75);
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 4px 11px;
@@ -934,11 +934,11 @@ select {
   white-space: nowrap;
 }
 .chip.on {
-  background: linear-gradient(180deg, var(--accent), #4f6ed9);
-  color: #0a152a;
+  background: linear-gradient(180deg, var(--accent), #d94fb4);
+  color: #2a0a20;
   border-color: transparent;
   font-weight: 700;
-  box-shadow: 0 0 14px rgba(119, 149, 255, 0.5);
+  box-shadow: 0 0 14px rgba(255, 119, 217, 0.5);
 }
 .browser-list {
   overflow: auto;
@@ -978,10 +978,10 @@ select {
   color: var(--text);
 }
 .patch-btn.active {
-  background: linear-gradient(180deg, rgba(119, 149, 255, 0.28), rgba(127, 212, 255, 0.12));
+  background: linear-gradient(180deg, rgba(255, 119, 217, 0.28), rgba(127, 212, 255, 0.12));
   border-color: var(--accent);
   color: #fff;
-  box-shadow: 0 0 16px rgba(119, 149, 255, 0.3);
+  box-shadow: 0 0 16px rgba(255, 119, 217, 0.3);
 }
 .patch-del {
   color: var(--text-mute);
@@ -1032,7 +1032,7 @@ select {
   height: 27px;
   border-radius: 7px;
   border: 1px solid var(--line);
-  background: rgba(38, 69, 132, 0.75);
+  background: rgba(72, 52, 118, 0.75);
   color: var(--text-dim);
   cursor: pointer;
   font-weight: 700;
@@ -1051,10 +1051,10 @@ select {
   box-shadow: 0 0 6px var(--accent-2);
 }
 .slot-btn.on {
-  background: linear-gradient(180deg, var(--accent), #4f6ed9);
-  color: #0a152a;
+  background: linear-gradient(180deg, var(--accent), #d94fb4);
+  color: #2a0a20;
   border-color: transparent;
-  box-shadow: 0 0 14px rgba(119, 149, 255, 0.5);
+  box-shadow: 0 0 14px rgba(255, 119, 217, 0.5);
 }
 .roll-vel-input {
   width: 84px;
@@ -1076,7 +1076,7 @@ select {
   gap: 10px;
   padding: 8px;
   border-top: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(17, 30, 57, 0.9), rgba(8, 15, 30, 0.93));
+  background: linear-gradient(180deg, rgba(29, 18, 56, 0.9), rgba(13, 8, 30, 0.93));
 }
 .wheels {
   display: flex;
@@ -1092,7 +1092,7 @@ select {
 .wheel {
   width: 26px;
   height: 84px;
-  background: linear-gradient(90deg, #050b18, #132343, #050b18);
+  background: linear-gradient(90deg, #0a0518, #241442, #0a0518);
   border: 1px solid var(--line);
   border-radius: 8px;
   position: relative;
@@ -1106,9 +1106,9 @@ select {
   height: 22px;
   bottom: 50%;
   border-radius: 6px;
-  background: linear-gradient(180deg, #4a7da8, #1a2f58);
-  border: 1px solid rgba(164, 213, 255, 0.3);
-  box-shadow: 0 0 12px rgba(110, 176, 230, 0.35);
+  background: linear-gradient(180deg, #6a4aa8, #2e1c56);
+  border: 1px solid rgba(198, 164, 255, 0.3);
+  box-shadow: 0 0 12px rgba(150, 110, 230, 0.35);
   pointer-events: none;
 }
 .wheel-label {
@@ -1146,26 +1146,26 @@ select {
 .key.white {
   width: var(--key-w);
   height: 100%;
-  background: linear-gradient(180deg, #f0f7fc, #c6d7e4);
-  border: 1px solid #264584;
+  background: linear-gradient(180deg, #f4f0fc, #cfc6e4);
+  border: 1px solid #4a3a70;
   border-top: none;
-  box-shadow: inset 0 -6px 8px rgba(10, 27, 60, 0.16);
+  box-shadow: inset 0 -6px 8px rgba(30, 10, 60, 0.16);
 }
 .key.white.pressed {
-  background: linear-gradient(180deg, #c4d1ff, var(--accent));
-  box-shadow: 0 0 22px rgba(119, 149, 255, 0.6);
+  background: linear-gradient(180deg, #ffc4ee, var(--accent));
+  box-shadow: 0 0 22px rgba(255, 119, 217, 0.6);
 }
 .key.black {
   width: calc(var(--key-w) * 0.64);
   height: 62%;
-  background: linear-gradient(180deg, #172a51, #050b18);
+  background: linear-gradient(180deg, #2a1a4e, #0a0518);
   border: 1px solid #000;
   z-index: 2;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.6);
 }
 .key.black.pressed {
-  background: linear-gradient(180deg, #576fc9, #274685);
-  box-shadow: 0 0 18px rgba(119, 149, 255, 0.55);
+  background: linear-gradient(180deg, #c957a6, #7d2f68);
+  box-shadow: 0 0 18px rgba(255, 119, 217, 0.55);
 }
 .key-label {
   position: absolute;
@@ -1174,7 +1174,7 @@ select {
   right: 0;
   text-align: center;
   font-size: 8.5px;
-  color: #6d8aa0;
+  color: #7a6da0;
   pointer-events: none;
 }
 
@@ -1185,7 +1185,7 @@ select {
   padding: 5px 12px;
   font-size: 10.5px;
   color: var(--text-mute);
-  background: rgba(8, 16, 32, 0.9);
+  background: rgba(14, 8, 32, 0.9);
   border-top: 1px solid var(--line);
   flex-wrap: wrap;
 }
@@ -1216,8 +1216,8 @@ select {
 }
 .song-row.playing {
   border-color: var(--accent);
-  background: linear-gradient(180deg, rgba(119, 149, 255, 0.18), var(--panel));
-  box-shadow: 0 0 18px rgba(119, 149, 255, 0.28);
+  background: linear-gradient(180deg, rgba(255, 119, 217, 0.18), var(--panel));
+  box-shadow: 0 0 18px rgba(255, 119, 217, 0.28);
 }
 .song-header {
   background: transparent;
@@ -1307,7 +1307,7 @@ select {
 }
 .song-demo-row:hover {
   border-color: var(--accent);
-  box-shadow: 0 0 16px rgba(119, 149, 255, 0.24);
+  box-shadow: 0 0 16px rgba(255, 119, 217, 0.24);
 }
 .song-demo-title {
   font-size: 12px;
@@ -1323,17 +1323,17 @@ select {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(2, 5, 12, 0.76);
+  background: rgba(4, 2, 12, 0.76);
   display: grid;
   place-items: center;
   padding: 20px;
   z-index: 50;
 }
 .modal {
-  background: linear-gradient(180deg, rgba(22, 41, 78, 0.92), rgba(8, 16, 32, 0.95));
+  background: linear-gradient(180deg, rgba(40, 24, 76, 0.92), rgba(14, 8, 32, 0.95));
   border: 1px solid var(--line-2);
   border-radius: 16px;
-  box-shadow: var(--shadow), 0 0 40px rgba(119, 149, 255, 0.16);
+  box-shadow: var(--shadow), 0 0 40px rgba(255, 119, 217, 0.16);
   width: min(720px, 100%);
   max-height: 84vh;
   display: flex;
@@ -1422,13 +1422,13 @@ select {
   left: 50%;
   bottom: 26px;
   transform: translate(-50%, 20px);
-  background: linear-gradient(180deg, rgba(29, 52, 99, 0.95), rgba(10, 20, 40, 0.96));
+  background: linear-gradient(180deg, rgba(54, 34, 94, 0.95), rgba(18, 10, 40, 0.96));
   border: 1px solid var(--accent);
   color: var(--text);
   padding: 10px 18px;
   border-radius: 999px;
   font-size: 12.5px;
-  box-shadow: var(--shadow), 0 0 26px rgba(119, 149, 255, 0.35);
+  box-shadow: var(--shadow), 0 0 26px rgba(255, 119, 217, 0.35);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s, transform 0.2s;
