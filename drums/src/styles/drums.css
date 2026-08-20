@@ -1,46 +1,60 @@
-/* Hibiki Drum Machine — ブラッシュド・メタル（ハードウェア風）テーマ
-   ヘアライン加工のアルミ筐体＋面取りパネル＋彫り込んだ暗い LCD 窓という、
-   実機のリズムマシンの質感を CSS だけで再現している。 */
+/* Hibiki Drum Machine — ヴィンテージ・メタル（ハードウェア風）テーマ
+   ヘアライン加工のアルミ筐体＋面取りパネル＋彫り込んだ暗い窓という実機の質感を、
+   冷たい鋼色ではなく使い込まれたシャンパンゴールド寄りの色味で組み立てている。
+   さらに (1) 微細なグレイン（塗装のざらつき） (2) 左上からの斜光 (3) 木製サイドパネル
+   を重ねて、均一で無機質な平面にならないようにしている。 */
 
 :root {
   /* --- 金属筐体 ------------------------------------------------------- */
-  --metal-hi: #cdd3d8;
-  --metal-1: #bfc6cc;
-  --metal-2: #b0b8be;
-  --metal-3: #a4abb1;
-  --metal-4: #969ea4;
-  --metal-5: #878e94;
-  --metal-6: #797f85;
+  --metal-hi: #d9d6d3;
+  --metal-1: #cdc9c4;
+  --metal-2: #bfbbb5;
+  --metal-3: #b3aea8;
+  --metal-4: #a6a099;
+  --metal-5: #969089;
+  --metal-6: #88827a;
 
-  --ink: #74797e;   /* 筐体の地 */
-  --ink-2: #858b90;
-  --panel: #a4abb1;
-  --panel-2: #b0b8be;
+  --ink: #817b74;   /* 筐体の地 */
+  --ink-2: #938d86;
+  --panel: #b3aea8;
+  --panel-2: #bfbbb5;
 
-  /* 罫書き線（金属に彫った溝）と面取りエッジ */
-  --line: rgba(0, 0, 0, 0.3);
-  --line-strong: rgba(0, 0, 0, 0.44);
-  --edge-hi: rgba(255, 255, 255, 0.44);
-  --edge-lo: rgba(0, 0, 0, 0.42);
+  /* --- 木製サイドパネル（ヴィンテージ機材のウッドチーク） ------------- */
+  --wood-1: #7c4f28;
+  --wood-2: #5d3819;
+  --wood-3: #40260f;
 
-  /* 金属面のヘアライン（縦の微細な筋） */
-  --brush: repeating-linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.05) 0 1px,
-    rgba(0, 0, 0, 0.04) 1px 2px,
-    rgba(255, 255, 255, 0.022) 2px 3px,
-    rgba(0, 0, 0, 0.018) 3px 4px
-  );
+  /* 罫書き線（金属に彫った溝）と面取りエッジ。
+     真っ黒ではなく茶色寄りの影にすることで金属が冷たく見えないようにする */
+  --line: rgba(52, 34, 18, 0.34);
+  --line-strong: rgba(44, 28, 14, 0.48);
+  --edge-hi: rgba(255, 250, 242, 0.48);
+  --edge-lo: rgba(46, 30, 16, 0.4);
+
+  /* 塗装面の微細なグレイン。単色ベタ塗りの「のっぺり感」を消す */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.24'/%3E%3C/svg%3E");
+
+  /* 金属面の仕上げ＝グレイン＋ヘアライン（縦の微細な筋）＋左上からの斜光 */
+  --brush: var(--grain),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 252, 245, 0.05) 0 1px,
+      rgba(40, 26, 12, 0.04) 1px 2px,
+      rgba(255, 252, 245, 0.022) 2px 3px,
+      rgba(40, 26, 12, 0.018) 3px 4px
+    ),
+    linear-gradient(112deg, rgba(255, 248, 234, 0.13), rgba(255, 248, 234, 0) 46%),
+    radial-gradient(120% 90% at 8% -10%, rgba(255, 246, 228, 0.16), rgba(255, 246, 228, 0) 62%);
 
   /* 立ち上がり（凸）／彫り込み（凹）の面取り */
-  --bevel-up: inset 0 1px 0 var(--edge-hi), inset 1px 0 0 rgba(255, 255, 255, 0.14),
-    inset -1px 0 0 rgba(0, 0, 0, 0.22), inset 0 -1px 0 var(--edge-lo);
-  --bevel-down: inset 0 2px 5px rgba(0, 0, 0, 0.48), inset 0 -1px 0 rgba(255, 255, 255, 0.16);
+  --bevel-up: inset 0 1px 0 var(--edge-hi), inset 1px 0 0 rgba(255, 252, 245, 0.16),
+    inset -1px 0 0 rgba(46, 30, 16, 0.2), inset 0 -1px 0 var(--edge-lo);
+  --bevel-down: inset 0 2px 5px rgba(38, 24, 12, 0.46), inset 0 -1px 0 rgba(255, 252, 245, 0.18);
 
   /* --- 暗い LCD 窓 ---------------------------------------------------- */
-  --screen: #262b2e;
-  --screen-2: #191d20;
-  --screen-3: #12161a;
+  --screen: #2d2b28;
+  --screen-2: #1f1d1b;
+  --screen-3: #191714;
 
   /* --- 表示灯 --------------------------------------------------------- */
   --amber: #f2a33c;
@@ -51,13 +65,14 @@
   --red: #e2564a;
 
   /* --- 文字（金属面は暗い刻印） -------------------------------------- */
-  --text: #15181b;
-  --text-dim: #4d545a;
+  --text: #1a1917;
+  --text-dim: #595550;
 
   --head-w: 132px;
   --cell: 34px;
   --cell-gap: 4px;
-  --radius: 4px;
+  --radius: 6px;
+  --wood-w: 7px;
   font-family: 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', sans-serif;
 }
 
@@ -80,8 +95,28 @@ html, body {
   flex-direction: column;
   height: 100dvh;
   min-height: 100%;
-  background: var(--brush),
-    linear-gradient(180deg, #80868b 0%, #72787d 42%, #676d72 100%);
+  /* 左右の木製チーク（背景として敷き、その分だけ padding で中身を逃がす） */
+  padding: 0 var(--wood-w);
+  background:
+    linear-gradient(
+        90deg,
+        var(--wood-3) 0 1px,
+        var(--wood-1) 1px,
+        var(--wood-2) 55%,
+        var(--wood-3) 100%
+      )
+      left / var(--wood-w) 100% no-repeat,
+    linear-gradient(
+        90deg,
+        var(--wood-3) 0,
+        var(--wood-2) 45%,
+        var(--wood-1) calc(100% - 1px),
+        var(--wood-3) calc(100% - 1px)
+      )
+      right / var(--wood-w) 100% no-repeat,
+    var(--brush),
+    linear-gradient(176deg, #9c968f 0%, #88827b 40%, #7a746c 72%, #706a62 100%);
+  background-origin: border-box;
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -117,7 +152,7 @@ html, body {
   border-radius: 4px;
   flex: none;
   position: relative;
-  background: radial-gradient(circle at 50% 38%, #4a5157, #20262a 70%);
+  background: radial-gradient(circle at 50% 38%, #56524d, #292622 70%);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.18),
     0 2px 5px rgba(0, 0, 0, 0.45);
   overflow: hidden;
@@ -144,7 +179,7 @@ html, body {
   border-radius: 0 0 3px 3px;
   background:
     repeating-linear-gradient(90deg, rgba(242, 163, 60, 0.5) 0 2px, transparent 2px 7px),
-    linear-gradient(180deg, #4d565f, #232930);
+    linear-gradient(180deg, #5d5852, #2f2b26);
 }
 
 .brand-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; overflow: hidden; }
@@ -306,7 +341,7 @@ html, body {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #6b7278;
+  background: #7a746d;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 .rec-btn.active {
@@ -512,7 +547,7 @@ html, body {
   width: 6px;
   height: 16px;
   border-radius: 2px;
-  background: #10141a;
+  background: #181612;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   position: relative;
   overflow: hidden;
@@ -576,10 +611,11 @@ html, body {
   width: var(--cell);
   height: var(--cell);
   flex: none;
-  border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: linear-gradient(180deg, #3a424a, #232930);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 1px 2px rgba(0, 0, 0, 0.45);
+  border-radius: 5px;
+  border: 1px solid rgba(255, 246, 232, 0.11);
+  background: radial-gradient(120% 100% at 30% 0%, rgba(255, 244, 226, 0.1), rgba(255, 244, 226, 0) 60%),
+    linear-gradient(180deg, #514c45, #302c27);
+  box-shadow: inset 0 1px 0 rgba(255, 248, 236, 0.16), 0 1px 2px rgba(34, 21, 10, 0.42);
   cursor: pointer;
   padding: 0;
   position: relative;
@@ -587,7 +623,11 @@ html, body {
   transition: background 0.08s linear, box-shadow 0.08s linear;
 }
 
-.step-cell.beat { background: linear-gradient(180deg, #464f58, #2c333a); border-color: rgba(255, 255, 255, 0.15); }
+.step-cell.beat {
+  background: radial-gradient(120% 100% at 30% 0%, rgba(255, 244, 226, 0.12), rgba(255, 244, 226, 0) 60%),
+    linear-gradient(180deg, #605951, #3e3834);
+  border-color: rgba(255, 246, 232, 0.17);
+}
 .step-cell:hover { border-color: rgba(255, 205, 133, 0.55); }
 
 .step-cell.on {
@@ -596,6 +636,7 @@ html, body {
     color-mix(in srgb, var(--amber) calc(var(--v, 0.7) * 100%), #2e2312));
   border-color: rgba(255, 205, 133, 0.65);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -3px 6px rgba(120, 66, 8, 0.32),
     0 0 10px rgba(242, 163, 60, calc(var(--v, 0.7) * 0.5));
 }
 
@@ -714,13 +755,13 @@ html, body {
 .ctl-range::-webkit-slider-runnable-track {
   height: 5px;
   border-radius: 2px;
-  background: linear-gradient(90deg, var(--amber) var(--fill, 0%), #2b3239 var(--fill, 0%));
+  background: linear-gradient(90deg, var(--amber) var(--fill, 0%), #37342f var(--fill, 0%));
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 .ctl-range::-moz-range-track {
   height: 5px;
   border-radius: 2px;
-  background: linear-gradient(90deg, var(--amber) var(--fill, 0%), #2b3239 var(--fill, 0%));
+  background: linear-gradient(90deg, var(--amber) var(--fill, 0%), #37342f var(--fill, 0%));
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 .ctl-range::-webkit-slider-thumb {
@@ -729,7 +770,7 @@ html, body {
   height: 15px;
   border-radius: 50%;
   margin-top: -5px;
-  background: radial-gradient(circle at 40% 28%, #eef2f5, #a8afb5 55%, #6d747a);
+  background: radial-gradient(circle at 40% 28%, #f7f6f3, #b7b2ac 55%, #7c766e);
   border: 1px solid rgba(0, 0, 0, 0.45);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
 }
@@ -738,7 +779,7 @@ html, body {
   height: 15px;
   border: 1px solid rgba(0, 0, 0, 0.45);
   border-radius: 50%;
-  background: radial-gradient(circle at 40% 28%, #eef2f5, #a8afb5 55%, #6d747a);
+  background: radial-gradient(circle at 40% 28%, #f7f6f3, #b7b2ac 55%, #7c766e);
 }
 
 .segmented { display: flex; flex-wrap: wrap; gap: 0.2rem; }
@@ -794,7 +835,7 @@ html, body {
   width: 18px;
   height: 18px;
   border-radius: 2px;
-  background: linear-gradient(180deg, #cdd3d8, #878e94);
+  background: linear-gradient(180deg, #d9d6d3, #969089);
   border: 1px solid rgba(0, 0, 0, 0.4);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   transition: transform 0.15s, background 0.15s;
@@ -868,9 +909,9 @@ html, body {
   aspect-ratio: 1 / 0.78;
   border-radius: 4px;
   border: 1px solid rgba(0, 0, 0, 0.5);
-  background: linear-gradient(180deg, #4d565f, #262c32);
+  background: linear-gradient(180deg, #5d5852, #312e29);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 4px rgba(0, 0, 0, 0.45);
-  color: #dde3e8;
+  color: #e9e6e2;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -883,12 +924,12 @@ html, body {
 }
 
 .pad-name { font-size: 0.66rem; text-align: center; line-height: 1.2; padding: 0 2px; }
-.pad-key { font-size: 0.58rem; color: #8b959e; }
+.pad-key { font-size: 0.58rem; color: #9e9890; }
 .pad.hit { animation: padHit 0.22s ease-out; }
 
 @keyframes padHit {
   0% { background: linear-gradient(180deg, #ffe1b4, var(--amber)); color: #24160a; }
-  100% { background: linear-gradient(180deg, #4d565f, #262c32); }
+  100% { background: linear-gradient(180deg, #5d5852, #312e29); }
 }
 
 .mixer { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.55rem; }
@@ -999,7 +1040,7 @@ html, body {
 /* ------------------------------------------------------------------ 狭い画面 */
 
 @media (max-width: 720px) {
-  :root { --head-w: 104px; --cell: 30px; --cell-gap: 3px; }
+  :root { --head-w: 104px; --cell: 30px; --cell-gap: 3px; --wood-w: 4px; }
   /* 狭い画面ではパターン切り替えを2段目に折り返す */
   .transport { flex-wrap: wrap; overflow-x: visible; }
   .pattern-bank { flex: 1 1 auto; justify-content: space-between; }
