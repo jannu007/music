@@ -20,9 +20,19 @@
   --panel-2: #bfbbb5;
 
   /* --- 木製サイドパネル（ヴィンテージ機材のウッドチーク） ------------- */
-  --wood-1: #7c4f28;
-  --wood-2: #5d3819;
-  --wood-3: #40260f;
+  --wood-1: #8a5a2c;
+  --wood-2: #63391a;
+  --wood-3: #3a220c;
+  /* 木目：太さの違う縦筋を重ねて、単なる茶色の帯に見えないようにする */
+  --wood-grain: repeating-linear-gradient(
+    90deg,
+    rgba(255, 220, 170, 0.09) 0 1px,
+    rgba(0, 0, 0, 0.16) 1px 3px,
+    rgba(255, 220, 170, 0.05) 3px 4px,
+    rgba(0, 0, 0, 0.07) 4px 7px,
+    rgba(255, 220, 170, 0.11) 7px 8px,
+    rgba(0, 0, 0, 0.12) 8px 13px
+  );
 
   /* 罫書き線（金属に彫った溝）と面取りエッジ。
      真っ黒ではなく茶色寄りの影にすることで金属が冷たく見えないようにする */
@@ -32,7 +42,7 @@
   --edge-lo: rgba(46, 30, 16, 0.4);
 
   /* 塗装面の微細なグレイン。単色ベタ塗りの「のっぺり感」を消す */
-  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.24'/%3E%3C/svg%3E");
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.42'/%3E%3C/svg%3E");
 
   /* 金属面の仕上げ＝グレイン＋ヘアライン（縦の微細な筋）＋左上からの斜光 */
   --brush: var(--grain),
@@ -72,7 +82,8 @@
   --cell: 34px;
   --cell-gap: 4px;
   --radius: 6px;
-  --wood-w: 7px;
+  --wood-w: 16px;
+  --wood-h: 10px;
   font-family: 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', sans-serif;
 }
 
@@ -95,27 +106,19 @@ html, body {
   flex-direction: column;
   height: 100dvh;
   min-height: 100%;
-  /* 左右の木製チーク（背景として敷き、その分だけ padding で中身を逃がす） */
-  padding: 0 var(--wood-w);
+  /* 木製の外枠（左右＋下）。背景として敷き、その分だけ padding で中身を逃がす */
+  padding: 0 var(--wood-w) var(--wood-h);
   background:
-    linear-gradient(
-        90deg,
-        var(--wood-3) 0 1px,
-        var(--wood-1) 1px,
-        var(--wood-2) 55%,
-        var(--wood-3) 100%
-      )
+    var(--wood-grain) left / var(--wood-w) 100% repeat-y,
+    linear-gradient(90deg, var(--wood-3) 0 1px, var(--wood-1) 1px, var(--wood-2) 60%, var(--wood-3))
       left / var(--wood-w) 100% no-repeat,
-    linear-gradient(
-        90deg,
-        var(--wood-3) 0,
-        var(--wood-2) 45%,
-        var(--wood-1) calc(100% - 1px),
-        var(--wood-3) calc(100% - 1px)
-      )
+    var(--wood-grain) right / var(--wood-w) 100% repeat-y,
+    linear-gradient(90deg, var(--wood-3), var(--wood-2) 40%, var(--wood-1) calc(100% - 1px), var(--wood-3) calc(100% - 1px))
       right / var(--wood-w) 100% no-repeat,
+    linear-gradient(180deg, var(--wood-3) 0 1px, var(--wood-1) 1px, var(--wood-2) 70%, var(--wood-3))
+      bottom / 100% var(--wood-h) no-repeat,
     var(--brush),
-    linear-gradient(176deg, #9c968f 0%, #88827b 40%, #7a746c 72%, #706a62 100%);
+    linear-gradient(176deg, #a9a094 0%, #968d80 40%, #877e71 72%, #7c7367 100%);
   background-origin: border-box;
 }
 
@@ -612,9 +615,9 @@ html, body {
   height: var(--cell);
   flex: none;
   border-radius: 5px;
-  border: 1px solid rgba(255, 246, 232, 0.11);
-  background: radial-gradient(120% 100% at 30% 0%, rgba(255, 244, 226, 0.1), rgba(255, 244, 226, 0) 60%),
-    linear-gradient(180deg, #514c45, #302c27);
+  border: 1px solid var(--pad-rim, rgba(255, 246, 232, 0.11));
+  background: radial-gradient(120% 100% at 30% 0%, rgba(255, 244, 226, 0.12), rgba(255, 244, 226, 0) 60%),
+    linear-gradient(180deg, var(--pad-a, #514c45), var(--pad-b, #302c27));
   box-shadow: inset 0 1px 0 rgba(255, 248, 236, 0.16), 0 1px 2px rgba(34, 21, 10, 0.42);
   cursor: pointer;
   padding: 0;
@@ -623,10 +626,11 @@ html, body {
   transition: background 0.08s linear, box-shadow 0.08s linear;
 }
 
+/* 拍アタマは群の色のまま一段明るくして、色分けを壊さない */
 .step-cell.beat {
-  background: radial-gradient(120% 100% at 30% 0%, rgba(255, 244, 226, 0.12), rgba(255, 244, 226, 0) 60%),
-    linear-gradient(180deg, #605951, #3e3834);
-  border-color: rgba(255, 246, 232, 0.17);
+  background: radial-gradient(120% 100% at 30% 0%, rgba(255, 246, 230, 0.22), rgba(255, 246, 230, 0) 62%),
+    linear-gradient(180deg, var(--pad-a, #514c45), var(--pad-b, #302c27));
+  border-color: rgba(255, 246, 232, 0.26);
 }
 .step-cell:hover { border-color: rgba(255, 205, 133, 0.55); }
 
@@ -1037,10 +1041,120 @@ html, body {
 
 .inspector-title { font-size: 0.72rem; color: #6b3f06; font-weight: 700; }
 
+
+/* --- ステップの4つ割り（実機のカラーボタン配列）------------------------
+   16分を4つずつ違う色のボタンにすることで、灰色の格子が延々と続く無機質な
+   見た目をなくし、拍のアタマも数えずに分かるようにする。点灯時はどの群でも
+   明るいアンバーで上書きされるので、オン／オフの判別は変わらない。 */
+
+/* 第 1 拍の群 */
+.track-steps .step-cell[data-index="0"],
+.track-steps .step-cell[data-index="1"],
+.track-steps .step-cell[data-index="2"],
+.track-steps .step-cell[data-index="3"],
+.track-steps .step-cell[data-index="16"],
+.track-steps .step-cell[data-index="17"],
+.track-steps .step-cell[data-index="18"],
+.track-steps .step-cell[data-index="19"],
+.track-steps .step-cell[data-index="32"],
+.track-steps .step-cell[data-index="33"],
+.track-steps .step-cell[data-index="34"],
+.track-steps .step-cell[data-index="35"],
+.track-steps .step-cell[data-index="48"],
+.track-steps .step-cell[data-index="49"],
+.track-steps .step-cell[data-index="50"],
+.track-steps .step-cell[data-index="51"] {
+  --pad-a: #74392c;
+  --pad-b: #40201a;
+  --pad-rim: rgba(255, 183, 150, 0.16);
+}
+
+/* 第 2 拍の群 */
+.track-steps .step-cell[data-index="4"],
+.track-steps .step-cell[data-index="5"],
+.track-steps .step-cell[data-index="6"],
+.track-steps .step-cell[data-index="7"],
+.track-steps .step-cell[data-index="20"],
+.track-steps .step-cell[data-index="21"],
+.track-steps .step-cell[data-index="22"],
+.track-steps .step-cell[data-index="23"],
+.track-steps .step-cell[data-index="36"],
+.track-steps .step-cell[data-index="37"],
+.track-steps .step-cell[data-index="38"],
+.track-steps .step-cell[data-index="39"],
+.track-steps .step-cell[data-index="52"],
+.track-steps .step-cell[data-index="53"],
+.track-steps .step-cell[data-index="54"],
+.track-steps .step-cell[data-index="55"] {
+  --pad-a: #7a4d20;
+  --pad-b: #43290f;
+  --pad-rim: rgba(255, 196, 140, 0.15);
+}
+
+/* 第 3 拍の群 */
+.track-steps .step-cell[data-index="8"],
+.track-steps .step-cell[data-index="9"],
+.track-steps .step-cell[data-index="10"],
+.track-steps .step-cell[data-index="11"],
+.track-steps .step-cell[data-index="24"],
+.track-steps .step-cell[data-index="25"],
+.track-steps .step-cell[data-index="26"],
+.track-steps .step-cell[data-index="27"],
+.track-steps .step-cell[data-index="40"],
+.track-steps .step-cell[data-index="41"],
+.track-steps .step-cell[data-index="42"],
+.track-steps .step-cell[data-index="43"],
+.track-steps .step-cell[data-index="56"],
+.track-steps .step-cell[data-index="57"],
+.track-steps .step-cell[data-index="58"],
+.track-steps .step-cell[data-index="59"] {
+  --pad-a: #6f5322;
+  --pad-b: #3d2c0f;
+  --pad-rim: rgba(255, 220, 150, 0.14);
+}
+
+/* 第 4 拍の群 */
+.track-steps .step-cell[data-index="12"],
+.track-steps .step-cell[data-index="13"],
+.track-steps .step-cell[data-index="14"],
+.track-steps .step-cell[data-index="15"],
+.track-steps .step-cell[data-index="28"],
+.track-steps .step-cell[data-index="29"],
+.track-steps .step-cell[data-index="30"],
+.track-steps .step-cell[data-index="31"],
+.track-steps .step-cell[data-index="44"],
+.track-steps .step-cell[data-index="45"],
+.track-steps .step-cell[data-index="46"],
+.track-steps .step-cell[data-index="47"],
+.track-steps .step-cell[data-index="60"],
+.track-steps .step-cell[data-index="61"],
+.track-steps .step-cell[data-index="62"],
+.track-steps .step-cell[data-index="63"] {
+  --pad-a: #5e5a55;
+  --pad-b: #34312d;
+  --pad-rim: rgba(255, 246, 232, 0.13);
+}
+
+/* --- トラック名を打楽器のグループごとに刷り分ける（パネル印刷のインク色） */
+.grid-track[data-track='kick'] .track-short,
+.grid-track[data-track='snare'] .track-short { color: #8f2f1f; }
+.grid-track[data-track='clap'] .track-short,
+.grid-track[data-track='rim'] .track-short { color: #9c5510; }
+.grid-track[data-track='ch'] .track-short,
+.grid-track[data-track='oh'] .track-short,
+.grid-track[data-track='shaker'] .track-short { color: #1f6152; }
+.grid-track[data-track='tom1'] .track-short,
+.grid-track[data-track='tom2'] .track-short,
+.grid-track[data-track='tom3'] .track-short { color: #6b4a12; }
+.grid-track[data-track='ride'] .track-short,
+.grid-track[data-track='crash'] .track-short { color: #2f5280; }
+.grid-track[data-track='cowbell'] .track-short,
+.grid-track[data-track='perc'] .track-short { color: #6a3070; }
+
 /* ------------------------------------------------------------------ 狭い画面 */
 
 @media (max-width: 720px) {
-  :root { --head-w: 104px; --cell: 30px; --cell-gap: 3px; --wood-w: 4px; }
+  :root { --head-w: 104px; --cell: 30px; --cell-gap: 3px; --wood-w: 11px; --wood-h: 7px; }
   /* 狭い画面ではパターン切り替えを2段目に折り返す */
   .transport { flex-wrap: wrap; overflow-x: visible; }
   .pattern-bank { flex: 1 1 auto; justify-content: space-between; }
@@ -1054,7 +1168,9 @@ html, body {
 
 @media (max-width: 420px) {
   :root { --cell: 27px; }
-  .kit-select { max-width: 38vw; font-size: 0.76rem; }
+  /* 木枠の分だけ横幅が減るので、キット名の枠をさらに詰めて上段を溢れさせない */
+  .kit-select { max-width: 30vw; font-size: 0.76rem; }
+  .meter { width: 60px; }
 }
 
 @media (min-width: 1100px) {
