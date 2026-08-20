@@ -1,5 +1,5 @@
 /* Aozora Grand Piano — オフライン用サービスワーカー（スコープ: /piano/） */
-const CACHE = 'aozora-piano-v2';
+const CACHE = 'aozora-piano-v3';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -22,7 +22,9 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    fetch(event.request)
+    // ページ本体(HTML)はブラウザのHTTPキャッシュを迂回して必ず最新を取得する。
+    // （HTMLさえ最新なら、参照するJS/CSSはハッシュ付きなので自動的に最新になる）
+    fetch(event.request, event.request.mode === 'navigate' ? { cache: 'reload' } : undefined)
       .then((response) => {
         const copy = response.clone();
         caches.open(CACHE).then((cache) => cache.put(event.request, copy));

@@ -98,12 +98,20 @@ html, body {
   height: 100dvh;
   min-height: 100%;
   background-image: var(--stars-near), var(--stars-mid), var(--stars-far),
-    radial-gradient(42% 34% at 52% 44%, rgba(87, 226, 213, 0.5), transparent 66%),
-    radial-gradient(30% 26% at 72% 40%, rgba(106, 168, 255, 0.46), transparent 68%),
-    radial-gradient(26% 24% at 26% 22%, rgba(255, 140, 60, 0.34), transparent 68%),
-    radial-gradient(46% 40% at 12% 78%, rgba(120, 96, 255, 0.34), transparent 70%),
-    radial-gradient(34% 30% at 90% 86%, rgba(87, 226, 213, 0.22), transparent 70%),
-    linear-gradient(180deg, #081025 0%, #060b1c 48%, #04060f 100%);
+    /* 青い惑星（右上）と橙の惑星（左下）。縁を光らせて球体に見せる */
+    radial-gradient(circle 132px at 84% 20%, rgba(150, 210, 255, 0.5) 0 40%,
+      rgba(46, 108, 190, 0.42) 62%, rgba(10, 26, 56, 0.3) 88%, transparent 100%),
+    radial-gradient(circle 86px at 13% 76%, rgba(255, 196, 130, 0.44) 0 42%,
+      rgba(200, 108, 34, 0.34) 66%, rgba(60, 26, 8, 0.22) 90%, transparent 100%),
+    /* 銀河のコアとその腕 */
+    radial-gradient(58% 30% at 50% 46%, rgba(140, 255, 240, 0.42), transparent 62%),
+    radial-gradient(40% 22% at 50% 46%, rgba(255, 255, 255, 0.3), transparent 64%),
+    radial-gradient(70% 46% at 44% 50%, rgba(87, 226, 213, 0.34), transparent 70%),
+    radial-gradient(60% 50% at 72% 34%, rgba(106, 168, 255, 0.4), transparent 70%),
+    radial-gradient(52% 44% at 22% 24%, rgba(255, 140, 60, 0.3), transparent 70%),
+    radial-gradient(64% 56% at 10% 80%, rgba(140, 110, 255, 0.4), transparent 72%),
+    radial-gradient(56% 48% at 92% 88%, rgba(87, 226, 213, 0.3), transparent 72%),
+    linear-gradient(180deg, #0a1430 0%, #070e22 46%, #03060f 100%);
   background-size: 340px 340px, 340px 340px, 340px 340px, 340px 340px,
     340px 340px, 340px 340px, 340px 340px, 240px 240px,
     240px 240px, 240px 240px, 240px 240px, 240px 240px,
@@ -113,7 +121,9 @@ html, body {
     170px 170px, 170px 170px, 170px 170px, 170px 170px,
     170px 170px, 170px 170px, 170px 170px, 170px 170px,
     170px 170px, 170px 170px, 100% 100%, 100% 100%,
-    100% 100%, 100% 100%, 100% 100%, 100% 100%;
+    100% 100%, 100% 100%, 100% 100%, 100% 100%,
+    100% 100%, 100% 100%, 100% 100%, 100% 100%,
+    100% 100%, 100% 100%;
   background-attachment: fixed;
 }
 
@@ -136,8 +146,8 @@ html, body {
   padding: 0.5rem 0.9rem;
   padding-top: max(0.5rem, env(safe-area-inset-top));
   border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(12, 20, 42, 0.44), rgba(6, 11, 26, 0.52));
-  backdrop-filter: blur(8px);
+  background: linear-gradient(180deg, rgba(12, 20, 42, 0.26), rgba(6, 11, 26, 0.32));
+  backdrop-filter: blur(7px);
   flex: none;
 }
 
@@ -265,8 +275,8 @@ html, body {
   gap: 0.5rem;
   padding: 0.5rem 0.9rem;
   border-bottom: 1px solid var(--line);
-  background: rgba(8, 14, 30, 0.36);
-  backdrop-filter: blur(8px);
+  background: rgba(8, 14, 30, 0.2);
+  backdrop-filter: blur(7px);
   flex: none;
   overflow-x: auto;
   scrollbar-width: thin;
@@ -442,11 +452,10 @@ html, body {
   flex: 1;
   min-width: 0;
   display: flex;
-  background: linear-gradient(180deg, rgba(14, 24, 48, 0.5), rgba(6, 11, 26, 0.58));
+  background: linear-gradient(180deg, rgba(14, 24, 48, 0.16), rgba(6, 11, 26, 0.22));
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.07);
   overflow: hidden;
 }
 
@@ -464,7 +473,7 @@ html, body {
   position: sticky;
   top: 0;
   z-index: 3;
-  background: linear-gradient(180deg, rgba(10, 18, 38, 0.94), rgba(10, 18, 38, 0.8));
+  background: linear-gradient(180deg, rgba(10, 18, 38, 0.62), rgba(10, 18, 38, 0.42));
   backdrop-filter: blur(6px);
 }
 
@@ -478,11 +487,11 @@ html, body {
   align-items: center;
   gap: 0.3rem;
   padding: 0 0.35rem 0 0.1rem;
-  background: linear-gradient(90deg, rgba(10, 18, 38, 0.92) 78%, rgba(10, 18, 38, 0.7));
+  background: linear-gradient(90deg, rgba(10, 18, 38, 0.6) 78%, rgba(10, 18, 38, 0.34));
   backdrop-filter: blur(6px);
 }
 
-.ruler-head { background: rgba(10, 18, 38, 0.94); }
+.ruler-head { background: rgba(10, 18, 38, 0.62); }
 .ruler-title { font-size: 0.6rem; color: var(--text-dim); letter-spacing: 0.16em; padding-left: 0.35rem; }
 
 .track-name {
@@ -583,8 +592,8 @@ html, body {
   height: var(--cell);
   flex: none;
   border-radius: 8px;
-  border: 1px solid rgba(150, 200, 235, 0.16);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(150, 200, 235, 0.22);
+  background: rgba(255, 255, 255, 0.025);
   cursor: pointer;
   padding: 0;
   position: relative;
@@ -592,7 +601,7 @@ html, body {
   transition: background 0.08s linear, box-shadow 0.08s linear, border-color 0.08s linear;
 }
 
-.step-cell.beat { background: rgba(255, 255, 255, 0.09); border-color: rgba(150, 200, 235, 0.26); }
+.step-cell.beat { background: rgba(255, 255, 255, 0.06); border-color: rgba(150, 200, 235, 0.34); }
 .step-cell:hover { border-color: var(--line-strong); }
 
 .step-cell.on {
@@ -644,8 +653,8 @@ html, body {
 .panel {
   flex: none;
   border-top: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(12, 20, 42, 0.5), rgba(5, 9, 22, 0.6));
-  backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, rgba(12, 20, 42, 0.3), rgba(5, 9, 22, 0.42));
+  backdrop-filter: blur(8px);
   max-height: 47vh;
   display: flex;
   flex-direction: column;
@@ -891,7 +900,7 @@ html, body {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.45rem 0.55rem;
-  background: rgba(16, 26, 50, 0.5);
+  background: rgba(16, 26, 50, 0.3);
   backdrop-filter: blur(6px);
   display: flex;
   flex-direction: column;
@@ -925,7 +934,7 @@ html, body {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.3rem 0.45rem;
-  background: rgba(16, 26, 50, 0.5);
+  background: rgba(16, 26, 50, 0.3);
   backdrop-filter: blur(6px);
 }
 
@@ -960,7 +969,7 @@ html, body {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.5rem 0.6rem;
-  background: rgba(16, 26, 50, 0.5);
+  background: rgba(16, 26, 50, 0.3);
   backdrop-filter: blur(6px);
   display: flex;
   flex-direction: column;
