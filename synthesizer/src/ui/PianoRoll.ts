@@ -346,7 +346,7 @@ export function createPianoRoll(container: HTMLElement, opts: PianoRollOptions):
     ctx.restore();
 
     // --- ルーラー ---
-    ctx.fillStyle = cssVar('--panel-2', '#1b1622');
+    ctx.fillStyle = cssVar('--roll-chrome', '#2f3539');
     ctx.fillRect(0, 0, w, RULER_H);
     ctx.font = '10px ui-monospace, monospace';
     ctx.textBaseline = 'middle';
@@ -367,10 +367,10 @@ export function createPianoRoll(container: HTMLElement, opts: PianoRollOptions):
       const y = yOfPitch(p);
       if (y + rowH < RULER_H || y > gridBottom) continue;
       const isBlack = BLACK_KEYS.has(((p % 12) + 12) % 12);
-      ctx.fillStyle = isBlack ? '#15111b' : '#e9e2ee';
+      ctx.fillStyle = isBlack ? '#181c1f' : '#e3e7ea';
       ctx.fillRect(0, y, KEY_W - 1, rowH - 0.5);
       if (p % 12 === 0 && rowH >= 9) {
-        ctx.fillStyle = '#7a6f85';
+        ctx.fillStyle = '#6f777e';
         ctx.font = '9px ui-monospace, monospace';
         ctx.fillText(noteName(p), 4, y + rowH / 2);
       }
@@ -379,7 +379,7 @@ export function createPianoRoll(container: HTMLElement, opts: PianoRollOptions):
 
     // --- ベロシティレーン ---
     const vy = gridBottom;
-    ctx.fillStyle = cssVar('--panel-2', '#1b1622');
+    ctx.fillStyle = cssVar('--roll-chrome', '#2f3539');
     ctx.fillRect(0, vy, w, VEL_H);
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
     ctx.font = '9px ui-monospace, monospace';
