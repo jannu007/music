@@ -367,10 +367,10 @@ export function createPianoRoll(container: HTMLElement, opts: PianoRollOptions):
       const y = yOfPitch(p);
       if (y + rowH < RULER_H || y > gridBottom) continue;
       const isBlack = BLACK_KEYS.has(((p % 12) + 12) % 12);
-      ctx.fillStyle = isBlack ? '#181c1f' : '#e3e7ea';
+      ctx.fillStyle = isBlack ? '#160e2c' : '#ddd4f0';
       ctx.fillRect(0, y, KEY_W - 1, rowH - 0.5);
       if (p % 12 === 0 && rowH >= 9) {
-        ctx.fillStyle = '#6f777e';
+        ctx.fillStyle = '#8a7cb4';
         ctx.font = '9px ui-monospace, monospace';
         ctx.fillText(noteName(p), 4, y + rowH / 2);
       }
