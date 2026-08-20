@@ -1,29 +1,62 @@
 /* =========================================================================
-   Micro Sakura Studio — スタジオ・ダークテーマ
+   Micro Sakura Studio — ブラッシュド・メタル（ハードウェア風）テーマ
+   ヘアライン加工のアルミ筐体＋面取りパネル＋暗い LCD 窓、という
+   ハードウェア・シンセの質感を CSS だけで再現している。
    ========================================================================= */
 :root {
-  --bg: #0d0a11;
-  --bg-2: #120e17;
-  --panel: #17121e;
-  --panel-2: #1e1826;
-  --panel-3: #251d2f;
-  --line: rgba(255, 255, 255, 0.08);
-  --line-2: rgba(255, 255, 255, 0.14);
-  --grid: rgba(255, 255, 255, 0.07);
-  --text: #ece7f1;
-  --text-dim: #9d93ab;
-  --text-mute: #6f6580;
-  --accent: #ff8ab3;
-  --accent-2: #8ad7ff;
-  --accent-3: #ffd88a;
-  --danger: #ff6b6b;
-  --ok: #7ee6a8;
-  --roll-bg: #131019;
-  --roll-bg-alt: #191320;
-  --roll-line: rgba(255, 255, 255, 0.05);
-  --roll-line-strong: rgba(255, 255, 255, 0.16);
-  --radius: 10px;
-  --shadow: 0 8px 26px rgba(0, 0, 0, 0.45);
+  /* --- 金属筐体 ------------------------------------------------------- */
+  --bg: #74797e;
+  --bg-2: #858b90;
+  --panel: #a4abb1;
+  --panel-2: #b0b8be;
+  --panel-3: #bfc6cc;
+
+  /* 罫書き線（金属に彫った溝）と面取りエッジ */
+  --line: rgba(0, 0, 0, 0.32);
+  --line-2: rgba(0, 0, 0, 0.44);
+  --edge-hi: rgba(255, 255, 255, 0.44);
+  --edge-lo: rgba(0, 0, 0, 0.42);
+  --grid: rgba(255, 255, 255, 0.09);
+
+  /* 金属面のヘアライン（縦の微細な筋） */
+  --brush: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0 1px,
+    rgba(0, 0, 0, 0.04) 1px 2px,
+    rgba(255, 255, 255, 0.022) 2px 3px,
+    rgba(0, 0, 0, 0.018) 3px 4px
+  );
+
+  /* 立ち上がり（凸）／彫り込み（凹）の面取り */
+  --bevel-up: inset 0 1px 0 var(--edge-hi), inset 1px 0 0 rgba(255, 255, 255, 0.14),
+    inset -1px 0 0 rgba(0, 0, 0, 0.22), inset 0 -1px 0 var(--edge-lo);
+  --bevel-down: inset 0 2px 5px rgba(0, 0, 0, 0.48), inset 0 -1px 0 rgba(255, 255, 255, 0.16);
+
+  /* --- 文字（金属面は暗い刻印、LCD は発光） -------------------------- */
+  --text: #15181b;
+  --text-dim: #32373c;
+  --text-mute: #4d545a;
+
+  /* --- 表示灯・ノブ指示色 -------------------------------------------- */
+  --accent: #e2952b;
+  --accent-2: #4fc6e6;
+  --accent-3: #e8c246;
+  --danger: #e2564e;
+  --ok: #6cc98c;
+
+  /* --- 暗い LCD 窓 ---------------------------------------------------- */
+  --screen: #262b2e;
+  --screen-2: #191d20;
+  --screen-line: rgba(79, 198, 230, 0.16);
+
+  --roll-bg: #22272a;
+  --roll-bg-alt: #1b2023;
+  --roll-line: rgba(255, 255, 255, 0.055);
+  --roll-line-strong: rgba(255, 255, 255, 0.18);
+  --roll-chrome: #2f3539;
+
+  --radius: 4px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   --font: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
   --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 }
@@ -45,8 +78,16 @@ body {
 }
 
 body {
-  background-image: radial-gradient(1200px 600px at 15% -10%, rgba(255, 138, 179, 0.12), transparent 60%),
-    radial-gradient(1000px 500px at 100% 0%, rgba(138, 215, 255, 0.09), transparent 55%);
+  background-image: var(--brush),
+    linear-gradient(180deg, #80868b 0%, #72787d 42%, #676d72 100%);
+}
+
+/* index.html のグラデーション定義（ノブ用）は画面に出さない */
+.svg-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
 }
 
 #app {
@@ -65,16 +106,17 @@ select {
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.22);
 }
 ::-webkit-scrollbar-thumb {
-  background: #33293f;
-  border-radius: 6px;
+  background: #b8bfc5;
+  border-radius: 3px;
   border: 2px solid transparent;
   background-clip: content-box;
+  box-shadow: var(--bevel-up);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #46375a;
+  background: #ced5db;
   background-clip: content-box;
 }
 
@@ -88,15 +130,15 @@ select {
   color: var(--text-dim);
 }
 
-
 /* ------------------------------------------------------- analyzer (top bar) */
 .analyzer {
   display: flex;
   align-items: stretch;
   gap: 10px;
   padding: 6px 12px;
-  background: linear-gradient(180deg, #08060c, #0f0b14);
-  border-bottom: 1px solid var(--line);
+  background: var(--brush), linear-gradient(180deg, #a9b0b6, #949ba1);
+  border-bottom: 1px solid var(--line-2);
+  box-shadow: inset 0 1px 0 var(--edge-hi), 0 1px 0 rgba(255, 255, 255, 0.12);
   height: 84px;
   flex: 0 0 auto;
 }
@@ -104,28 +146,31 @@ select {
   flex: 0 0 auto;
   width: 92px;
   align-self: center;
-  background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  color: var(--text-mute);
+  background: linear-gradient(180deg, #c2c9cf, #a4abb1);
+  border: 1px solid var(--line-2);
+  border-radius: 3px;
+  box-shadow: var(--bevel-up);
+  color: var(--text-dim);
   font-size: 8.5px;
   letter-spacing: 0.12em;
   line-height: 1.5;
   padding: 7px 4px;
   cursor: pointer;
   text-transform: uppercase;
+  font-weight: 700;
 }
 .analyzer-mode:hover {
-  color: var(--accent-2);
-  border-color: var(--accent-2);
+  color: #0b3a46;
+  background: linear-gradient(180deg, #d1d8de, #b2b9bf);
 }
 .analyzer-canvas-wrap {
   flex: 1;
   min-width: 0;
   position: relative;
-  background: #06040a;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background: var(--screen-2);
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  border-radius: 3px;
+  box-shadow: var(--bevel-down), 0 1px 0 var(--edge-hi);
   overflow: hidden;
 }
 .analyzer-canvas-wrap canvas {
@@ -149,16 +194,18 @@ select {
 .analyzer-meter-name {
   width: 10px;
   font-size: 9px;
-  color: var(--text-mute);
+  color: var(--text-dim);
   font-family: var(--mono);
+  font-weight: 700;
 }
 .analyzer-meter-track {
   flex: 1;
   position: relative;
   height: 9px;
-  background: #06040a;
-  border: 1px solid var(--line);
-  border-radius: 4px;
+  background: var(--screen-2);
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  border-radius: 2px;
+  box-shadow: var(--bevel-down);
   overflow: hidden;
 }
 .analyzer-meter-bar {
@@ -182,10 +229,11 @@ select {
   text-align: right;
   font-family: var(--mono);
   font-size: 9.5px;
-  color: var(--text-mute);
+  color: var(--text-dim);
 }
 .analyzer-meter-db.hot {
-  color: var(--danger);
+  color: #7a1c17;
+  font-weight: 700;
 }
 
 /* ------------------------------------------------------------------ shell */
@@ -201,8 +249,9 @@ select {
   align-items: center;
   gap: 14px;
   padding: 8px 12px;
-  background: linear-gradient(180deg, var(--panel-2), var(--panel));
-  border-bottom: 1px solid var(--line);
+  background: var(--brush), linear-gradient(180deg, #b2b9bf, #9ca3a9);
+  border-bottom: 1px solid var(--line-2);
+  box-shadow: inset 0 1px 0 var(--edge-hi);
   flex-wrap: wrap;
 }
 
@@ -216,8 +265,8 @@ select {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: conic-gradient(from 200deg, var(--accent), var(--accent-2), var(--accent));
-  box-shadow: 0 0 14px rgba(255, 138, 179, 0.5);
+  background: conic-gradient(from 210deg, #cfd5da, #8b939a, #dee3e7, #7d858c, #cfd5da);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
   position: relative;
 }
 .brand-mark::after {
@@ -225,13 +274,16 @@ select {
   position: absolute;
   inset: 7px;
   border-radius: 50%;
-  background: var(--panel);
+  background: radial-gradient(circle at 40% 30%, #4a5157, #20262a);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 .brand-name {
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.12em;
   line-height: 1.15;
+  color: var(--text);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 .brand-name small {
   font-size: 9px;
@@ -253,14 +305,17 @@ select {
   justify-content: flex-end;
 }
 
+/* 数値表示は暗い LCD 窓 */
 .position {
   font-family: var(--mono);
   font-size: 15px;
-  background: #0b0810;
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  background: linear-gradient(180deg, var(--screen-2), var(--screen));
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  border-radius: 3px;
+  box-shadow: var(--bevel-down), 0 1px 0 var(--edge-hi);
   padding: 5px 10px;
   color: var(--accent-2);
+  text-shadow: 0 0 7px rgba(79, 198, 230, 0.55);
   min-width: 82px;
   text-align: center;
   letter-spacing: 0.08em;
@@ -268,20 +323,24 @@ select {
 
 /* buttons ------------------------------------------------------------ */
 .btn {
-  background: linear-gradient(180deg, var(--panel-3), var(--panel-2));
+  background: linear-gradient(180deg, #c6cdd3, #a8afb5);
   border: 1px solid var(--line-2);
   color: var(--text);
-  border-radius: 8px;
+  border-radius: 3px;
+  box-shadow: var(--bevel-up);
   padding: 8px 13px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.06s;
+  font-weight: 600;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.26);
+  transition: background 0.12s, color 0.12s, box-shadow 0.1s;
   white-space: nowrap;
 }
 .btn:hover {
-  border-color: var(--accent);
+  background: linear-gradient(180deg, #d4dbe1, #b5bcc2);
 }
 .btn:active {
-  transform: translateY(1px);
+  background: linear-gradient(180deg, #9ba2a8, #adb4ba);
+  box-shadow: var(--bevel-down);
 }
 .btn:disabled {
   opacity: 0.45;
@@ -296,14 +355,21 @@ select {
   text-align: center;
 }
 .btn-accent {
-  background: linear-gradient(180deg, #ff9bbe, #f2749f);
-  color: #2a121c;
-  border-color: transparent;
+  background: linear-gradient(180deg, #f0a53c, #cf8018);
+  color: #24160a;
+  border-color: rgba(0, 0, 0, 0.5);
   font-weight: 700;
 }
+.btn-accent:hover {
+  background: linear-gradient(180deg, #f7b551, #dc8c1f);
+}
+/* 点灯状態＝暗い窓に発光文字（ハードウェアの点灯ボタン） */
 .btn.on {
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent), 0 0 12px rgba(255, 138, 179, 0.28);
+  background: linear-gradient(180deg, var(--screen), var(--screen-2));
+  color: var(--accent-2);
+  border-color: rgba(0, 0, 0, 0.62);
+  text-shadow: 0 0 8px rgba(79, 198, 230, 0.7);
+  box-shadow: var(--bevel-down), 0 1px 0 var(--edge-hi);
 }
 .btn-transport {
   width: 40px;
@@ -314,14 +380,12 @@ select {
   padding: 0;
 }
 .btn-play.on {
-  background: linear-gradient(180deg, #7ee6a8, #4dc584);
-  color: #0d2418;
-  border-color: transparent;
+  color: #7ff0ab;
+  text-shadow: 0 0 9px rgba(108, 201, 140, 0.8);
 }
 .btn-rec.on {
-  background: linear-gradient(180deg, #ff7676, #e04b4b);
-  color: #2a0f0f;
-  border-color: transparent;
+  color: #ff8079;
+  text-shadow: 0 0 9px rgba(226, 86, 78, 0.85);
   animation: rec-blink 1.1s infinite;
 }
 @keyframes rec-blink {
@@ -333,49 +397,58 @@ select {
 .seg {
   display: flex;
   border: 1px solid var(--line-2);
-  border-radius: 8px;
+  border-radius: 3px;
   overflow: hidden;
+  box-shadow: var(--bevel-up);
 }
 .seg-btn {
-  background: transparent;
+  background: linear-gradient(180deg, #c0c7cd, #a4abb1);
   border: none;
   padding: 8px 12px;
   font-size: 12px;
   cursor: pointer;
   color: var(--text-dim);
+  font-weight: 600;
+}
+.seg-btn + .seg-btn {
+  border-left: 1px solid rgba(0, 0, 0, 0.32);
 }
 .seg-btn.on {
-  background: linear-gradient(180deg, rgba(255, 138, 179, 0.28), rgba(255, 138, 179, 0.14));
-  color: var(--text);
+  background: linear-gradient(180deg, var(--screen), var(--screen-2));
+  color: var(--accent-2);
+  text-shadow: 0 0 7px rgba(79, 198, 230, 0.6);
 }
 
 .mini-btn {
-  background: var(--panel-3);
-  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #c0c7cd, #a4abb1);
+  border: 1px solid var(--line-2);
   color: var(--text-dim);
   width: 24px;
   height: 22px;
-  border-radius: 5px;
+  border-radius: 3px;
+  box-shadow: var(--bevel-up);
   font-size: 11px;
+  font-weight: 700;
   cursor: pointer;
   padding: 0;
 }
 .mini-btn:hover {
+  background: linear-gradient(180deg, #ced5db, #b2b9bf);
   color: var(--text);
-  border-color: var(--line-2);
 }
 .mini-btn.on {
-  background: var(--accent);
-  color: #2a121c;
-  border-color: transparent;
-  font-weight: 700;
+  background: linear-gradient(180deg, var(--screen), var(--screen-2));
+  color: var(--accent);
+  border-color: rgba(0, 0, 0, 0.6);
+  text-shadow: 0 0 7px rgba(226, 149, 43, 0.75);
+  box-shadow: var(--bevel-down);
 }
 .mini-btn.solo.on {
-  background: var(--accent-3);
+  color: var(--accent-3);
+  text-shadow: 0 0 7px rgba(232, 194, 70, 0.75);
 }
 .mini-btn.danger:hover {
-  border-color: var(--danger);
-  color: var(--danger);
+  color: #7a1c17;
 }
 
 /* knob --------------------------------------------------------------- */
@@ -400,6 +473,7 @@ select {
 .knob-svg {
   width: 44px;
   height: 44px;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.5));
 }
 .knob-sm .knob-svg {
   width: 34px;
@@ -407,7 +481,7 @@ select {
 }
 .knob-track {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.11);
+  stroke: rgba(0, 0, 0, 0.42);
   stroke-width: 3.5;
   stroke-linecap: round;
 }
@@ -416,20 +490,21 @@ select {
   stroke: var(--accent);
   stroke-width: 3.5;
   stroke-linecap: round;
-  filter: drop-shadow(0 0 4px rgba(255, 138, 179, 0.45));
+  filter: drop-shadow(0 0 3px rgba(226, 149, 43, 0.75));
 }
+/* つまみ本体＝ダーク金属（index.html の radialGradient を参照） */
 .knob-cap {
-  fill: url(#none);
-  fill: #2b2237;
-  stroke: rgba(255, 255, 255, 0.09);
+  fill: url(#knobMetal);
+  stroke: rgba(255, 255, 255, 0.34);
+  stroke-width: 1;
 }
 .knob-pointer {
-  stroke: var(--text);
+  stroke: #eef3f6;
   stroke-width: 2;
   stroke-linecap: round;
 }
 .knob.active .knob-cap {
-  fill: #392c48;
+  fill: url(#knobMetalActive);
 }
 .knob-label {
   font-size: 9.5px;
@@ -437,12 +512,14 @@ select {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 .knob-value {
   font-family: var(--mono);
   font-size: 10px;
-  color: var(--accent-2);
+  color: var(--text-dim);
   white-space: nowrap;
+  font-weight: 600;
 }
 
 /* fields -------------------------------------------------------------- */
@@ -463,31 +540,41 @@ select {
   color: var(--text-mute);
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.22);
 }
+/* 選択欄・入力欄も暗い LCD 窓に揃える */
 .field-select,
 .field-input {
-  background: #0e0b13;
-  border: 1px solid var(--line-2);
-  border-radius: 6px;
+  background: linear-gradient(180deg, var(--screen-2), var(--screen));
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  border-radius: 3px;
+  box-shadow: var(--bevel-down), 0 1px 0 var(--edge-hi);
   padding: 6px 8px;
   font-size: 12px;
   min-width: 80px;
+  color: var(--accent-2);
+}
+.field-select option {
+  background: var(--screen);
+  color: #d6eef6;
 }
 .field-select:focus,
 .field-input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--accent-2);
 }
 
 .switch {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background: var(--panel-3);
-  border: 1px solid var(--line);
-  border-radius: 7px;
+  background: linear-gradient(180deg, #c0c7cd, #a4abb1);
+  border: 1px solid var(--line-2);
+  border-radius: 3px;
+  box-shadow: var(--bevel-up);
   padding: 7px 11px;
   font-size: 11.5px;
+  font-weight: 600;
   cursor: pointer;
   color: var(--text-dim);
 }
@@ -495,16 +582,16 @@ select {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #4a3f58;
+  background: #4a5157;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7);
   transition: background 0.15s, box-shadow 0.15s;
 }
 .switch.on {
   color: var(--text);
-  border-color: rgba(255, 138, 179, 0.55);
 }
 .switch.on .switch-led {
   background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
+  box-shadow: 0 0 8px var(--accent), inset 0 1px 1px rgba(255, 255, 255, 0.5);
 }
 
 /* ------------------------------------------------------------------ main */
@@ -514,11 +601,11 @@ select {
   min-width: 0;
   min-height: 0;
   gap: 1px;
-  background: var(--line);
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .panel {
-  background: var(--bg-2);
+  background: var(--brush), linear-gradient(180deg, #949ba1, #899096);
   min-height: 0;
   overflow: auto;
 }
@@ -531,12 +618,15 @@ select {
   padding: 9px 10px;
   font-size: 11px;
   letter-spacing: 0.12em;
-  color: var(--text-mute);
+  color: var(--text-dim);
+  font-weight: 700;
   text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.24);
   position: sticky;
   top: 0;
-  background: var(--bg-2);
-  border-bottom: 1px solid var(--line);
+  background: var(--brush), linear-gradient(180deg, #9da4aa, #8d949a);
+  border-bottom: 1px solid var(--line-2);
+  box-shadow: inset 0 1px 0 var(--edge-hi);
   z-index: 2;
 }
 .mixer-list {
@@ -545,23 +635,26 @@ select {
   padding: 6px;
   gap: 6px;
 }
+/* 各トラックは筐体にネジ留めした小パネル */
 .track-row {
-  background: var(--panel);
-  border: 1px solid var(--line);
+  background: var(--brush), linear-gradient(180deg, #b2b9bf, #a1a8ae);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius);
+  box-shadow: var(--bevel-up);
   padding: 8px;
   display: flex;
   flex-direction: column;
   gap: 6px;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: background 0.15s, box-shadow 0.12s;
 }
 .track-row:hover {
-  border-color: var(--line-2);
+  background: var(--brush), linear-gradient(180deg, #bcc3c9, #abb2b8);
 }
 .track-row.selected {
-  border-color: var(--accent);
-  background: linear-gradient(180deg, rgba(255, 138, 179, 0.12), var(--panel));
+  background: var(--brush), linear-gradient(180deg, #c4cbd1, #adb4ba);
+  box-shadow: var(--bevel-up), inset 0 0 0 1px rgba(79, 198, 230, 0.55),
+    0 0 10px rgba(79, 198, 230, 0.22);
 }
 .track-top {
   display: flex;
@@ -573,18 +666,20 @@ select {
   min-width: 0;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: 3px;
   padding: 3px 5px;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--text);
 }
 .track-name:hover {
-  border-color: var(--line);
+  border-color: rgba(0, 0, 0, 0.25);
 }
 .track-name:focus {
   outline: none;
-  border-color: var(--accent);
-  background: #0e0b13;
+  border-color: rgba(0, 0, 0, 0.6);
+  background: var(--screen-2);
+  color: var(--accent-2);
 }
 .track-patch {
   font-size: 10.5px;
@@ -602,10 +697,11 @@ select {
 .meter-row {
   flex: 1;
   height: 7px;
-  background: #0b0810;
-  border-radius: 4px;
+  background: var(--screen-2);
+  border-radius: 2px;
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  box-shadow: var(--bevel-down);
 }
 .meter-row-bar {
   height: 100%;
@@ -620,9 +716,10 @@ select {
 .meter {
   width: 9px;
   height: 40px;
-  background: #0b0810;
-  border: 1px solid var(--line);
-  border-radius: 4px;
+  background: var(--screen-2);
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  border-radius: 2px;
+  box-shadow: var(--bevel-down);
   display: flex;
   align-items: flex-end;
   overflow: hidden;
@@ -643,55 +740,61 @@ select {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  background: var(--brush), linear-gradient(180deg, #99a0a6, #8c9399);
 }
 .tabs {
   display: flex;
   gap: 2px;
   padding: 6px 8px 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--line-2);
 }
 .tab {
-  background: transparent;
-  border: 1px solid transparent;
+  background: linear-gradient(180deg, #b2b9bf, #9ca3a9);
+  border: 1px solid var(--line-2);
   border-bottom: none;
-  border-radius: 8px 8px 0 0;
+  border-radius: 3px 3px 0 0;
+  box-shadow: inset 0 1px 0 var(--edge-hi);
   padding: 8px 16px;
   font-size: 12.5px;
+  font-weight: 600;
   color: var(--text-dim);
   cursor: pointer;
 }
 .tab.on {
-  background: var(--panel);
-  border-color: var(--line);
-  color: var(--text);
-  box-shadow: inset 0 2px 0 var(--accent);
+  background: linear-gradient(180deg, var(--screen), var(--screen-2));
+  color: var(--accent-2);
+  text-shadow: 0 0 8px rgba(79, 198, 230, 0.6);
+  box-shadow: inset 0 2px 0 var(--accent), inset 0 -6px 12px rgba(0, 0, 0, 0.35);
 }
 
+/* 大きな LCD 窓 */
 .lcd {
   display: flex;
   align-items: center;
   gap: 12px;
   margin: 8px;
   padding: 8px 14px;
-  background: linear-gradient(180deg, #0a1512, #071110);
-  border: 1px solid rgba(126, 230, 168, 0.22);
-  border-radius: 8px;
+  background: linear-gradient(180deg, var(--screen-2), #12161a);
+  border: 1px solid rgba(0, 0, 0, 0.62);
+  border-radius: 3px;
   font-family: var(--mono);
-  box-shadow: inset 0 0 22px rgba(126, 230, 168, 0.08);
+  box-shadow: var(--bevel-down), inset 0 0 26px rgba(79, 198, 230, 0.09),
+    0 1px 0 var(--edge-hi);
 }
 .lcd-track {
-  color: var(--ok);
+  color: var(--accent-2);
   font-size: 13px;
   font-weight: 700;
+  text-shadow: 0 0 8px rgba(79, 198, 230, 0.6);
 }
 .lcd-patch {
-  color: #d8f8e6;
+  color: #d3ecf5;
   font-size: 13px;
 }
 .lcd-meta {
   margin-left: auto;
   font-size: 10px;
-  color: rgba(126, 230, 168, 0.65);
+  color: rgba(79, 198, 230, 0.62);
   letter-spacing: 0.16em;
 }
 
@@ -710,20 +813,24 @@ select {
   align-items: start;
 }
 
+/* 各モジュール＝筐体に浮き出た金属パネル */
 .module {
-  background: linear-gradient(180deg, var(--panel), var(--bg-2));
-  border: 1px solid var(--line);
+  background: var(--brush), linear-gradient(180deg, #b8bfc5, #a4abb1);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius);
+  box-shadow: var(--bevel-up), 0 2px 4px rgba(0, 0, 0, 0.32);
   overflow: hidden;
 }
 .module-header {
   font-size: 9.5px;
   letter-spacing: 0.16em;
-  color: var(--text-mute);
+  font-weight: 700;
+  color: var(--text-dim);
   padding: 7px 10px;
-  background: rgba(255, 255, 255, 0.03);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(0, 0, 0, 0.08));
   border-bottom: 1px solid var(--line);
   text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 .module-body {
   padding: 9px;
@@ -748,16 +855,18 @@ select {
 .graph {
   width: 100%;
   height: 62px;
-  background: #0b0810;
-  border: 1px solid var(--line);
-  border-radius: 7px;
+  background: var(--screen-2);
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  border-radius: 3px;
+  box-shadow: var(--bevel-down);
 }
 .scope {
   width: 100%;
   height: 130px;
-  background: #0b0810;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background: var(--screen-2);
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  border-radius: 3px;
+  box-shadow: var(--bevel-down);
   margin-bottom: 8px;
   overflow: hidden;
 }
@@ -772,8 +881,9 @@ select {
 
 /* browser ------------------------------------------------------------- */
 .browser {
-  border-top: 1px solid var(--line);
-  background: var(--bg-2);
+  border-top: 1px solid var(--line-2);
+  background: var(--brush), linear-gradient(180deg, #949ba1, #899096);
+  box-shadow: inset 0 1px 0 var(--edge-hi);
   max-height: 172px;
   display: flex;
   flex-direction: column;
@@ -790,15 +900,20 @@ select {
 }
 .browser-search {
   flex: 1;
-  background: #0e0b13;
-  border: 1px solid var(--line-2);
-  border-radius: 7px;
+  background: linear-gradient(180deg, var(--screen-2), var(--screen));
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  border-radius: 3px;
+  box-shadow: var(--bevel-down), 0 1px 0 var(--edge-hi);
   padding: 7px 10px;
   font-size: 12.5px;
+  color: var(--accent-2);
+}
+.browser-search::placeholder {
+  color: rgba(79, 198, 230, 0.42);
 }
 .browser-search:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--accent-2);
 }
 .browser-chips {
   display: flex;
@@ -810,20 +925,23 @@ select {
   scrollbar-width: thin;
 }
 .chip {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  background: linear-gradient(180deg, #c0c7cd, #a4abb1);
+  border: 1px solid var(--line-2);
+  border-radius: 3px;
+  box-shadow: var(--bevel-up);
   padding: 4px 11px;
   font-size: 10.5px;
+  font-weight: 600;
   color: var(--text-dim);
   cursor: pointer;
   white-space: nowrap;
 }
 .chip.on {
-  background: var(--accent);
-  color: #2a121c;
-  border-color: transparent;
-  font-weight: 700;
+  background: linear-gradient(180deg, var(--screen), var(--screen-2));
+  color: var(--accent-2);
+  border-color: rgba(0, 0, 0, 0.6);
+  text-shadow: 0 0 7px rgba(79, 198, 230, 0.6);
+  box-shadow: var(--bevel-down);
 }
 .browser-list {
   overflow: auto;
@@ -834,9 +952,11 @@ select {
 .browser-group-title {
   font-size: 9.5px;
   letter-spacing: 0.14em;
-  color: var(--text-mute);
+  font-weight: 700;
+  color: var(--text-dim);
   margin: 8px 0 5px;
   text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 .browser-items {
   display: grid;
@@ -845,11 +965,13 @@ select {
 }
 .patch-btn {
   position: relative;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 7px;
+  background: linear-gradient(180deg, #bcc3c9, #a5acb2);
+  border: 1px solid var(--line-2);
+  border-radius: 3px;
+  box-shadow: var(--bevel-up);
   padding: 8px 10px;
   font-size: 12px;
+  font-weight: 600;
   text-align: left;
   cursor: pointer;
   color: var(--text-dim);
@@ -859,18 +981,23 @@ select {
   gap: 6px;
 }
 .patch-btn:hover {
-  border-color: var(--accent);
+  background: linear-gradient(180deg, #cad1d7, #b2b9bf);
   color: var(--text);
 }
 .patch-btn.active {
-  background: linear-gradient(180deg, rgba(255, 138, 179, 0.24), rgba(255, 138, 179, 0.1));
-  border-color: var(--accent);
-  color: var(--text);
+  background: linear-gradient(180deg, var(--screen), var(--screen-2));
+  color: var(--accent-2);
+  border-color: rgba(0, 0, 0, 0.6);
+  text-shadow: 0 0 7px rgba(79, 198, 230, 0.6);
+  box-shadow: var(--bevel-down);
 }
 .patch-del {
   color: var(--text-mute);
   font-size: 14px;
   padding: 0 3px;
+}
+.patch-btn.active .patch-del {
+  color: rgba(214, 238, 246, 0.66);
 }
 .patch-del:hover {
   color: var(--danger);
@@ -885,8 +1012,9 @@ select {
 .bottom {
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--line);
-  background: var(--bg-2);
+  border-top: 1px solid var(--line-2);
+  background: var(--brush), linear-gradient(180deg, #949ba1, #899096);
+  box-shadow: inset 0 1px 0 var(--edge-hi);
 }
 .roll-wrap {
   height: 242px;
@@ -914,9 +1042,10 @@ select {
 .slot-btn {
   width: 27px;
   height: 27px;
-  border-radius: 6px;
+  border-radius: 3px;
   border: 1px solid var(--line-2);
-  background: var(--panel-2);
+  background: linear-gradient(180deg, #c0c7cd, #a4abb1);
+  box-shadow: var(--bevel-up);
   color: var(--text-dim);
   cursor: pointer;
   font-weight: 700;
@@ -931,12 +1060,15 @@ select {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: var(--accent-2);
+  background: var(--accent);
+  box-shadow: 0 0 5px var(--accent);
 }
 .slot-btn.on {
-  background: var(--accent);
-  color: #2a121c;
-  border-color: transparent;
+  background: linear-gradient(180deg, var(--screen), var(--screen-2));
+  color: var(--accent-2);
+  border-color: rgba(0, 0, 0, 0.6);
+  text-shadow: 0 0 7px rgba(79, 198, 230, 0.6);
+  box-shadow: var(--bevel-down);
 }
 .roll-vel-input {
   width: 84px;
@@ -946,6 +1078,8 @@ select {
   flex: 1;
   min-height: 0;
   position: relative;
+  background: var(--roll-bg);
+  box-shadow: var(--bevel-down);
 }
 .roll-canvas {
   display: block;
@@ -957,8 +1091,9 @@ select {
   display: flex;
   gap: 10px;
   padding: 8px;
-  border-top: 1px solid var(--line);
-  background: linear-gradient(180deg, var(--panel), var(--bg-2));
+  border-top: 1px solid var(--line-2);
+  background: var(--brush), linear-gradient(180deg, #a3aab0, #8e959b);
+  box-shadow: inset 0 1px 0 var(--edge-hi);
 }
 .wheels {
   display: flex;
@@ -974,9 +1109,10 @@ select {
 .wheel {
   width: 26px;
   height: 84px;
-  background: linear-gradient(90deg, #100c15, #241c2e, #100c15);
-  border: 1px solid var(--line-2);
-  border-radius: 7px;
+  background: linear-gradient(90deg, #14181b, #363d42, #14181b);
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  border-radius: 3px;
+  box-shadow: var(--bevel-down);
   position: relative;
   touch-action: none;
   cursor: ns-resize;
@@ -987,15 +1123,17 @@ select {
   right: 2px;
   height: 22px;
   bottom: 50%;
-  border-radius: 5px;
-  background: linear-gradient(180deg, #4d3f5f, #2c2338);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 2px;
+  background: linear-gradient(180deg, #e0e6e6, #99a0a6 52%, #4d545a);
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   pointer-events: none;
 }
 .wheel-label {
   font-size: 8.5px;
   color: var(--text-mute);
   letter-spacing: 0.1em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 .octave-buttons {
   display: flex;
@@ -1021,30 +1159,30 @@ select {
 .key {
   position: absolute;
   top: 0;
-  border-radius: 0 0 5px 5px;
+  border-radius: 0 0 3px 3px;
   cursor: pointer;
 }
 .key.white {
   width: var(--key-w);
   height: 100%;
-  background: linear-gradient(180deg, #f6f1fa, #d9d0e2);
-  border: 1px solid #8f849c;
+  background: linear-gradient(180deg, #fbfcfd, #dfe3e6);
+  border: 1px solid #7d858c;
   border-top: none;
-  box-shadow: inset 0 -6px 8px rgba(0, 0, 0, 0.13);
+  box-shadow: inset 0 -6px 8px rgba(0, 0, 0, 0.14);
 }
 .key.white.pressed {
-  background: linear-gradient(180deg, var(--accent), #ffb5cf);
+  background: linear-gradient(180deg, #f3b658, var(--accent));
 }
 .key.black {
   width: calc(var(--key-w) * 0.64);
   height: 62%;
-  background: linear-gradient(180deg, #2c2436, #100c16);
+  background: linear-gradient(180deg, #3a4146, #14181b);
   border: 1px solid #000;
   z-index: 2;
-  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.55);
 }
 .key.black.pressed {
-  background: linear-gradient(180deg, #b8577c, #7d2f4c);
+  background: linear-gradient(180deg, #c47f21, #8a570f);
 }
 .key-label {
   position: absolute;
@@ -1053,7 +1191,7 @@ select {
   right: 0;
   text-align: center;
   font-size: 8.5px;
-  color: #8a7f97;
+  color: #6f777e;
   pointer-events: none;
 }
 
@@ -1064,8 +1202,9 @@ select {
   padding: 5px 12px;
   font-size: 10.5px;
   color: var(--text-mute);
-  background: var(--panel);
-  border-top: 1px solid var(--line);
+  background: var(--brush), linear-gradient(180deg, #99a0a6, #8b9298);
+  border-top: 1px solid var(--line-2);
+  box-shadow: inset 0 1px 0 var(--edge-hi);
   flex-wrap: wrap;
 }
 
@@ -1087,23 +1226,27 @@ select {
   display: flex;
   gap: 4px;
   align-items: center;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background: var(--brush), linear-gradient(180deg, #b2b9bf, #a1a8ae);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  box-shadow: var(--bevel-up);
   padding: 5px;
   min-width: max-content;
 }
 .song-row.playing {
-  border-color: var(--accent);
-  background: linear-gradient(180deg, rgba(255, 138, 179, 0.14), var(--panel));
+  box-shadow: var(--bevel-up), inset 0 0 0 1px rgba(226, 149, 43, 0.6),
+    0 0 10px rgba(226, 149, 43, 0.25);
 }
 .song-header {
   background: transparent;
   border-color: transparent;
+  box-shadow: none;
   font-size: 9.5px;
-  color: var(--text-mute);
+  color: var(--text-dim);
+  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 .song-name-cell {
   width: 116px;
@@ -1131,11 +1274,19 @@ select {
 .song-bars,
 .song-slot {
   width: 100%;
-  background: #0e0b13;
-  border: 1px solid var(--line-2);
-  border-radius: 5px;
+  background: linear-gradient(180deg, var(--screen-2), var(--screen));
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  border-radius: 3px;
+  box-shadow: var(--bevel-down);
   padding: 5px 6px;
   font-size: 11.5px;
+  color: var(--accent-2);
+}
+.song-name:focus,
+.song-bars:focus,
+.song-slot:focus {
+  outline: none;
+  border-color: var(--accent-2);
 }
 .song-total {
   color: var(--text-mute);
@@ -1150,8 +1301,10 @@ select {
 .song-demos h3 {
   font-size: 9.5px;
   letter-spacing: 0.14em;
-  color: var(--text-mute);
+  font-weight: 700;
+  color: var(--text-dim);
   text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.22);
   margin: 0 0 4px;
 }
 .song-demos-hint {
@@ -1165,9 +1318,10 @@ select {
   gap: 6px;
 }
 .song-demo-row {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background: var(--brush), linear-gradient(180deg, #b8bfc5, #a4abb1);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  box-shadow: var(--bevel-up);
   padding: 8px 10px;
   text-align: left;
   cursor: pointer;
@@ -1176,12 +1330,12 @@ select {
   gap: 2px;
 }
 .song-demo-row:hover {
-  border-color: var(--accent);
+  background: var(--brush), linear-gradient(180deg, #c4cbd1, #b0b8be);
 }
 .song-demo-title {
   font-size: 12px;
   color: var(--text);
-  font-weight: 600;
+  font-weight: 700;
 }
 .song-demo-sub {
   font-size: 10.5px;
@@ -1192,7 +1346,7 @@ select {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(6, 4, 9, 0.72);
+  background: rgba(14, 17, 19, 0.66);
   backdrop-filter: blur(4px);
   display: grid;
   place-items: center;
@@ -1200,10 +1354,10 @@ select {
   z-index: 50;
 }
 .modal {
-  background: var(--panel);
+  background: var(--brush), linear-gradient(180deg, #b2b9bf, #9ba2a8);
   border: 1px solid var(--line-2);
-  border-radius: 14px;
-  box-shadow: var(--shadow);
+  border-radius: 6px;
+  box-shadow: var(--bevel-up), var(--shadow);
   width: min(720px, 100%);
   max-height: 84vh;
   display: flex;
@@ -1219,6 +1373,8 @@ select {
 .modal-head h2 {
   margin: 0;
   font-size: 15px;
+  color: var(--text);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.26);
 }
 .modal-close {
   background: transparent;
@@ -1245,7 +1401,7 @@ select {
 .help h3 {
   font-size: 13px;
   margin: 16px 0 6px;
-  color: var(--accent);
+  color: #6b3f06;
 }
 .help h3:first-child {
   margin-top: 0;
@@ -1279,7 +1435,8 @@ select {
 .progress {
   font-family: var(--mono);
   font-size: 12px;
-  color: var(--accent-2);
+  color: #0d4756;
+  font-weight: 600;
   min-height: 18px;
 }
 .preset-picker {
@@ -1292,13 +1449,14 @@ select {
   left: 50%;
   bottom: 26px;
   transform: translate(-50%, 20px);
-  background: var(--panel-3);
-  border: 1px solid var(--accent);
-  color: var(--text);
+  background: linear-gradient(180deg, var(--screen), var(--screen-2));
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  color: var(--accent-2);
+  text-shadow: 0 0 8px rgba(79, 198, 230, 0.55);
   padding: 10px 18px;
-  border-radius: 999px;
+  border-radius: 4px;
   font-size: 12.5px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), 0 1px 0 var(--edge-hi);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s, transform 0.2s;
