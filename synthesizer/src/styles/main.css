@@ -6,20 +6,20 @@
 :root {
   /* --- 宇宙空間 ------------------------------------------------------- */
   --bg: #07040f;
-  --bg-2: rgba(16, 10, 34, 0.38);
-  --panel: rgba(26, 16, 50, 0.72);
-  --panel-2: rgba(38, 24, 70, 0.78);
-  --panel-3: rgba(54, 34, 94, 0.82);
+  --bg-2: rgba(19, 12, 40, 0.86);
+  --panel: rgba(30, 18, 58, 0.92);
+  --panel-2: rgba(41, 26, 76, 0.93);
+  --panel-3: rgba(56, 36, 98, 0.94);
 
   /* 星明かりの縁取り */
-  --line: rgba(178, 142, 255, 0.2);
-  --line-2: rgba(198, 164, 255, 0.34);
+  --line: rgba(186, 156, 255, 0.34);
+  --line-2: rgba(212, 186, 255, 0.6);
   --grid: rgba(190, 160, 255, 0.12);
 
   /* --- 文字 ----------------------------------------------------------- */
-  --text: #f2ecff;
-  --text-dim: #bcaae2;
-  --text-mute: #8b7ab4;
+  --text: #f7f4ff;
+  --text-dim: #c9bce8;
+  --text-mute: #a294c6;
 
   /* --- 星の色（アクセント） ------------------------------------------ */
   --accent: #ff77d9;    /* 星雲のマゼンタ */
@@ -29,8 +29,8 @@
   --ok: #7ff0c4;
 
   /* --- 深宇宙の窓（LCD相当） ------------------------------------------ */
-  --screen: rgba(10, 6, 24, 0.88);
-  --screen-2: rgba(6, 3, 16, 0.94);
+  --screen: rgba(10, 6, 24, 0.96);
+  --screen-2: rgba(6, 3, 16, 0.98);
 
   --roll-bg: #0a0619;
   --roll-bg-alt: #0f0a22;
@@ -175,8 +175,7 @@ select {
   align-items: stretch;
   gap: 10px;
   padding: 6px 12px;
-  background: linear-gradient(180deg, rgba(14, 8, 32, 0.42), rgba(8, 4, 20, 0.5));
-  backdrop-filter: blur(8px);
+  background: linear-gradient(180deg, rgba(17, 10, 38, 0.9), rgba(10, 5, 24, 0.93));
   border-bottom: 1px solid var(--line);
   height: 84px;
   flex: 0 0 auto;
@@ -185,7 +184,7 @@ select {
   flex: 0 0 auto;
   width: 92px;
   align-self: center;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(66, 47, 110, 0.72);
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text-mute);
@@ -286,8 +285,7 @@ select {
   align-items: center;
   gap: 14px;
   padding: 8px 12px;
-  background: linear-gradient(180deg, rgba(30, 18, 58, 0.38), rgba(14, 8, 32, 0.46));
-  backdrop-filter: blur(8px);
+  background: linear-gradient(180deg, rgba(33, 20, 63, 0.9), rgba(17, 10, 38, 0.93));
   border-bottom: 1px solid var(--line);
   flex-wrap: wrap;
 }
@@ -319,7 +317,6 @@ select {
   font-weight: 800;
   letter-spacing: 0.12em;
   line-height: 1.15;
-  text-shadow: 0 0 16px rgba(255, 119, 217, 0.4);
 }
 .brand-name small {
   font-size: 9px;
@@ -349,7 +346,6 @@ select {
   border-radius: 8px;
   padding: 5px 10px;
   color: var(--accent-2);
-  text-shadow: 0 0 12px rgba(127, 212, 255, 0.7);
   min-width: 82px;
   text-align: center;
   letter-spacing: 0.08em;
@@ -357,13 +353,12 @@ select {
 
 /* buttons ------------------------------------------------------------ */
 .btn {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+  background: linear-gradient(180deg, rgba(78, 56, 128, 0.8), rgba(48, 32, 88, 0.8));
   border: 1px solid var(--line);
   color: var(--text);
   border-radius: 9px;
   padding: 8px 13px;
   cursor: pointer;
-  backdrop-filter: blur(6px);
   transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.06s;
   white-space: nowrap;
 }
@@ -432,10 +427,9 @@ select {
   border: 1px solid var(--line);
   border-radius: 9px;
   overflow: hidden;
-  backdrop-filter: blur(6px);
 }
 .seg-btn {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(58, 40, 100, 0.75);
   border: none;
   padding: 8px 12px;
   font-size: 12px;
@@ -449,7 +443,7 @@ select {
 }
 
 .mini-btn {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(72, 52, 118, 0.75);
   border: 1px solid var(--line);
   color: var(--text-dim);
   width: 24px;
@@ -592,7 +586,7 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(72, 52, 118, 0.75);
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 7px 11px;
@@ -628,7 +622,6 @@ select {
 
 .panel {
   background: var(--bg-2);
-  backdrop-filter: blur(10px);
   min-height: 0;
   overflow: auto;
 }
@@ -645,8 +638,7 @@ select {
   text-transform: uppercase;
   position: sticky;
   top: 0;
-  background: linear-gradient(180deg, rgba(14, 8, 32, 0.9), rgba(14, 8, 32, 0.7));
-  backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, rgba(17, 10, 38, 0.97), rgba(17, 10, 38, 0.94));
   border-bottom: 1px solid var(--line);
   z-index: 2;
 }
@@ -797,7 +789,6 @@ select {
   color: var(--accent-2);
   font-size: 13px;
   font-weight: 700;
-  text-shadow: 0 0 12px rgba(127, 212, 255, 0.75);
 }
 .lcd-patch {
   color: #e6f4ff;
@@ -827,10 +818,9 @@ select {
 
 /* 各モジュール＝宇宙に浮かぶガラス板 */
 .module {
-  background: linear-gradient(180deg, rgba(46, 28, 86, 0.58), rgba(16, 9, 36, 0.66));
+  background: linear-gradient(180deg, rgba(41, 25, 78, 0.93), rgba(20, 12, 44, 0.95));
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  backdrop-filter: blur(12px);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   overflow: hidden;
 }
@@ -893,7 +883,6 @@ select {
 .browser {
   border-top: 1px solid var(--line);
   background: var(--bg-2);
-  backdrop-filter: blur(10px);
   max-height: 172px;
   display: flex;
   flex-direction: column;
@@ -935,7 +924,7 @@ select {
   scrollbar-width: thin;
 }
 .chip {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(66, 47, 110, 0.75);
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 4px 11px;
@@ -1014,7 +1003,6 @@ select {
   flex-direction: column;
   border-top: 1px solid var(--line);
   background: var(--bg-2);
-  backdrop-filter: blur(10px);
 }
 .roll-wrap {
   height: 242px;
@@ -1044,7 +1032,7 @@ select {
   height: 27px;
   border-radius: 7px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(72, 52, 118, 0.75);
   color: var(--text-dim);
   cursor: pointer;
   font-weight: 700;
@@ -1088,8 +1076,7 @@ select {
   gap: 10px;
   padding: 8px;
   border-top: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(26, 16, 50, 0.4), rgba(10, 6, 24, 0.5));
-  backdrop-filter: blur(8px);
+  background: linear-gradient(180deg, rgba(29, 18, 56, 0.9), rgba(13, 8, 30, 0.93));
 }
 .wheels {
   display: flex;
@@ -1198,8 +1185,7 @@ select {
   padding: 5px 12px;
   font-size: 10.5px;
   color: var(--text-mute);
-  background: rgba(10, 6, 24, 0.45);
-  backdrop-filter: blur(8px);
+  background: rgba(14, 8, 32, 0.9);
   border-top: 1px solid var(--line);
   flex-wrap: wrap;
 }
@@ -1338,7 +1324,6 @@ select {
   position: fixed;
   inset: 0;
   background: rgba(4, 2, 12, 0.76);
-  backdrop-filter: blur(6px);
   display: grid;
   place-items: center;
   padding: 20px;
