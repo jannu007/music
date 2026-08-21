@@ -1,5 +1,5 @@
 /* Hibiki Drum Machine — オフライン用サービスワーカー（スコープ: /drums/） */
-const CACHE = 'hibiki-drums-v4';
+const CACHE = 'hibiki-drums-v5';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
