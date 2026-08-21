@@ -618,8 +618,8 @@ html, body {
   border: 1px solid hsl(var(--pad-hue, 30) var(--pad-sat, 12%) 62% / 0.17);
   background: radial-gradient(120% 100% at 30% 0%, rgba(255, 244, 226, 0.12), rgba(255, 244, 226, 0) 60%),
     linear-gradient(180deg,
-      hsl(var(--pad-hue, 30) var(--pad-sat, 12%) var(--pad-l-top, 20%)),
-      hsl(var(--pad-hue, 30) var(--pad-sat, 12%) var(--pad-l-bot, 11%)));
+      hsl(var(--pad-hue, 30) calc(var(--pad-sat, 12%) * 0.4) var(--pad-l-top, 20%)),
+      hsl(var(--pad-hue, 30) calc(var(--pad-sat, 12%) * 0.4) var(--pad-l-bot, 11%)));
   box-shadow: inset 0 1px 0 rgba(255, 248, 236, 0.16), 0 1px 2px rgba(34, 21, 10, 0.42);
   cursor: pointer;
   padding: 0;
@@ -632,30 +632,34 @@ html, body {
 .step-cell.beat {
   background: radial-gradient(120% 100% at 30% 0%, rgba(255, 246, 230, 0.22), rgba(255, 246, 230, 0) 62%),
     linear-gradient(180deg,
-      hsl(var(--pad-hue, 30) var(--pad-sat, 12%) calc(var(--pad-l-top, 20%) + 3%)),
-      hsl(var(--pad-hue, 30) var(--pad-sat, 12%) calc(var(--pad-l-bot, 11%) + 2.5%)));
+      hsl(var(--pad-hue, 30) calc(var(--pad-sat, 12%) * 0.4) calc(var(--pad-l-top, 20%) + 3%)),
+      hsl(var(--pad-hue, 30) calc(var(--pad-sat, 12%) * 0.4) calc(var(--pad-l-bot, 11%) + 2.5%)));
   border-color: hsl(var(--pad-hue, 30) var(--pad-sat, 12%) 70% / 0.28);
 }
-.step-cell:hover { border-color: rgba(255, 205, 133, 0.55); }
+.step-cell:hover { border-color: hsl(var(--pad-hue, 30) 80% 66% / 0.6); }
 
-/* 点灯マスは、いちばん弱いゴーストでも消灯マスと混同しないように、
-   ベロシティ 0〜1 をアンバー 52%〜100% の範囲に写す。
-   （0% から始めると弱打が地の色とほぼ同じ暗い茶色になってしまう）*/
+/* 点灯マスはそのトラックの色で光る。
+   ベロシティ 0〜1 を 0.52〜1 に写してから明度に掛けているので、いちばん弱い
+   ゴーストでも十分に明るく、消灯マスと混同しない。 */
 .step-cell.on {
   --lit: calc(0.52 + var(--v, 0.7) * 0.48);
   background: linear-gradient(180deg,
-    color-mix(in srgb, var(--amber-soft) calc(var(--lit) * 100%), #6a4a18),
-    color-mix(in srgb, var(--amber) calc(var(--lit) * 100%), #573a12));
-  border-color: rgba(255, 214, 152, 0.85);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -3px 6px rgba(120, 66, 8, 0.32),
-    0 0 10px rgba(242, 163, 60, calc(var(--lit) * 0.5));
+    hsl(var(--pad-hue, 30) 70% calc(29% + var(--lit) * 29%)),
+    hsl(var(--pad-hue, 30) 66% calc(19% + var(--lit) * 26%)));
+  border-color: hsl(var(--pad-hue, 30) 74% calc(46% + var(--lit) * 20%) / 0.88);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -3px 6px hsl(var(--pad-hue, 30) 60% 12% / 0.4),
+    0 0 9px hsl(var(--pad-hue, 30) 72% 50% / calc(var(--lit) * 0.42));
 }
 
-.step-cell.accent { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 14px rgba(255, 205, 133, 0.7); border-color: #ffe4bb; }
+/* アクセントは同じ色相をさらに白飛びさせて縁取る */
+.step-cell.accent {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 13px hsl(var(--pad-hue, 30) 76% 56% / 0.6);
+  border-color: hsl(var(--pad-hue, 30) 80% 76%);
+}
 /* ゴーストは「点灯しているが弱い」ので、破線＋一段暗いアンバーで示す */
 .step-cell.ghost { border-style: dashed; }
-.step-cell.on.ghost { border-color: rgba(255, 214, 152, 0.9); }
+.step-cell.on.ghost { border-color: hsl(var(--pad-hue, 30) 74% 62% / 0.95); }
 .step-cell.out { opacity: 0.22; }
 
 .step-cell.roll::after {
@@ -683,11 +687,13 @@ html, body {
 .step-cell.shifted { transform: translateY(-2px); }
 
 .step-cell.playing {
-  outline: 2px solid var(--cyan);
+  outline: 2px solid rgba(255, 255, 255, 0.92);
   outline-offset: -2px;
 }
 
-.step-cell.playing.on { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 16px rgba(255, 205, 133, 0.85); }
+.step-cell.playing.on {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 15px hsl(var(--pad-hue, 30) 78% 56% / 0.8);
+}
 
 /* ------------------------------------------------------------------ panel */
 
@@ -944,8 +950,17 @@ html, body {
 .pad.hit { animation: padHit 0.22s ease-out; }
 
 @keyframes padHit {
-  0% { background: linear-gradient(180deg, #ffe1b4, var(--amber)); color: #24160a; }
-  100% { background: linear-gradient(180deg, #5d5852, #312e29); }
+  0% {
+    background: linear-gradient(180deg,
+      hsl(var(--pad-hue, 30) 76% 68%),
+      hsl(var(--pad-hue, 30) 70% 46%));
+    color: #24160a;
+  }
+  100% {
+    background: linear-gradient(180deg,
+      hsl(var(--pad-hue, 30) var(--pad-sat, 12%) 27%),
+      hsl(var(--pad-hue, 30) var(--pad-sat, 12%) 15%));
+  }
 }
 
 .mixer { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.55rem; }
