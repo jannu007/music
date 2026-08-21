@@ -28,6 +28,8 @@ export class DrumPads {
     tracks.forEach((track, i) => {
       const pad = el('button', 'pad');
       pad.type = 'button';
+      // パッドの色はトラックごとの色相で塗るので、CSS から引けるようにしておく
+      pad.dataset.track = track.id;
       pad.append(
         el('span', 'pad-name', t(`track.${track.id}.name`)),
         el('span', 'pad-key', KEY_LABELS[PAD_KEYS[i]] ?? '')

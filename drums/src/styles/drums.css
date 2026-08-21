@@ -615,9 +615,11 @@ html, body {
   height: var(--cell);
   flex: none;
   border-radius: 5px;
-  border: 1px solid var(--pad-rim, rgba(255, 246, 232, 0.11));
+  border: 1px solid hsl(var(--pad-hue, 30) var(--pad-sat, 12%) 62% / 0.17);
   background: radial-gradient(120% 100% at 30% 0%, rgba(255, 244, 226, 0.12), rgba(255, 244, 226, 0) 60%),
-    linear-gradient(180deg, var(--pad-a, #514c45), var(--pad-b, #302c27));
+    linear-gradient(180deg,
+      hsl(var(--pad-hue, 30) var(--pad-sat, 12%) var(--pad-l-top, 20%)),
+      hsl(var(--pad-hue, 30) var(--pad-sat, 12%) var(--pad-l-bot, 11%)));
   box-shadow: inset 0 1px 0 rgba(255, 248, 236, 0.16), 0 1px 2px rgba(34, 21, 10, 0.42);
   cursor: pointer;
   padding: 0;
@@ -626,11 +628,13 @@ html, body {
   transition: background 0.08s linear, box-shadow 0.08s linear;
 }
 
-/* 拍アタマは群の色のまま一段明るくして、色分けを壊さない */
+/* 拍アタマは同じ色相のまま一段明るくして、色分けを壊さない */
 .step-cell.beat {
   background: radial-gradient(120% 100% at 30% 0%, rgba(255, 246, 230, 0.22), rgba(255, 246, 230, 0) 62%),
-    linear-gradient(180deg, var(--pad-a, #514c45), var(--pad-b, #302c27));
-  border-color: rgba(255, 246, 232, 0.26);
+    linear-gradient(180deg,
+      hsl(var(--pad-hue, 30) var(--pad-sat, 12%) calc(var(--pad-l-top, 20%) + 3%)),
+      hsl(var(--pad-hue, 30) var(--pad-sat, 12%) calc(var(--pad-l-bot, 11%) + 2.5%)));
+  border-color: hsl(var(--pad-hue, 30) var(--pad-sat, 12%) 70% / 0.28);
 }
 .step-cell:hover { border-color: rgba(255, 205, 133, 0.55); }
 
@@ -919,7 +923,9 @@ html, body {
   aspect-ratio: 1 / 0.78;
   border-radius: 4px;
   border: 1px solid rgba(0, 0, 0, 0.5);
-  background: linear-gradient(180deg, #5d5852, #312e29);
+  background: linear-gradient(180deg,
+    hsl(var(--pad-hue, 30) var(--pad-sat, 12%) 27%),
+    hsl(var(--pad-hue, 30) var(--pad-sat, 12%) 15%));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 4px rgba(0, 0, 0, 0.45);
   color: #e9e6e2;
   display: flex;
@@ -1048,10 +1054,49 @@ html, body {
 .inspector-title { font-size: 0.72rem; color: #6b3f06; font-weight: 700; }
 
 
-/* --- ステップの4つ割り（実機のカラーボタン配列）------------------------
-   16分を4つずつ違う色のボタンにすることで、灰色の格子が延々と続く無機質な
-   見た目をなくし、拍のアタマも数えずに分かるようにする。点灯時はどの群でも
-   明るいアンバーで上書きされるので、オン／オフの判別は変わらない。 */
+/* --- パッドの色 ---------------------------------------------------------
+   ・色相（何色か）＝トラック。音のイメージに合わせて割り当てている。
+     低く重いものほど赤、金属質で高いものほど青〜紫。
+   ・明度（濃さ）＝拍。16分を4つずつ、1拍目を一番明るく段階的に暗くして、
+     数えなくても拍のアタマが分かるようにしている。
+   点灯時はトラックに関係なく明るいアンバーで上書きされるので、
+   オン／オフとベロシティの読み取りは色分けの影響を受けない。 */
+
+.grid-track,
+.pads {
+  --pad-hue: 30;
+  --pad-sat: 12%;
+}
+.grid-track[data-track='kick'],
+.pad[data-track='kick'] { --pad-hue: 4; --pad-sat: 48%; }  /* BD 深い赤 — 一番低く重い */
+.grid-track[data-track='snare'],
+.pad[data-track='snare'] { --pad-hue: 15; --pad-sat: 52%; }  /* SD 朱 — 弾ける */
+.grid-track[data-track='clap'],
+.pad[data-track='clap'] { --pad-hue: 27; --pad-sat: 55%; }  /* CP オレンジ — 手拍子の明るさ */
+.grid-track[data-track='rim'],
+.pad[data-track='rim'] { --pad-hue: 37; --pad-sat: 52%; }  /* RS 琥珀 — 硬く乾いた */
+.grid-track[data-track='ch'],
+.pad[data-track='ch'] { --pad-hue: 174; --pad-sat: 36%; }  /* CH ティール — 短い金属 */
+.grid-track[data-track='oh'],
+.pad[data-track='oh'] { --pad-hue: 192; --pad-sat: 40%; }  /* OH シアン — 伸びる金属 */
+.grid-track[data-track='tom1'],
+.pad[data-track='tom1'] { --pad-hue: 46; --pad-sat: 42%; }  /* LT 濃い黄土 — 木の胴 */
+.grid-track[data-track='tom2'],
+.pad[data-track='tom2'] { --pad-hue: 54; --pad-sat: 40%; }  /* MT 黄土 */
+.grid-track[data-track='tom3'],
+.pad[data-track='tom3'] { --pad-hue: 63; --pad-sat: 38%; }  /* HT 明るい黄土 */
+.grid-track[data-track='ride'],
+.pad[data-track='ride'] { --pad-hue: 212; --pad-sat: 42%; }  /* RD 青 — 刻みのシンバル */
+.grid-track[data-track='crash'],
+.pad[data-track='crash'] { --pad-hue: 230; --pad-sat: 46%; }  /* CR 濃い青 — 派手なシンバル */
+.grid-track[data-track='cowbell'],
+.pad[data-track='cowbell'] { --pad-hue: 287; --pad-sat: 36%; }  /* CB 紫 — 独特な金属 */
+.grid-track[data-track='shaker'],
+.pad[data-track='shaker'] { --pad-hue: 150; --pad-sat: 32%; }  /* SK 緑 — 細かい粒 */
+.grid-track[data-track='perc'],
+.pad[data-track='perc'] { --pad-hue: 315; --pad-sat: 34%; }  /* PC マゼンタ — その他の打楽器 */
+
+/* 拍ごとの濃さ（1拍目が最も明るい） */
 
 /* 第 1 拍の群 */
 .track-steps .step-cell[data-index="0"],
@@ -1070,9 +1115,8 @@ html, body {
 .track-steps .step-cell[data-index="49"],
 .track-steps .step-cell[data-index="50"],
 .track-steps .step-cell[data-index="51"] {
-  --pad-a: #512319;
-  --pad-b: #2c140f;
-  --pad-rim: rgba(255, 183, 150, 0.16);
+  --pad-l-top: 25%;
+  --pad-l-bot: 14.5%;
 }
 
 /* 第 2 拍の群 */
@@ -1092,9 +1136,8 @@ html, body {
 .track-steps .step-cell[data-index="53"],
 .track-steps .step-cell[data-index="54"],
 .track-steps .step-cell[data-index="55"] {
-  --pad-a: #563310;
-  --pad-b: #2f1b07;
-  --pad-rim: rgba(255, 196, 140, 0.15);
+  --pad-l-top: 21.5%;
+  --pad-l-bot: 12.5%;
 }
 
 /* 第 3 拍の群 */
@@ -1114,9 +1157,8 @@ html, body {
 .track-steps .step-cell[data-index="57"],
 .track-steps .step-cell[data-index="58"],
 .track-steps .step-cell[data-index="59"] {
-  --pad-a: #4e3812;
-  --pad-b: #2b1e07;
-  --pad-rim: rgba(255, 220, 150, 0.14);
+  --pad-l-top: 18%;
+  --pad-l-bot: 10.5%;
 }
 
 /* 第 4 拍の群 */
@@ -1136,26 +1178,25 @@ html, body {
 .track-steps .step-cell[data-index="61"],
 .track-steps .step-cell[data-index="62"],
 .track-steps .step-cell[data-index="63"] {
-  --pad-a: #3f3b38;
-  --pad-b: #23201d;
-  --pad-rim: rgba(255, 246, 232, 0.13);
+  --pad-l-top: 15%;
+  --pad-l-bot: 8.5%;
 }
 
-/* --- トラック名を打楽器のグループごとに刷り分ける（パネル印刷のインク色） */
-.grid-track[data-track='kick'] .track-short,
-.grid-track[data-track='snare'] .track-short { color: #8f2f1f; }
-.grid-track[data-track='clap'] .track-short,
-.grid-track[data-track='rim'] .track-short { color: #9c5510; }
-.grid-track[data-track='ch'] .track-short,
-.grid-track[data-track='oh'] .track-short,
-.grid-track[data-track='shaker'] .track-short { color: #1f6152; }
-.grid-track[data-track='tom1'] .track-short,
-.grid-track[data-track='tom2'] .track-short,
-.grid-track[data-track='tom3'] .track-short { color: #6b4a12; }
-.grid-track[data-track='ride'] .track-short,
-.grid-track[data-track='crash'] .track-short { color: #2f5280; }
-.grid-track[data-track='cowbell'] .track-short,
-.grid-track[data-track='perc'] .track-short { color: #6a3070; }
+/* --- トラック名も同じ色相で刷る（パネル印刷のインク） */
+.grid-track[data-track='kick'] .track-short { color: hsl(4 72% 31%); }
+.grid-track[data-track='snare'] .track-short { color: hsl(15 76% 31%); }
+.grid-track[data-track='clap'] .track-short { color: hsl(27 78% 31%); }
+.grid-track[data-track='rim'] .track-short { color: hsl(37 76% 31%); }
+.grid-track[data-track='ch'] .track-short { color: hsl(174 60% 31%); }
+.grid-track[data-track='oh'] .track-short { color: hsl(192 64% 31%); }
+.grid-track[data-track='tom1'] .track-short { color: hsl(46 66% 31%); }
+.grid-track[data-track='tom2'] .track-short { color: hsl(54 64% 31%); }
+.grid-track[data-track='tom3'] .track-short { color: hsl(63 62% 31%); }
+.grid-track[data-track='ride'] .track-short { color: hsl(212 66% 31%); }
+.grid-track[data-track='crash'] .track-short { color: hsl(230 70% 31%); }
+.grid-track[data-track='cowbell'] .track-short { color: hsl(287 60% 31%); }
+.grid-track[data-track='shaker'] .track-short { color: hsl(150 56% 31%); }
+.grid-track[data-track='perc'] .track-short { color: hsl(315 58% 31%); }
 
 /* ------------------------------------------------------------------ 狭い画面 */
 
