@@ -1,3 +1,5 @@
+import type { FilterMode } from '../../../shared/audio/fx';
+export type { FilterMode };
 export type BodyType = 'none' | 'dread' | 'parlor' | 'nylon' | 'archtop' | 'resonator';
 export type AmpType = 'off' | 'clean' | 'tweed' | 'british' | 'modern' | 'bassamp';
 export type CabType = 'off' | 'combo1x12' | 'twin2x12' | 'stack4x12' | 'bass8x10';
@@ -75,6 +77,38 @@ export interface GuitarSettings {
   reverbType: ReverbType;
   /** リバーブ量 0..1 */
   reverbMix: number;
+
+  // --------------------------------------------------- 追加のエフェクター
+  // 上の modType（コーラス／フェイザー／トレモロ／ワウ／ビブラート）が
+  // 1つしか選べないのに対して、こちらは重ねがけできる。既定はすべて切。
+  fxFlangerOn: boolean;
+  fxFlangerRate: number;
+  fxFlangerDepth: number;
+  /** フランジャーのフィードバック 0..0.85 */
+  fxFlangerFeedback: number;
+  fxFlangerMix: number;
+  /** ビット数 2..16（16 = 切） */
+  fxCrushBits: number;
+  fxCrushMix: number;
+  fxRingOn: boolean;
+  /** リングモジュレーターの周波数 10..2000 Hz */
+  fxRingFreq: number;
+  fxRingMix: number;
+  fxFilterMode: FilterMode;
+  /** カットオフ 40..18000 Hz */
+  fxFilterFreq: number;
+  /** レゾナンス 0.3..20 */
+  fxFilterQ: number;
+  /** 揺らしの速さ 0..8 Hz */
+  fxFilterLfoRate: number;
+  /** 揺らしの深さ 0..1 */
+  fxFilterLfoDepth: number;
+  /** オートパンの速さ 0.05..16 Hz（深さ0で切） */
+  fxPanRate: number;
+  /** オートパンの深さ 0..1 */
+  fxPanDepth: number;
+  /** ステレオ幅 0（モノラル）..1（そのまま）..2（最大） */
+  fxWidth: number;
 }
 
 /** 演奏イベント（録音・書き出し・デモ再生で共通利用） */
@@ -142,4 +176,23 @@ export const DEFAULT_SETTINGS: GuitarSettings = {
   delayFeedback: 0.32,
   reverbType: 'room',
   reverbMix: 0.24,
+
+  fxFlangerOn: false,
+  fxFlangerRate: 0.3,
+  fxFlangerDepth: 0.7,
+  fxFlangerFeedback: 0.5,
+  fxFlangerMix: 0.4,
+  fxCrushBits: 16,
+  fxCrushMix: 0.5,
+  fxRingOn: false,
+  fxRingFreq: 240,
+  fxRingMix: 0.35,
+  fxFilterMode: 'off',
+  fxFilterFreq: 1400,
+  fxFilterQ: 3,
+  fxFilterLfoRate: 0.5,
+  fxFilterLfoDepth: 0,
+  fxPanRate: 3,
+  fxPanDepth: 0,
+  fxWidth: 1,
 };

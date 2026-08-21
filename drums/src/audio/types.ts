@@ -84,9 +84,9 @@ export interface Pattern {
 
 export type ReverbType = 'off' | 'room' | 'plate' | 'hall' | 'cavern';
 export type DelayDivision = 'off' | '1/16' | '1/8T' | '1/8' | '1/8.' | '1/4';
-export type DistortionType = 'off' | 'soft' | 'hard' | 'fuzz';
-export type FilterMode = 'off' | 'lowpass' | 'highpass' | 'bandpass';
-export type ModMode = 'off' | 'tremolo' | 'autopan';
+// エフェクトの種類は3アプリ共通の実装（shared/audio/fx.ts）に合わせる
+import type { DistortionType, FilterMode, ModMode } from '../../../shared/audio/fx';
+export type { DistortionType, FilterMode, ModMode };
 
 export interface MasterSettings {
   /** マスター音量 0..1 */

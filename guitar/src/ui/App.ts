@@ -16,6 +16,7 @@ import {
   type BodyType,
   type CabType,
   type DriveType,
+  type FilterMode,
   type GuitarSettings,
   type ModType,
   type PerformanceEvent,
@@ -23,6 +24,11 @@ import {
   type ReverbType,
 } from '../audio/types';
 import { chordName, findQuality, parseChord, cachedVoicing, type Chord } from '../music/chords';
+
+/** GuitarSettings のうち数値の項目だけを取り出す */
+type GuitarNumberKey = {
+  [K in keyof GuitarSettings]: GuitarSettings[K] extends number ? K : never;
+}[keyof GuitarSettings];
 import { arrange, arrangeDuration, barTimes, type ArrangeBar } from '../music/arranger';
 import { findFretting } from '../music/fretting';
 import { PATTERNS, findPattern } from '../music/strum';
@@ -817,6 +823,88 @@ export class GuitarApp {
     );
   }
 
+  /** modType とは別に、重ねがけできるエフェクター（既定はすべて切） */
+  private buildPedalSection(body: HTMLElement) {
+    const s = this.settings;
+    const commit = () => this.commit();
+    const pct = (v: number) => `${(v * 100).toFixed(0)}%`;
+    const hz = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)} kHz` : `${Math.round(v)} Hz`);
+
+    const num = (
+      host: HTMLElement,
+      label: string,
+      key: GuitarNumberKey,
+      min: number,
+      max: number,
+      step: number,
+      format: (v: number) => string,
+      hint?: string
+    ) => {
+      host.append(
+        slider({
+          label, min, max, step, value: s[key], format, hint,
+          onInput: (v) => { s[key] = v; commit(); },
+        })
+      );
+    };
+
+    const pedals = section(t('panel.pedals.title'), t('panel.pedals.hint'));
+
+    pedals.append(
+      switchRow(t('ctl.flanger.label'), s.fxFlangerOn, (v) => {
+        s.fxFlangerOn = v;
+        commit();
+      }, t('ctl.flanger.hint'))
+    );
+    num(pedals, t('ctl.flangerRate.label'), 'fxFlangerRate', 0.05, 6, 0.01, (v) => `${v.toFixed(2)} Hz`);
+    num(pedals, t('ctl.flangerDepth.label'), 'fxFlangerDepth', 0, 1, 0.01, pct);
+    num(pedals, t('ctl.flangerFeedback.label'), 'fxFlangerFeedback', 0, 0.85, 0.01, pct);
+    num(pedals, t('ctl.flangerMix.label'), 'fxFlangerMix', 0, 1, 0.01, pct);
+
+    pedals.append(
+      select<FilterMode>(
+        t('ctl.filterMode.label'),
+        [
+          { value: 'off' as FilterMode, label: t('mod.off') },
+          { value: 'lowpass' as FilterMode, label: t('filter.lowpass') },
+          { value: 'highpass' as FilterMode, label: t('filter.highpass') },
+          { value: 'bandpass' as FilterMode, label: t('filter.bandpass') },
+        ],
+        s.fxFilterMode,
+        (v) => {
+          s.fxFilterMode = v;
+          commit();
+        },
+        t('ctl.filterMode.hint')
+      )
+    );
+    num(pedals, t('ctl.filterFreq.label'), 'fxFilterFreq', 60, 12000, 10, hz);
+    num(pedals, t('ctl.filterQ.label'), 'fxFilterQ', 0.3, 20, 0.1, (v) => v.toFixed(1), t('ctl.filterQ.hint'));
+    num(pedals, t('ctl.filterLfoRate.label'), 'fxFilterLfoRate', 0.02, 8, 0.01, (v) => `${v.toFixed(2)} Hz`);
+    num(pedals, t('ctl.filterLfoDepth.label'), 'fxFilterLfoDepth', 0, 1, 0.01, pct, t('ctl.filterLfoDepth.hint'));
+
+    num(pedals, t('ctl.crushBits.label'), 'fxCrushBits', 2, 16, 1,
+      (v) => (v >= 16 ? t('mod.off') : `${Math.round(v)} bit`), t('ctl.crushBits.hint'));
+    num(pedals, t('ctl.crushMix.label'), 'fxCrushMix', 0, 1, 0.01, pct);
+
+    pedals.append(
+      switchRow(t('ctl.ring.label'), s.fxRingOn, (v) => {
+        s.fxRingOn = v;
+        commit();
+      }, t('ctl.ring.hint'))
+    );
+    num(pedals, t('ctl.ringFreq.label'), 'fxRingFreq', 10, 2000, 1, hz);
+    num(pedals, t('ctl.ringMix.label'), 'fxRingMix', 0, 1, 0.01, pct);
+
+    num(pedals, t('ctl.autopanDepth.label'), 'fxPanDepth', 0, 1, 0.01,
+      (v) => (v < 0.005 ? t('mod.off') : pct(v)), t('ctl.autopanDepth.hint'));
+    num(pedals, t('ctl.autopanRate.label'), 'fxPanRate', 0.05, 16, 0.05, (v) => `${v.toFixed(2)} Hz`);
+    num(pedals, t('ctl.width.label'), 'fxWidth', 0, 2, 0.01,
+      (v) => (v < 0.02 ? t('width.mono') : pct(v)), t('ctl.width.hint'));
+
+    body.append(pedals);
+  }
+
   private buildSpaceTab() {
     const body = this.panelBody;
     const s = this.settings;
@@ -894,6 +982,8 @@ export class GuitarApp {
     }
     delay.append(el('div', 'ctl-hint', t('delay.syncHint', { bpm: this.ui.bpm })), syncRow);
     body.append(delay);
+
+    this.buildPedalSection(body);
 
     const reverb = section(t('panel.reverb.title'));
     reverb.append(

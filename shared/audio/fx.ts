@@ -1,13 +1,15 @@
-import type { DistortionType, FilterMode, ModMode } from './types';
-
 /**
- * マスターバスに挿すエフェクト群。すべて Web Audio API の標準ノードだけで
- * 組んでいる（外部ライブラリ・音源ファイルなし）ので、オフライン書き出しでも
- * リアルタイム再生とまったく同じ結果になる。
+ * ドラム / ベース / ギターで共有するエフェクト群。
+ * すべて Web Audio API の標準ノードだけで組んでいる（外部ライブラリ・音源ファイル
+ * なし）ので、オフライン書き出しでもリアルタイム再生とまったく同じ結果になる。
  *
  * 各エフェクトは常時つながったままで、「切」のときは wet を 0 にして素通しにする。
  * ノードの付け外しをしないぶん、切り替えでプツッと鳴ることがない。
  */
+
+export type DistortionType = 'off' | 'soft' | 'hard' | 'fuzz';
+export type FilterMode = 'off' | 'lowpass' | 'highpass' | 'bandpass';
+export type ModMode = 'off' | 'tremolo' | 'autopan';
 
 /** 書き出し用の OfflineAudioContext では時定数つきの変化を使わない */
 function isLive(ctx: BaseAudioContext): boolean {
@@ -495,5 +497,81 @@ export class StereoWidth {
       setParam(this.same[ch].gain, (1 + w) / 2, this.ctx);
       setParam(this.cross[ch].gain, (1 - w) / 2, this.ctx);
     }
+  }
+}
+
+// ---------------------------------------------------------------- ディレイ
+
+/**
+ * 左右にまたがるディレイ。ピンポン（左右交互）にも切り替えられる。
+ * ドラムは同じものをエンジン側に持っているので、これはベース用。
+ */
+export class StereoDelay {
+  readonly input: GainNode;
+  readonly output: GainNode;
+  private delayL: DelayNode;
+  private delayR: DelayNode;
+  private dampL: BiquadFilterNode;
+  private dampR: BiquadFilterNode;
+  private fbLL: GainNode;
+  private fbLR: GainNode;
+  private fbRR: GainNode;
+  private fbRL: GainNode;
+  private wet: GainNode;
+  private ctx: BaseAudioContext;
+
+  constructor(ctx: BaseAudioContext, maxSeconds = 2.5) {
+    this.ctx = ctx;
+    this.input = ctx.createGain();
+    this.output = ctx.createGain();
+    this.wet = ctx.createGain();
+    this.wet.gain.value = 0;
+
+    const splitter = ctx.createChannelSplitter(2);
+    const merger = ctx.createChannelMerger(2);
+    this.delayL = ctx.createDelay(maxSeconds);
+    this.delayR = ctx.createDelay(maxSeconds);
+    this.dampL = ctx.createBiquadFilter();
+    this.dampL.type = 'lowpass';
+    this.dampL.frequency.value = 3600;
+    this.dampR = ctx.createBiquadFilter();
+    this.dampR.type = 'lowpass';
+    this.dampR.frequency.value = 3600;
+    this.fbLL = ctx.createGain();
+    this.fbLR = ctx.createGain();
+    this.fbRR = ctx.createGain();
+    this.fbRL = ctx.createGain();
+    for (const g of [this.fbLL, this.fbLR, this.fbRR, this.fbRL]) g.gain.value = 0;
+
+    // 原音はそのまま通し、繰り返しだけを足す
+    this.input.connect(this.output);
+    this.input.connect(splitter);
+    splitter.connect(this.delayL, 0);
+    splitter.connect(this.delayR, 1);
+    this.delayL.connect(this.dampL);
+    this.delayR.connect(this.dampR);
+    this.dampL.connect(this.fbLL).connect(this.delayL);
+    this.dampL.connect(this.fbLR).connect(this.delayR);
+    this.dampR.connect(this.fbRR).connect(this.delayR);
+    this.dampR.connect(this.fbRL).connect(this.delayL);
+    this.delayL.connect(merger, 0, 0);
+    this.delayR.connect(merger, 0, 1);
+    merger.connect(this.wet).connect(this.output);
+  }
+
+  update(time: number, feedback: number, mix: number, pingPong: boolean, damp = 3600) {
+    const on = mix > 0;
+    const t = Math.max(0.01, Math.min(2.4, time));
+    // ピンポンは片側を半分の時間にして、左右へ交互に渡す
+    setParam(this.delayL.delayTime, pingPong ? t * 0.5 : t, this.ctx);
+    setParam(this.delayR.delayTime, t, this.ctx);
+    const fb = on ? Math.min(0.85, feedback) : 0;
+    setParam(this.fbLL.gain, pingPong ? 0 : fb, this.ctx);
+    setParam(this.fbRR.gain, pingPong ? 0 : fb, this.ctx);
+    setParam(this.fbLR.gain, pingPong ? fb : 0, this.ctx);
+    setParam(this.fbRL.gain, pingPong ? fb : 0, this.ctx);
+    this.dampL.frequency.value = damp;
+    this.dampR.frequency.value = damp;
+    setParam(this.wet.gain, on ? mix : 0, this.ctx);
   }
 }
