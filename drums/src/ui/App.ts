@@ -186,9 +186,12 @@ export class DrumApp {
       inputVelocity: () => this.ui.inputVelocity,
     });
     stage.append(this.grid.root);
-    app.append(stage);
 
-    app.append(this.buildPanel());
+    // 画面が横長で低いとき（スマホの横向きなど）に、グリッドとパネルを
+    // 左右に並べ替えられるよう、この2つはひとつの箱にまとめておく
+    const work = el('div', 'work');
+    work.append(stage, this.buildPanel());
+    app.append(work);
     this.root.append(app);
 
     this.grid.setTracks(this.project.tracks);

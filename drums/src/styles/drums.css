@@ -449,6 +449,14 @@ html, body {
 
 /* ------------------------------------------------------------------- grid */
 
+/* グリッドとパネルの入れ物。既定は縦積み、横長・低い画面では左右に並ぶ */
+.work {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .stage {
   flex: 1 1 auto;
   min-height: 0;
@@ -644,22 +652,22 @@ html, body {
 .step-cell.on {
   --lit: calc(0.52 + var(--v, 0.7) * 0.48);
   background: linear-gradient(180deg,
-    hsl(var(--pad-hue, 30) 70% calc(29% + var(--lit) * 29%)),
-    hsl(var(--pad-hue, 30) 66% calc(19% + var(--lit) * 26%)));
-  border-color: hsl(var(--pad-hue, 30) 74% calc(46% + var(--lit) * 20%) / 0.88);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    inset 0 -3px 6px hsl(var(--pad-hue, 30) 60% 12% / 0.4),
-    0 0 9px hsl(var(--pad-hue, 30) 72% 50% / calc(var(--lit) * 0.42));
+    hsl(var(--pad-hue, 30) calc(34% + var(--lit) * 28%) calc(59% + var(--lit) * 27%)),
+    hsl(var(--pad-hue, 30) calc(30% + var(--lit) * 24%) calc(45% + var(--lit) * 25%)));
+  border-color: hsl(var(--pad-hue, 30) 45% calc(40% + var(--lit) * 10%) / 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -3px 6px hsl(var(--pad-hue, 30) 45% 40% / 0.24),
+    0 0 9px hsl(var(--pad-hue, 30) 55% 68% / calc(var(--lit) * 0.4));
 }
 
 /* アクセントは同じ色相をさらに白飛びさせて縁取る */
 .step-cell.accent {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 13px hsl(var(--pad-hue, 30) 76% 56% / 0.6);
-  border-color: hsl(var(--pad-hue, 30) 80% 76%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62), 0 0 13px hsl(var(--pad-hue, 30) 60% 70% / 0.6);
+  border-color: hsl(var(--pad-hue, 30) 52% 38%);
 }
 /* ゴーストは「点灯しているが弱い」ので、破線＋一段暗いアンバーで示す */
 .step-cell.ghost { border-style: dashed; }
-.step-cell.on.ghost { border-color: hsl(var(--pad-hue, 30) 74% 62% / 0.95); }
+.step-cell.on.ghost { border-color: hsl(var(--pad-hue, 30) 45% 40% / 0.75); }
 .step-cell.out { opacity: 0.22; }
 
 .step-cell.roll::after {
@@ -681,7 +689,7 @@ html, body {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  border: 1px solid var(--cyan);
+  border: 1px solid rgba(32, 26, 20, 0.65);
 }
 
 .step-cell.shifted { transform: translateY(-2px); }
@@ -691,8 +699,10 @@ html, body {
   outline-offset: -2px;
 }
 
+/* 点灯マスは淡色なので、白枠だと見えない。こちらは黒枠にする */
 .step-cell.playing.on {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 15px hsl(var(--pad-hue, 30) 78% 56% / 0.8);
+  outline-color: rgba(28, 22, 16, 0.8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 0 15px hsl(var(--pad-hue, 30) 58% 66% / 0.85);
 }
 
 /* ------------------------------------------------------------------ panel */
@@ -952,8 +962,8 @@ html, body {
 @keyframes padHit {
   0% {
     background: linear-gradient(180deg,
-      hsl(var(--pad-hue, 30) 76% 68%),
-      hsl(var(--pad-hue, 30) 70% 46%));
+      hsl(var(--pad-hue, 30) 58% 84%),
+      hsl(var(--pad-hue, 30) 50% 66%));
     color: #24160a;
   }
   100% {
@@ -1238,6 +1248,40 @@ html, body {
 @media (min-width: 1100px) {
   :root { --head-w: 172px; --cell: 36px; }
   .panel { max-height: 42vh; }
+}
+
+/* 高さが足りない画面（スマホの横向きなど）。
+   そのままだとパネルが高さを食い尽くしてグリッドが1行分も残らないので、
+   上部の余白を詰め、さらに横幅があるときはグリッドとパネルを左右に並べる。 */
+@media (max-height: 620px) {
+  :root { --cell: 26px; --cell-gap: 3px; --head-w: 104px; }
+  .topbar { padding: 0.3rem 0.6rem; padding-top: max(0.3rem, env(safe-area-inset-top)); gap: 0.45rem; }
+  .transport { padding: 0.3rem 0.6rem; gap: 0.35rem; }
+  .brand-text small { display: none; }
+  .track-full { display: none; }
+  .track-short { width: auto; font-size: 0.76rem; }
+  .play-btn, .rec-btn, .mode-btn, .tap-btn, .pattern-btn { height: 30px; }
+  .tempo { height: 30px; }
+  .stage { padding: 0.35rem 0.4rem 0; }
+  .panel { max-height: 40vh; }
+  .panel-tabs { padding: 0.25rem 0.5rem 0; }
+  .tab-btn { height: 28px; }
+  .panel-body { padding: 0.4rem 0.7rem 0.7rem; }
+}
+
+@media (max-height: 620px) and (min-width: 720px) {
+  .work { flex-direction: row; }
+  /* min-width:0 が無いとグリッドの実寸が効いて、パネルが画面外へ押し出される */
+  .stage { padding: 0.35rem 0 0.35rem 0.4rem; min-width: 0; }
+  .panel {
+    flex: 0 0 clamp(280px, 42%, 520px);
+    max-height: none;
+    min-height: 0;
+    min-width: 0;
+    border-top: 0;
+    border-left: 1px solid var(--line-strong);
+    box-shadow: inset 1px 0 0 var(--edge-hi);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
