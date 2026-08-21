@@ -467,7 +467,10 @@ export class GuitarChain {
     this.lfoOffsetTrem.offset.value = 0;
     this.tremGain.gain.value = 0;
 
-    switch (s.modType) {
+    // 深さ 0 は「かけない」と読むのが自然。ここで抜けておかないと、
+    // 例えばワウは原音を切って狭い帯域だけを通すので、揺れていないのに
+    // 音がやせて「鳴らない」ように聞こえてしまう。
+    switch (depth > 0 ? s.modType : 'off') {
       case 'chorus':
         this.lfoGainChorus.gain.value = 0.0016 + depth * 0.004;
         this.chorusGain.gain.value = 0.55 + depth * 0.25;

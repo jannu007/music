@@ -950,6 +950,8 @@ export class GuitarApp {
     }
     body.append(mod);
 
+    this.buildPedalSection(body);
+
     const delay = section(t('panel.delay.title'));
     delay.append(
       slider({
@@ -982,8 +984,6 @@ export class GuitarApp {
     }
     delay.append(el('div', 'ctl-hint', t('delay.syncHint', { bpm: this.ui.bpm })), syncRow);
     body.append(delay);
-
-    this.buildPedalSection(body);
 
     const reverb = section(t('panel.reverb.title'));
     reverb.append(
