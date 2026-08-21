@@ -24,6 +24,10 @@ import {
   STEP_MAX,
   emptyPattern,
   type DelayDivision,
+  type DistortionType,
+  type FilterMode,
+  type MasterSettings,
+  type ModMode,
   type Pattern,
   type Project,
   type ReverbType,
@@ -38,6 +42,16 @@ import { getLocale, onLocaleChange, t, toggleLocale } from './i18n';
 import './strings';
 
 const STORAGE_KEY = 'hibiki-drums-v1';
+
+/** MasterSettings のうち数値の項目だけ／真偽値の項目だけを取り出す */
+type MasterNumberKey = {
+  [K in keyof MasterSettings]: MasterSettings[K] extends number ? K : never;
+}[keyof MasterSettings];
+type MasterBoolKey = {
+  [K in keyof MasterSettings]: MasterSettings[K] extends boolean ? K : never;
+}[keyof MasterSettings];
+
+const db = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB`;
 
 type TabId = 'edit' | 'pads' | 'voice' | 'mix' | 'fx' | 'song' | 'demo' | 'export';
 
@@ -606,43 +620,147 @@ export class DrumApp {
 
   private renderFxPanel() {
     const m = this.project.master;
-    const sec = section(t('panel.fx.title'), t('panel.fx.hint'));
-    const g = grid();
 
-    const bind = (label: string, key: 'volume' | 'drive' | 'glue' | 'reverbMix' | 'delayFeedback' | 'delayMix',
-      min: number, max: number, format: (v: number) => string, hint?: string) => {
+    const apply = () => {
+      this.engine.syncMaster(this.project);
+      this.save();
+    };
+
+    /** 数値の項目をスライダーにする */
+    const num = (
+      g: HTMLElement,
+      label: string,
+      key: MasterNumberKey,
+      min: number,
+      max: number,
+      step: number,
+      format: (v: number) => string,
+      hint?: string
+    ) => {
       g.append(
         slider({
-          label, min, max, step: 0.01, value: m[key], format, hint,
-          onInput: (v) => {
-            m[key] = v;
-            this.engine.syncMaster(this.project);
-            this.save();
-          },
+          label, min, max, step, value: m[key], format, hint,
+          onInput: (v) => { m[key] = v; apply(); },
         })
       );
     };
 
-    bind(t('ctl.masterVolume.label'), 'volume', 0, 1, (v) => `${Math.round(v * 100)}`);
-    bind(t('ctl.masterDrive.label'), 'drive', 0, 1, (v) => `${Math.round(v * 100)}`, t('ctl.masterDrive.hint'));
-    bind(t('ctl.glue.label'), 'glue', 0, 1, (v) => `${Math.round(v * 100)}`, t('ctl.glue.hint'));
+    const pct = (v: number) => `${Math.round(v * 100)}`;
+    const hz = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)} kHz` : `${Math.round(v)} Hz`);
 
-    g.append(
-      slider({
-        label: t('ctl.low.label'), min: -12, max: 12, step: 0.5, value: m.low,
-        format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB`,
-        onInput: (v) => { m.low = v; this.engine.syncMaster(this.project); this.save(); },
-      })
-    );
-    g.append(
-      slider({
-        label: t('ctl.high.label'), min: -12, max: 12, step: 0.5, value: m.high,
-        format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB`,
-        onInput: (v) => { m.high = v; this.engine.syncMaster(this.project); this.save(); },
-      })
-    );
+    /** 効果ごとの入／切スイッチ */
+    const onOff = (g: HTMLElement, label: string, key: MasterBoolKey, hint?: string) => {
+      g.append(switchRow(label, m[key], (v) => { m[key] = v; apply(); }, hint));
+    };
 
-    g.append(
+    // --- マスター --------------------------------------------------------
+    const master = section(t('panel.fx.title'), t('panel.fx.hint'));
+    const mg = grid();
+    num(mg, t('ctl.masterVolume.label'), 'volume', 0, 1, 0.01, pct);
+    num(mg, t('ctl.masterDrive.label'), 'drive', 0, 1, 0.01, pct, t('ctl.masterDrive.hint'));
+    num(mg, t('ctl.glue.label'), 'glue', 0, 1, 0.01, pct, t('ctl.glue.hint'));
+    num(mg, t('ctl.low.label'), 'low', -12, 12, 0.5, db);
+    num(mg, t('ctl.high.label'), 'high', -12, 12, 0.5, db);
+    num(mg, t('ctl.width.label'), 'width', 0, 2, 0.01,
+      (v) => (v < 0.02 ? t('width.mono') : `${Math.round(v * 100)}%`), t('ctl.width.hint'));
+    master.append(mg);
+    this.panelBody.append(master);
+
+    // --- 歪み ------------------------------------------------------------
+    const dist = section(t('panel.dist.title'), t('panel.dist.hint'));
+    const dg = grid();
+    dg.append(
+      segmented<DistortionType>(
+        t('ctl.distType.label'),
+        [
+          { value: 'off', label: t('common.off') },
+          { value: 'soft', label: t('dist.soft') },
+          { value: 'hard', label: t('dist.hard') },
+          { value: 'fuzz', label: t('dist.fuzz') },
+        ],
+        m.distType,
+        (v) => { m.distType = v; apply(); }
+      )
+    );
+    num(dg, t('ctl.distAmount.label'), 'distAmount', 0, 1, 0.01, pct);
+    num(dg, t('ctl.distTone.label'), 'distTone', 0, 1, 0.01, pct, t('ctl.distTone.hint'));
+    num(dg, t('ctl.distMix.label'), 'distMix', 0, 1, 0.01, pct);
+    num(dg, t('ctl.crushBits.label'), 'crushBits', 2, 16, 1,
+      (v) => (v >= 16 ? t('common.off') : `${Math.round(v)} bit`), t('ctl.crushBits.hint'));
+    num(dg, t('ctl.crushMix.label'), 'crushMix', 0, 1, 0.01, pct);
+    dist.append(dg);
+    this.panelBody.append(dist);
+
+    // --- フィルター ------------------------------------------------------
+    const filter = section(t('panel.filter.title'), t('panel.filter.hint'));
+    const fg = grid();
+    fg.append(
+      segmented<FilterMode>(
+        t('ctl.filterMode.label'),
+        [
+          { value: 'off', label: t('common.off') },
+          { value: 'lowpass', label: t('filter.lowpass') },
+          { value: 'highpass', label: t('filter.highpass') },
+          { value: 'bandpass', label: t('filter.bandpass') },
+        ],
+        m.filterMode,
+        (v) => { m.filterMode = v; apply(); }
+      )
+    );
+    num(fg, t('ctl.filterFreq.label'), 'filterFreq', 60, 16000, 10, hz);
+    num(fg, t('ctl.filterQ.label'), 'filterQ', 0.3, 20, 0.1, (v) => v.toFixed(1), t('ctl.filterQ.hint'));
+    num(fg, t('ctl.filterLfoRate.label'), 'filterLfoRate', 0.02, 8, 0.01, (v) => `${v.toFixed(2)} Hz`);
+    num(fg, t('ctl.filterLfoDepth.label'), 'filterLfoDepth', 0, 1, 0.01, pct, t('ctl.filterLfoDepth.hint'));
+    filter.append(fg);
+    this.panelBody.append(filter);
+
+    // --- 揺らし系 --------------------------------------------------------
+    const mod = section(t('panel.mod.title'), t('panel.mod.hint'));
+    const cg = grid();
+    onOff(cg, t('ctl.chorus.label'), 'chorusOn', t('ctl.chorus.hint'));
+    num(cg, t('ctl.chorusRate.label'), 'chorusRate', 0.05, 6, 0.01, (v) => `${v.toFixed(2)} Hz`);
+    num(cg, t('ctl.chorusDepth.label'), 'chorusDepth', 0, 1, 0.01, pct);
+    num(cg, t('ctl.chorusMix.label'), 'chorusMix', 0, 1, 0.01, pct);
+    onOff(cg, t('ctl.flanger.label'), 'flangerOn', t('ctl.flanger.hint'));
+    num(cg, t('ctl.flangerRate.label'), 'flangerRate', 0.05, 6, 0.01, (v) => `${v.toFixed(2)} Hz`);
+    num(cg, t('ctl.flangerDepth.label'), 'flangerDepth', 0, 1, 0.01, pct);
+    num(cg, t('ctl.flangerFeedback.label'), 'flangerFeedback', 0, 0.85, 0.01, pct);
+    num(cg, t('ctl.flangerMix.label'), 'flangerMix', 0, 1, 0.01, pct);
+    onOff(cg, t('ctl.phaser.label'), 'phaserOn', t('ctl.phaser.hint'));
+    num(cg, t('ctl.phaserRate.label'), 'phaserRate', 0.05, 6, 0.01, (v) => `${v.toFixed(2)} Hz`);
+    num(cg, t('ctl.phaserDepth.label'), 'phaserDepth', 0, 1, 0.01, pct);
+    num(cg, t('ctl.phaserFeedback.label'), 'phaserFeedback', 0, 0.7, 0.01, pct);
+    num(cg, t('ctl.phaserMix.label'), 'phaserMix', 0, 1, 0.01, pct);
+    mod.append(cg);
+    this.panelBody.append(mod);
+
+    // --- トレモロ／リングモジュレーター ----------------------------------
+    const extra = section(t('panel.extra.title'), t('panel.extra.hint'));
+    const eg = grid();
+    eg.append(
+      segmented<ModMode>(
+        t('ctl.modMode.label'),
+        [
+          { value: 'off', label: t('common.off') },
+          { value: 'tremolo', label: t('mod.tremolo') },
+          { value: 'autopan', label: t('mod.autopan') },
+        ],
+        m.modMode,
+        (v) => { m.modMode = v; apply(); }
+      )
+    );
+    num(eg, t('ctl.modRate.label'), 'modRate', 0.05, 16, 0.05, (v) => `${v.toFixed(2)} Hz`);
+    num(eg, t('ctl.modDepth.label'), 'modDepth', 0, 1, 0.01, pct);
+    onOff(eg, t('ctl.ring.label'), 'ringOn', t('ctl.ring.hint'));
+    num(eg, t('ctl.ringFreq.label'), 'ringFreq', 10, 2000, 1, hz);
+    num(eg, t('ctl.ringMix.label'), 'ringMix', 0, 1, 0.01, pct);
+    extra.append(eg);
+    this.panelBody.append(extra);
+
+    // --- 空間系 ----------------------------------------------------------
+    const space = section(t('panel.space.title'), t('panel.space.hint'));
+    const sg = grid();
+    sg.append(
       segmented<ReverbType>(
         t('ctl.reverbType.label'),
         [
@@ -653,12 +771,11 @@ export class DrumApp {
           { value: 'cavern', label: t('room.cavern.label') },
         ],
         m.reverbType,
-        (v) => { m.reverbType = v; this.engine.syncMaster(this.project); this.save(); }
+        (v) => { m.reverbType = v; apply(); }
       )
     );
-    bind(t('ctl.reverbAmount.label'), 'reverbMix', 0, 1, (v) => `${Math.round(v * 100)}`);
-
-    g.append(
+    num(sg, t('ctl.reverbAmount.label'), 'reverbMix', 0, 1, 0.01, pct);
+    sg.append(
       segmented<DelayDivision>(
         t('ctl.delayDivision.label'),
         [
@@ -670,21 +787,19 @@ export class DrumApp {
           { value: '1/4', label: '1/4' },
         ],
         m.delayDivision,
-        (v) => { m.delayDivision = v; this.engine.syncMaster(this.project); this.save(); }
+        (v) => { m.delayDivision = v; apply(); }
       )
     );
-    bind(t('ctl.delayAmount.label'), 'delayMix', 0, 1, (v) => `${Math.round(v * 100)}`);
-    bind(t('ctl.feedback.label'), 'delayFeedback', 0, 0.85, (v) => `${Math.round(v * 100)}`);
-    g.append(
+    num(sg, t('ctl.delayAmount.label'), 'delayMix', 0, 1, 0.01, pct);
+    num(sg, t('ctl.feedback.label'), 'delayFeedback', 0, 0.85, 0.01, pct);
+    sg.append(
       switchRow(t('ctl.pingpong.label'), m.delayPingPong, (v) => {
         m.delayPingPong = v;
-        this.engine.syncMaster(this.project);
-        this.save();
+        apply();
       }, t('ctl.pingpong.hint'))
     );
-
-    sec.append(g);
-    this.panelBody.append(sec);
+    space.append(sg);
+    this.panelBody.append(space);
   }
 
   private renderSongPanel() {
