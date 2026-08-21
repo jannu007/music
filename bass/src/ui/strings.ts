@@ -14,6 +14,7 @@ const ja = {
 
   'tab.tone': '音色',
   'tab.amp': 'アンプ',
+  'tab.fx': 'エフェクト',
   'tab.play': '演奏',
   'tab.rec': '録音',
   'tab.demo': 'フレーズ',
@@ -137,6 +138,9 @@ const ja = {
   'ctl.reverbMix.label': '残響の量',
   'ctl.volume.label': 'マスター音量',
   'panel.fx': 'エフェクト',
+  'panel.fxBasic': '基本エフェクト',
+  'panel.output': '出力',
+  'fx.note': 'ここのエフェクトはすべて重ねがけできます。初期状態はすべて切なので、使う分だけ入れてください。',
   'amp.note': 'キャビネットも残響も、その場で計算して作っています。音声ファイルのダウンロードは一切ありません。',
 
   'cab.di.label': 'DI（ライン）',
@@ -348,6 +352,7 @@ const en: typeof ja = {
 
   'tab.tone': 'Tone',
   'tab.amp': 'Amp',
+  'tab.fx': 'Effects',
   'tab.play': 'Play',
   'tab.rec': 'Record',
   'tab.demo': 'Phrases',
@@ -471,6 +476,9 @@ const en: typeof ja = {
   'ctl.reverbMix.label': 'Reverb Amount',
   'ctl.volume.label': 'Master Volume',
   'panel.fx': 'Effects',
+  'panel.fxBasic': 'Basic Effects',
+  'panel.output': 'Output',
+  'fx.note': 'Everything here stacks. All of it starts switched off, so turn on only what you need.',
   'amp.note': 'Both the cabinet and reverb are computed in real time. There are no audio files to download.',
 
   'cab.di.label': 'DI (Line)',

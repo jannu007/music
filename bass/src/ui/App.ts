@@ -365,6 +365,7 @@ export class BassApp {
     const tabDefs = [
       { id: 'tone', label: t('tab.tone') },
       { id: 'amp', label: t('tab.amp') },
+      { id: 'fx', label: t('tab.fx') },
       { id: 'play', label: t('tab.play') },
       { id: 'rec', label: t('tab.rec') },
       { id: 'demo', label: t('tab.demo') },
@@ -469,6 +470,7 @@ export class BassApp {
     switch (id) {
       case 'tone': this.buildToneTab(); break;
       case 'amp': this.buildAmpTab(); break;
+      case 'fx': this.buildFxTab(); break;
       case 'play': this.buildPlayTab(); break;
       case 'rec': this.buildRecordTab(); break;
       case 'demo': this.buildDemoTab(); break;
@@ -649,6 +651,29 @@ export class BassApp {
     const cabNote = el('p', 'panel-note', t(`cab.${this.settings.cab}.hint`));
     body.append(el('h2', 'panel-title', t('panel.cabinet')), cabBox, cabNote);
 
+    const out = el('div', 'ctl-grid');
+    out.append(
+      slider({
+        label: t('ctl.volume.label'),
+        min: 0, max: 1, step: 0.01, value: this.settings.volume,
+        format: (v) => `${Math.round(v * 100)}`,
+        onInput: (v) => { this.settings.volume = v; this.commit(); },
+      })
+    );
+    body.append(el('h2', 'panel-title', t('panel.output')), out);
+
+    body.append(
+      el(
+        'p',
+        'panel-note',
+        t('amp.note')
+      )
+    );
+  }
+
+  private buildFxTab() {
+    const body = this.panelBody;
+
     const fx = el('div', 'ctl-grid');
     fx.append(
       slider({
@@ -688,25 +713,13 @@ export class BassApp {
         min: 0, max: 0.6, step: 0.01, value: this.settings.reverbMix,
         format: (v) => `${Math.round(v * 166)}`,
         onInput: (v) => { this.settings.reverbMix = v; this.commit(); },
-      }),
-      slider({
-        label: t('ctl.volume.label'),
-        min: 0, max: 1, step: 0.01, value: this.settings.volume,
-        format: (v) => `${Math.round(v * 100)}`,
-        onInput: (v) => { this.settings.volume = v; this.commit(); },
       })
     );
-    body.append(el('h2', 'panel-title', t('panel.fx')), fx);
+    body.append(el('h2', 'panel-title', t('panel.fxBasic')), fx);
 
     this.buildPedalSections(body);
 
-    body.append(
-      el(
-        'p',
-        'panel-note',
-        t('amp.note')
-      )
-    );
+    body.append(el('p', 'panel-note', t('fx.note')));
   }
 
   /** 重ねがけできる追加エフェクター（既定はすべて切） */
@@ -1109,7 +1122,9 @@ export class BassApp {
     this.commit();
     const node = this.root.querySelector('.preset-select') as HTMLSelectElement | null;
     if (node) node.value = id;
-    if (this.activeTab === 'tone' || this.activeTab === 'amp') this.showTab(this.activeTab);
+    if (this.activeTab === 'tone' || this.activeTab === 'amp' || this.activeTab === 'fx') {
+      this.showTab(this.activeTab);
+    }
   }
 
   private panic() {
@@ -1145,7 +1160,9 @@ export class BassApp {
     this.commit();
     const node = this.root.querySelector('.preset-select') as HTMLSelectElement | null;
     if (node) node.value = saved.presetId;
-    if (this.activeTab === 'tone' || this.activeTab === 'amp') this.showTab(this.activeTab);
+    if (this.activeTab === 'tone' || this.activeTab === 'amp' || this.activeTab === 'fx') {
+      this.showTab(this.activeTab);
+    }
   }
 
   private async connectMidi() {
