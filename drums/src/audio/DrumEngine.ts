@@ -1,4 +1,5 @@
 import processorUrl from './drum-processor.js?url';
+import { BitCrusher, Chorus, Distortion, Flanger, ModShaper, Phaser, RingMod, StereoWidth, SweepFilter } from './fx';
 import { createImpulseResponse } from './reverb';
 import type { DelayDivision, MasterSettings, Pattern, Project, TrackConfig } from './types';
 
@@ -67,8 +68,13 @@ function limiterCurve() {
 }
 
 /**
- * 音源ノード + ミックスバス（サチュレーション / EQ / バスコンプ / リバーブ / ディレイ）。
- * リアルタイム再生とオフライン書き出しで同じものを組み立てる。
+ * 音源ノード + ミックスバス。
+ * 信号の流れは
+ *   バス → サチュレーション → 歪み → ビットクラッシャー → フィルター → EQ
+ *        → コーラス → フランジャー → フェイザー → リングモジュレーター
+ *        → バスコンプ → トレモロ／オートパン → ステレオ幅 → 音量 → リミッター
+ * で、リバーブとディレイはバスへの戻り（センド）として合流する。
+ * リアルタイム再生とオフライン書き出しでまったく同じものを組み立てる。
  */
 export class DrumChain {
   readonly ctx: BaseAudioContext;
@@ -93,6 +99,16 @@ export class DrumChain {
   private fbRR: GainNode;
   private fbRL: GainNode;
   private delayReturn: GainNode;
+
+  private dist: Distortion;
+  private crusher: BitCrusher;
+  private filter: SweepFilter;
+  private chorus: Chorus;
+  private flanger: Flanger;
+  private phaser: Phaser;
+  private ringMod: RingMod;
+  private modShaper: ModShaper;
+  private width: StereoWidth;
 
   private irCache = new Map<string, AudioBuffer>();
   private bpm = 120;
@@ -172,14 +188,32 @@ export class DrumChain {
     this.delayR.connect(merger, 0, 1);
     merger.connect(this.delayReturn).connect(this.bus);
 
-    this.bus
-      .connect(this.shaper)
-      .connect(this.lowShelf)
-      .connect(this.highShelf)
-      .connect(this.comp)
-      .connect(this.master)
-      .connect(limiter)
-      .connect(this.output);
+    // --- 追加エフェクト（既定はすべて素通し） ---
+    this.dist = new Distortion(ctx);
+    this.crusher = new BitCrusher(ctx);
+    this.filter = new SweepFilter(ctx);
+    this.chorus = new Chorus(ctx);
+    this.flanger = new Flanger(ctx);
+    this.phaser = new Phaser(ctx);
+    this.ringMod = new RingMod(ctx);
+    this.modShaper = new ModShaper(ctx);
+    this.width = new StereoWidth(ctx);
+
+    this.bus.connect(this.shaper);
+    this.shaper.connect(this.dist.input);
+    this.dist.output.connect(this.crusher.input);
+    this.crusher.output.connect(this.filter.input);
+    this.filter.output.connect(this.lowShelf);
+    this.lowShelf.connect(this.highShelf);
+    this.highShelf.connect(this.chorus.input);
+    this.chorus.output.connect(this.flanger.input);
+    this.flanger.output.connect(this.phaser.input);
+    this.phaser.output.connect(this.ringMod.input);
+    this.ringMod.output.connect(this.comp);
+    this.comp.connect(this.modShaper.input);
+    this.modShaper.output.connect(this.width.input);
+    this.width.output.connect(this.master);
+    this.master.connect(limiter).connect(this.output);
 
     this.applyMaster(project.master, project.bpm);
   }
@@ -213,6 +247,16 @@ export class DrumChain {
     this.fbLR.gain.value = m.delayPingPong ? fb : 0;
     this.fbRL.gain.value = m.delayPingPong ? fb : 0;
     this.delayReturn.gain.value = delayOn ? m.delayMix * 1.3 : 0;
+
+    this.dist.update(m.distType, m.distAmount, m.distTone, m.distMix);
+    this.crusher.update(m.crushBits, m.crushMix);
+    this.filter.update(m.filterMode, m.filterFreq, m.filterQ, m.filterLfoRate, m.filterLfoDepth);
+    this.chorus.update(m.chorusOn, m.chorusRate, m.chorusDepth, m.chorusMix);
+    this.flanger.update(m.flangerOn, m.flangerRate, m.flangerDepth, m.flangerFeedback, m.flangerMix);
+    this.phaser.update(m.phaserOn, m.phaserRate, m.phaserDepth, m.phaserFeedback, m.phaserMix);
+    this.ringMod.update(m.ringOn, m.ringFreq, m.ringMix);
+    this.modShaper.update(m.modMode, m.modRate, m.modDepth);
+    this.width.update(m.width);
   }
 
   private impulse(type: MasterSettings['reverbType']): AudioBuffer | null {

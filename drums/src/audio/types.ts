@@ -84,6 +84,9 @@ export interface Pattern {
 
 export type ReverbType = 'off' | 'room' | 'plate' | 'hall' | 'cavern';
 export type DelayDivision = 'off' | '1/16' | '1/8T' | '1/8' | '1/8.' | '1/4';
+export type DistortionType = 'off' | 'soft' | 'hard' | 'fuzz';
+export type FilterMode = 'off' | 'lowpass' | 'highpass' | 'bandpass';
+export type ModMode = 'off' | 'tremolo' | 'autopan';
 
 export interface MasterSettings {
   /** マスター音量 0..1 */
@@ -106,6 +109,61 @@ export interface MasterSettings {
   delayMix: number;
   /** ピンポン（左右交互）にする */
   delayPingPong: boolean;
+
+  // --- 歪み系 ---
+  distType: DistortionType;
+  /** 歪みの深さ 0..1 */
+  distAmount: number;
+  /** 歪んだ音の明るさ 0..1 */
+  distTone: number;
+  /** 歪んだ音の混ぜ量 0..1 */
+  distMix: number;
+  /** ビット数 2..16（16 = 切） */
+  crushBits: number;
+  /** ビットクラッシャーの混ぜ量 0..1 */
+  crushMix: number;
+
+  // --- フィルター ---
+  filterMode: FilterMode;
+  /** カットオフ 40..18000 Hz */
+  filterFreq: number;
+  /** レゾナンス 0.3..20 */
+  filterQ: number;
+  /** 揺らしの速さ 0..8 Hz */
+  filterLfoRate: number;
+  /** 揺らしの深さ 0..1 */
+  filterLfoDepth: number;
+
+  // --- モジュレーション系 ---
+  chorusOn: boolean;
+  chorusRate: number;
+  chorusDepth: number;
+  chorusMix: number;
+  flangerOn: boolean;
+  flangerRate: number;
+  flangerDepth: number;
+  /** フランジャーのフィードバック 0..0.85 */
+  flangerFeedback: number;
+  flangerMix: number;
+  phaserOn: boolean;
+  phaserRate: number;
+  phaserDepth: number;
+  /** フェイザーのフィードバック 0..0.7 */
+  phaserFeedback: number;
+  phaserMix: number;
+
+  // --- 特殊 ---
+  ringOn: boolean;
+  /** リングモジュレーターの周波数 10..4000 Hz */
+  ringFreq: number;
+  ringMix: number;
+  modMode: ModMode;
+  /** トレモロ／オートパンの速さ 0.05..16 Hz */
+  modRate: number;
+  /** トレモロ／オートパンの深さ 0..1 */
+  modDepth: number;
+  /** ステレオ幅 0（モノラル）..1（そのまま）..2（最大） */
+  width: number;
 }
 
 /** ソングモードの1ブロック */
@@ -151,6 +209,42 @@ export const DEFAULT_MASTER: MasterSettings = {
   delayFeedback: 0.32,
   delayMix: 0.22,
   delayPingPong: true,
+
+  distType: 'off',
+  distAmount: 0.4,
+  distTone: 0.6,
+  distMix: 0.5,
+  crushBits: 16,
+  crushMix: 0.5,
+
+  filterMode: 'off',
+  filterFreq: 1200,
+  filterQ: 2,
+  filterLfoRate: 0.5,
+  filterLfoDepth: 0,
+
+  chorusOn: false,
+  chorusRate: 0.6,
+  chorusDepth: 0.6,
+  chorusMix: 0.35,
+  flangerOn: false,
+  flangerRate: 0.3,
+  flangerDepth: 0.7,
+  flangerFeedback: 0.5,
+  flangerMix: 0.4,
+  phaserOn: false,
+  phaserRate: 0.4,
+  phaserDepth: 0.7,
+  phaserFeedback: 0.4,
+  phaserMix: 0.5,
+
+  ringOn: false,
+  ringFreq: 220,
+  ringMix: 0.4,
+  modMode: 'off',
+  modRate: 4,
+  modDepth: 0.5,
+  width: 1,
 };
 
 export function makeStep(v = 0.75, p = 1, r = 1, s = 0): Step {
