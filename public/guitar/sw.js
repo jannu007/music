@@ -1,5 +1,5 @@
 /* Takibi Guitar — オフライン用サービスワーカー（スコープ: /guitar/） */
-const CACHE = 'takibi-guitar-v3';
+const CACHE = 'takibi-guitar-v4';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
