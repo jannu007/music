@@ -1,4 +1,15 @@
 import processorUrl from './bass-processor.js?url';
+import {
+  BitCrusher,
+  Distortion,
+  Flanger,
+  ModShaper,
+  Phaser,
+  RingMod,
+  StereoDelay,
+  StereoWidth,
+  SweepFilter,
+} from '../../../shared/audio/fx';
 import { CABS, createImpulseResponse } from './reverb';
 import { findTuning } from './fretboard';
 import { DEFAULT_SETTINGS, type BassSettings, type PerformanceEvent } from './types';
@@ -109,6 +120,15 @@ export class BassChain {
   private merger: ChannelMergerNode;
 
   private mixBus: GainNode;
+  private dist: Distortion;
+  private crusher: BitCrusher;
+  private filter: SweepFilter;
+  private flanger: Flanger;
+  private phaser: Phaser;
+  private ringMod: RingMod;
+  private modShaper: ModShaper;
+  private stereoDelay: StereoDelay;
+  private width: StereoWidth;
   private send: GainNode;
   private wet: GainNode;
   private convolver: ConvolverNode;
@@ -251,7 +271,29 @@ export class BassChain {
     this.cabLow.connect(this.send).connect(this.convolver);
     this.convolver.connect(this.wet).connect(this.mixBus);
 
-    this.mixBus.connect(this.master).connect(limiter).connect(this.output);
+    // --- 追加エフェクトペダル（既定はすべて素通し） ---
+    // キャビネットの後ろ、リバーブの手前に入れて「アンプ→ペダル→空間系」の順にする
+    this.dist = new Distortion(ctx);
+    this.crusher = new BitCrusher(ctx);
+    this.filter = new SweepFilter(ctx);
+    this.flanger = new Flanger(ctx);
+    this.phaser = new Phaser(ctx);
+    this.ringMod = new RingMod(ctx);
+    this.stereoDelay = new StereoDelay(ctx, 1.5);
+    this.modShaper = new ModShaper(ctx);
+    this.width = new StereoWidth(ctx);
+
+    this.mixBus.connect(this.dist.input);
+    this.dist.output.connect(this.crusher.input);
+    this.crusher.output.connect(this.filter.input);
+    this.filter.output.connect(this.flanger.input);
+    this.flanger.output.connect(this.phaser.input);
+    this.phaser.output.connect(this.ringMod.input);
+    this.ringMod.output.connect(this.stereoDelay.input);
+    this.stereoDelay.output.connect(this.modShaper.input);
+    this.modShaper.output.connect(this.width.input);
+    this.width.output.connect(this.master);
+    this.master.connect(limiter).connect(this.output);
 
     this.applySettings(this.settings);
   }
@@ -326,6 +368,16 @@ export class BassChain {
     this.send.gain.value = on ? mix : 0;
     this.wet.gain.value = on ? 1.1 : 0;
     if (on) this.convolver.buffer = this.impulse(s.reverbType as Exclude<typeof s.reverbType, 'off'>);
+
+    this.dist.update(s.distType, s.distAmount, s.distTone, s.distMix);
+    this.crusher.update(s.crushBits, s.crushMix);
+    this.filter.update(s.filterMode, s.filterFreq, s.filterQ, s.filterLfoRate, s.filterLfoDepth);
+    this.flanger.update(s.flangerOn, s.flangerRate, s.flangerDepth, s.flangerFeedback, s.flangerMix);
+    this.phaser.update(s.phaserOn, s.phaserRate, s.phaserDepth, s.phaserFeedback, s.phaserMix);
+    this.ringMod.update(s.ringOn, s.ringFreq, s.ringMix);
+    this.stereoDelay.update(s.delayTime, s.delayFeedback, s.delayMix, s.delayPingPong);
+    this.modShaper.update(s.modMode, s.modRate, s.modDepth);
+    this.width.update(s.width);
 
     // 既定音量でピークが -3dBFS 前後に収まるよう調整してある。
     // リミッターはあくまで保険で、常時かかると音が潰れてしまう。

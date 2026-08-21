@@ -1,4 +1,5 @@
 import processorUrl from './guitar-processor.js?url';
+import { BitCrusher, Flanger, ModShaper, RingMod, StereoWidth, SweepFilter } from '../../../shared/audio/fx';
 import {
   CABS,
   createBodyImpulse,
@@ -142,6 +143,12 @@ export class GuitarChain {
   private revConv: ConvolverNode;
   private preMaster: GainNode;
   private master: GainNode;
+  private fxFlanger: Flanger;
+  private fxCrusher: BitCrusher;
+  private fxFilter: SweepFilter;
+  private fxRing: RingMod;
+  private fxPan: ModShaper;
+  private fxWidth: StereoWidth;
 
   private settings: GuitarSettings = { ...DEFAULT_SETTINGS };
   private tuning: number[];
@@ -302,19 +309,31 @@ export class GuitarChain {
     this.lfoGainWah.connect(this.wah.frequency);
     this.modIn.connect(this.wah).connect(this.wahOut).connect(this.modOut);
 
+    // ---------- 追加のエフェクター（重ねがけできる。既定は素通し） ----------
+    // 実機のペダルボードと同じく、アンプの後・空間系の前に置く
+    this.fxFlanger = new Flanger(ctx);
+    this.fxCrusher = new BitCrusher(ctx);
+    this.fxFilter = new SweepFilter(ctx);
+    this.fxRing = new RingMod(ctx);
+    this.modOut.connect(this.fxFlanger.input);
+    this.fxFlanger.output.connect(this.fxCrusher.input);
+    this.fxCrusher.output.connect(this.fxFilter.input);
+    this.fxFilter.output.connect(this.fxRing.input);
+    const fxOut = this.fxRing.output;
+
     // ---------- ディレイ ----------
     this.delayNode = ctx.createDelay(2.5);
     this.delayNode.delayTime.value = 0.36;
     this.delayFb = gain(0);
     this.delayTone = filter('lowpass', 3200, 0.7);
     this.delayWet = gain(0);
-    this.modOut.connect(this.delayNode);
+    fxOut.connect(this.delayNode);
     this.delayNode.connect(this.delayTone).connect(this.delayFb).connect(this.delayNode);
     this.delayNode.connect(this.delayWet);
 
     // ---------- リバーブ ----------
     this.preMaster = gain(1);
-    this.modOut.connect(this.preMaster);
+    fxOut.connect(this.preMaster);
     this.delayWet.connect(this.preMaster);
 
     this.revSend = gain(0);
@@ -332,9 +351,15 @@ export class GuitarChain {
     // その逆数を掛けて、どれだけ突っ込んでも 0dBFS を超えないようにする
     this.output = gain(Math.tanh(1.3));
 
+    // 定位の揺れと左右の広がりは、残響も含めた最終段でかける
+    this.fxPan = new ModShaper(ctx);
+    this.fxWidth = new StereoWidth(ctx);
+
     this.preMaster.connect(this.master);
     this.revConv.connect(this.revWet).connect(this.master);
-    this.master.connect(limiter).connect(this.output);
+    this.master.connect(this.fxPan.input);
+    this.fxPan.output.connect(this.fxWidth.input);
+    this.fxWidth.output.connect(limiter).connect(this.output);
 
     // オフラインでは currentTime が 0 なので、そのまま渡せば両方で正しく始まる
     this.lfo.start(ctx.currentTime);
@@ -488,6 +513,13 @@ export class GuitarChain {
     this.revSend.gain.value = revOn ? revMix : 0;
     this.revWet.gain.value = revOn ? 1.1 : 0;
     this.preMaster.gain.value = revOn ? 1 - revMix * 0.28 : 1;
+
+    this.fxFlanger.update(s.fxFlangerOn, s.fxFlangerRate, s.fxFlangerDepth, s.fxFlangerFeedback, s.fxFlangerMix);
+    this.fxCrusher.update(s.fxCrushBits, s.fxCrushMix);
+    this.fxFilter.update(s.fxFilterMode, s.fxFilterFreq, s.fxFilterQ, s.fxFilterLfoRate, s.fxFilterLfoDepth);
+    this.fxRing.update(s.fxRingOn, s.fxRingFreq, s.fxRingMix);
+    this.fxPan.update(s.fxPanDepth > 0 ? 'autopan' : 'off', s.fxPanRate, s.fxPanDepth);
+    this.fxWidth.update(s.fxWidth);
 
     const trim = Math.max(0.2, Math.min(3, s.outputTrim));
     this.master.gain.value = Math.pow(clamp01(s.volume), 1.4) * 1.9 * trim;

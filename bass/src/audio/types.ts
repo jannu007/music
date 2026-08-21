@@ -1,3 +1,5 @@
+import type { DistortionType, FilterMode, ModMode } from '../../../shared/audio/fx';
+export type { DistortionType, FilterMode, ModMode };
 /** 奏法 */
 export type Technique =
   | 'finger'
@@ -80,6 +82,59 @@ export interface BassSettings {
   /** 残響の量 0..1 */
   reverbMix: number;
 
+  // --- 追加エフェクト（3アプリ共通の実装を使う。既定はすべて切） ---
+  distType: DistortionType;
+  /** 歪みの深さ 0..1 */
+  distAmount: number;
+  /** 歪んだ音の明るさ 0..1 */
+  distTone: number;
+  /** 歪んだ音の混ぜ量 0..1 */
+  distMix: number;
+  /** ビット数 2..16（16 = 切） */
+  crushBits: number;
+  /** ビットクラッシャーの混ぜ量 0..1 */
+  crushMix: number;
+  filterMode: FilterMode;
+  /** カットオフ 40..18000 Hz */
+  filterFreq: number;
+  /** レゾナンス 0.3..20 */
+  filterQ: number;
+  /** 揺らしの速さ 0..8 Hz */
+  filterLfoRate: number;
+  /** 揺らしの深さ 0..1 */
+  filterLfoDepth: number;
+  flangerOn: boolean;
+  flangerRate: number;
+  flangerDepth: number;
+  /** フランジャーのフィードバック 0..0.85 */
+  flangerFeedback: number;
+  flangerMix: number;
+  phaserOn: boolean;
+  phaserRate: number;
+  phaserDepth: number;
+  /** フェイザーのフィードバック 0..0.55 */
+  phaserFeedback: number;
+  phaserMix: number;
+  ringOn: boolean;
+  /** リングモジュレーターの周波数 10..2000 Hz */
+  ringFreq: number;
+  ringMix: number;
+  modMode: ModMode;
+  /** トレモロ／オートパンの速さ 0.05..16 Hz */
+  modRate: number;
+  /** トレモロ／オートパンの深さ 0..1 */
+  modDepth: number;
+  /** ディレイタイム（秒） 0.02..1.2 */
+  delayTime: number;
+  /** ディレイのフィードバック 0..0.85 */
+  delayFeedback: number;
+  /** ディレイの量 0..1 */
+  delayMix: number;
+  /** ディレイを左右交互にする */
+  delayPingPong: boolean;
+  /** ステレオ幅 0（モノラル）..1（そのまま）..2（最大） */
+  width: number;
+
   // --- 演奏 ---
   /** ベロシティカーブ 0.5..2.2 */
   velCurve: number;
@@ -150,6 +205,39 @@ export const DEFAULT_SETTINGS: BassSettings = {
   wahSens: 0.5,
   reverbType: 'studio',
   reverbMix: 0.12,
+
+  distType: 'off',
+  distAmount: 0.4,
+  distTone: 0.5,
+  distMix: 0.5,
+  crushBits: 16,
+  crushMix: 0.5,
+  filterMode: 'off',
+  filterFreq: 900,
+  filterQ: 2,
+  filterLfoRate: 0.5,
+  filterLfoDepth: 0,
+  flangerOn: false,
+  flangerRate: 0.3,
+  flangerDepth: 0.7,
+  flangerFeedback: 0.5,
+  flangerMix: 0.4,
+  phaserOn: false,
+  phaserRate: 0.4,
+  phaserDepth: 0.7,
+  phaserFeedback: 0.4,
+  phaserMix: 0.5,
+  ringOn: false,
+  ringFreq: 120,
+  ringMix: 0.35,
+  modMode: 'off',
+  modRate: 4,
+  modDepth: 0.5,
+  delayTime: 0.32,
+  delayFeedback: 0.3,
+  delayMix: 0,
+  delayPingPong: true,
+  width: 1,
 
   velCurve: 1.0,
   dynamics: 1.0,

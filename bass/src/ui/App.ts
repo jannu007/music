@@ -24,11 +24,22 @@ import {
   DEFAULT_SETTINGS,
   type BassSettings,
   type CabType,
+  type DistortionType,
+  type FilterMode,
+  type ModMode,
   type PerformanceEvent,
   type ReverbType,
   type Technique,
 } from '../audio/types';
 import { DEMOS } from '../data/demos';
+
+/** BassSettings のうち数値／真偽値の項目だけを取り出す */
+type BassNumberKey = {
+  [K in keyof BassSettings]: BassSettings[K] extends number ? K : never;
+}[keyof BassSettings];
+type BassBoolKey = {
+  [K in keyof BassSettings]: BassSettings[K] extends boolean ? K : never;
+}[keyof BassSettings];
 import { Fretboard, type LabelMode } from './Fretboard';
 import { PATTERNS, Rhythm } from './Rhythm';
 import { button, el, segmented, select, slider, switchRow } from './controls';
@@ -687,6 +698,8 @@ export class BassApp {
     );
     body.append(el('h2', 'panel-title', t('panel.fx')), fx);
 
+    this.buildPedalSections(body);
+
     body.append(
       el(
         'p',
@@ -694,6 +707,125 @@ export class BassApp {
         t('amp.note')
       )
     );
+  }
+
+  /** 重ねがけできる追加エフェクター（既定はすべて切） */
+  private buildPedalSections(body: HTMLElement) {
+    const s = this.settings;
+    const pct = (v: number) => `${Math.round(v * 100)}`;
+    const hz = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)} kHz` : `${Math.round(v)} Hz`);
+
+    const num = (
+      g: HTMLElement,
+      label: string,
+      key: BassNumberKey,
+      min: number,
+      max: number,
+      step: number,
+      format: (v: number) => string,
+      hint?: string
+    ) => {
+      g.append(
+        slider({
+          label, min, max, step, value: s[key], format, hint,
+          onInput: (v) => { s[key] = v; this.commit(); },
+        })
+      );
+    };
+    const onOff = (g: HTMLElement, label: string, key: BassBoolKey, hint?: string) => {
+      g.append(switchRow(label, s[key], (v) => { s[key] = v; this.commit(); }, hint));
+    };
+
+    // --- 歪み ---
+    const dist = el('div', 'ctl-grid');
+    dist.append(
+      segmented<DistortionType>(
+        t('ctl.distType.label'),
+        [
+          { value: 'off', label: t('fx.off') },
+          { value: 'soft', label: t('dist.soft') },
+          { value: 'hard', label: t('dist.hard') },
+          { value: 'fuzz', label: t('dist.fuzz') },
+        ],
+        s.distType,
+        (v) => { s.distType = v; this.commit(); }
+      )
+    );
+    num(dist, t('ctl.distAmount.label'), 'distAmount', 0, 1, 0.01, pct);
+    num(dist, t('ctl.distTone.label'), 'distTone', 0, 1, 0.01, pct, t('ctl.distTone.hint'));
+    num(dist, t('ctl.distMix.label'), 'distMix', 0, 1, 0.01, pct);
+    num(dist, t('ctl.crushBits.label'), 'crushBits', 2, 16, 1,
+      (v) => (v >= 16 ? t('fx.off') : `${Math.round(v)} bit`), t('ctl.crushBits.hint'));
+    num(dist, t('ctl.crushMix.label'), 'crushMix', 0, 1, 0.01, pct);
+    body.append(el('h2', 'panel-title', t('panel.pedalDist')), dist);
+
+    // --- フィルター ---
+    const filt = el('div', 'ctl-grid');
+    filt.append(
+      segmented<FilterMode>(
+        t('ctl.filterMode.label'),
+        [
+          { value: 'off', label: t('fx.off') },
+          { value: 'lowpass', label: t('filter.lowpass') },
+          { value: 'highpass', label: t('filter.highpass') },
+          { value: 'bandpass', label: t('filter.bandpass') },
+        ],
+        s.filterMode,
+        (v) => { s.filterMode = v; this.commit(); }
+      )
+    );
+    num(filt, t('ctl.filterFreq.label'), 'filterFreq', 40, 8000, 10, hz);
+    num(filt, t('ctl.filterQ.label'), 'filterQ', 0.3, 20, 0.1, (v) => v.toFixed(1), t('ctl.filterQ.hint'));
+    num(filt, t('ctl.filterLfoRate.label'), 'filterLfoRate', 0.02, 8, 0.01, (v) => `${v.toFixed(2)} Hz`);
+    num(filt, t('ctl.filterLfoDepth.label'), 'filterLfoDepth', 0, 1, 0.01, pct, t('ctl.filterLfoDepth.hint'));
+    body.append(el('h2', 'panel-title', t('panel.pedalFilter')), filt);
+
+    // --- 揺らし系 ---
+    const mod = el('div', 'ctl-grid');
+    onOff(mod, t('ctl.flanger.label'), 'flangerOn', t('ctl.flanger.hint'));
+    num(mod, t('ctl.flangerRate.label'), 'flangerRate', 0.05, 6, 0.01, (v) => `${v.toFixed(2)} Hz`);
+    num(mod, t('ctl.flangerDepth.label'), 'flangerDepth', 0, 1, 0.01, pct);
+    num(mod, t('ctl.flangerFeedback.label'), 'flangerFeedback', 0, 0.85, 0.01, pct);
+    num(mod, t('ctl.flangerMix.label'), 'flangerMix', 0, 1, 0.01, pct);
+    onOff(mod, t('ctl.phaser.label'), 'phaserOn', t('ctl.phaser.hint'));
+    num(mod, t('ctl.phaserRate.label'), 'phaserRate', 0.05, 6, 0.01, (v) => `${v.toFixed(2)} Hz`);
+    num(mod, t('ctl.phaserDepth.label'), 'phaserDepth', 0, 1, 0.01, pct);
+    num(mod, t('ctl.phaserFeedback.label'), 'phaserFeedback', 0, 0.55, 0.01, pct);
+    num(mod, t('ctl.phaserMix.label'), 'phaserMix', 0, 1, 0.01, pct);
+    body.append(el('h2', 'panel-title', t('panel.pedalMod')), mod);
+
+    // --- トレモロ・リング・ディレイ・幅 ---
+    const extra = el('div', 'ctl-grid');
+    extra.append(
+      segmented<ModMode>(
+        t('ctl.modMode.label'),
+        [
+          { value: 'off', label: t('fx.off') },
+          { value: 'tremolo', label: t('mod.tremolo') },
+          { value: 'autopan', label: t('mod.autopan') },
+        ],
+        s.modMode,
+        (v) => { s.modMode = v; this.commit(); }
+      )
+    );
+    num(extra, t('ctl.modRate.label'), 'modRate', 0.05, 16, 0.05, (v) => `${v.toFixed(2)} Hz`);
+    num(extra, t('ctl.modDepth.label'), 'modDepth', 0, 1, 0.01, pct);
+    onOff(extra, t('ctl.ring.label'), 'ringOn', t('ctl.ring.hint'));
+    num(extra, t('ctl.ringFreq.label'), 'ringFreq', 10, 2000, 1, hz);
+    num(extra, t('ctl.ringMix.label'), 'ringMix', 0, 1, 0.01, pct);
+    num(extra, t('ctl.delayMix.label'), 'delayMix', 0, 1, 0.01,
+      (v) => (v < 0.005 ? t('fx.off') : pct(v)), t('ctl.delayMix.hint'));
+    num(extra, t('ctl.delayTime.label'), 'delayTime', 0.02, 1.2, 0.005, (v) => `${Math.round(v * 1000)} ms`);
+    num(extra, t('ctl.delayFeedback.label'), 'delayFeedback', 0, 0.85, 0.01, pct);
+    extra.append(
+      switchRow(t('ctl.pingpong.label'), s.delayPingPong, (v) => {
+        s.delayPingPong = v;
+        this.commit();
+      }, t('ctl.pingpong.hint'))
+    );
+    num(extra, t('ctl.width.label'), 'width', 0, 2, 0.01,
+      (v) => (v < 0.02 ? t('width.mono') : `${Math.round(v * 100)}%`), t('ctl.width.hint'));
+    body.append(el('h2', 'panel-title', t('panel.pedalExtra')), extra);
   }
 
   private buildPlayTab() {

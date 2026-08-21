@@ -1,5 +1,5 @@
 import processorUrl from './drum-processor.js?url';
-import { BitCrusher, Chorus, Distortion, Flanger, ModShaper, Phaser, RingMod, StereoWidth, SweepFilter } from './fx';
+import { BitCrusher, Chorus, Distortion, Flanger, ModShaper, Phaser, RingMod, StereoWidth, SweepFilter } from '../../../shared/audio/fx';
 import { createImpulseResponse } from './reverb';
 import type { DelayDivision, MasterSettings, Pattern, Project, TrackConfig } from './types';
 
