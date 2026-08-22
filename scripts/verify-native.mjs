@@ -90,10 +90,12 @@ function instrument() {
   };
 }
 
-const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium',
-  args: ['--autoplay-policy=no-user-gesture-required'],
-});
+// 開発コンテナでは所定の場所にある。GitHub Actions など無い環境では
+// Playwright が自分で入れたものを使わせる
+const launchOptions = { args: ['--autoplay-policy=no-user-gesture-required'] };
+const preinstalled = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium';
+if (existsSync(preinstalled)) launchOptions.executablePath = preinstalled;
+const browser = await chromium.launch(launchOptions);
 
 console.log('アプリ         ワークレット  音    外部通信  エラー');
 console.log('------------------------------------------------------');

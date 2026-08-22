@@ -63,6 +63,10 @@ jobs:
       - name: Build offline bundle
         run: node scripts/build-native.mjs "${{ inputs.app }}"
 
+      # 検証はブラウザで実際に鳴らして確かめるので、Chromium が要る
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
       - name: Verify the bundle is self-contained
         run: node scripts/verify-native.mjs "${{ inputs.app }}"
 
