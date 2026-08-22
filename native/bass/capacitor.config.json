@@ -1,0 +1,11 @@
+{
+  "appId": "shop.youkoku.bass",
+  "appName": "Kurogane Bass",
+  "webDir": "../../dist-native/bass",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

@@ -2,3 +2,8 @@ node_modules/
 dist/
 release/
 *.log
+
+# ネイティブ同梱用のビルド成果物
+dist-native/
+native/*/android/
+native/*/node_modules/

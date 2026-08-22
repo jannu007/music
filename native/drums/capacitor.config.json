@@ -1,0 +1,11 @@
+{
+  "appId": "shop.youkoku.drums",
+  "appName": "Hibiki Drum Machine",
+  "webDir": "../../dist-native/drums",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

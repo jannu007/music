@@ -1,0 +1,11 @@
+{
+  "appId": "shop.youkoku.guitar",
+  "appName": "Takibi Guitar",
+  "webDir": "../../dist-native/guitar",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

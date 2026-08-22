@@ -1,0 +1,174 @@
+/**
+ * 同梱バンドルがオフラインだけで完結しているかを検証する。
+ *
+ *   node scripts/build-native.mjs && node scripts/verify-native.mjs
+ *
+ * 各アプリを localhost から配信したうえで、**localhost 以外への通信をすべて遮断**し、
+ *
+ *   1. AudioWorklet が読み込めるか（端末内のファイルだけで音源が動くか）
+ *   2. 実際に音が出るか
+ *   3. 外部へ取りに行ったものが1つも無いか
+ *   4. コンソールエラーが無いか
+ *
+ * を確認する。1つでも外部を参照していれば、それは Play の
+ * 「ウェブ表示スパム」に逆戻りするということなので、ここで落とす。
+ *
+ * なお file:// ではなく http(s) で配るのは、AudioWorklet がセキュアコンテキスト
+ * でしか動かないため。実機でも Capacitor が https://localhost から配る。
+ */
+import { chromium } from 'playwright';
+import { createServer } from 'node:http';
+import { readFile, stat } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { extname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { NATIVE_APPS } from './build-native.mjs';
+
+const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
+const PORT = 4321;
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.webmanifest': 'application/manifest+json',
+  '.svg': 'image/svg+xml',
+};
+
+let serveRoot = '';
+const server = createServer(async (req, res) => {
+  try {
+    const url = new URL(req.url, 'http://x');
+    let file = join(serveRoot, decodeURIComponent(url.pathname));
+    const info = await stat(file).catch(() => null);
+    if (!info || info.isDirectory()) file = join(file, 'index.html');
+    const data = await readFile(file);
+    res.writeHead(200, { 'Content-Type': MIME[extname(file)] ?? 'application/octet-stream' });
+    res.end(data);
+  } catch {
+    res.writeHead(404);
+    res.end('not found');
+  }
+});
+await new Promise((r) => server.listen(PORT, r));
+
+/** ページ内に仕込む計測。AudioWorklet の成否と、destination への出力を拾う */
+function instrument() {
+  window.__wl = { ok: 0, fail: [] };
+  const addModule = AudioWorklet.prototype.addModule;
+  AudioWorklet.prototype.addModule = function (url, ...rest) {
+    return addModule.call(this, url, ...rest).then(
+      (v) => {
+        window.__wl.ok++;
+        return v;
+      },
+      (e) => {
+        window.__wl.fail.push(`${url} :: ${e}`);
+        throw e;
+      }
+    );
+  };
+  const connect = AudioNode.prototype.connect;
+  window.__probes = [];
+  AudioNode.prototype.connect = function (dest, ...rest) {
+    try {
+      if (dest && dest.context && dest === dest.context.destination) {
+        const ctx = dest.context;
+        if (!ctx.__probe) {
+          const an = ctx.createAnalyser();
+          an.fftSize = 2048;
+          ctx.__probe = an;
+          window.__probes.push(an);
+        }
+        connect.call(this, ctx.__probe);
+      }
+    } catch {
+      /* 計測できなくても本体の動作は妨げない */
+    }
+    return connect.call(this, dest, ...rest);
+  };
+}
+
+const browser = await chromium.launch({
+  executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium',
+  args: ['--autoplay-policy=no-user-gesture-required'],
+});
+
+console.log('アプリ         ワークレット  音    外部通信  エラー');
+console.log('------------------------------------------------------');
+let failures = 0;
+
+for (const app of NATIVE_APPS) {
+  serveRoot = join(ROOT, 'dist-native', app.id);
+  if (!existsSync(serveRoot)) {
+    console.log(`${app.id.padEnd(13)} バンドルがありません（先に build-native を実行）`);
+    failures++;
+    continue;
+  }
+
+  const ctx = await browser.newContext({ viewport: { width: 412, height: 890 } });
+  const page = await ctx.newPage();
+  const errors = [];
+  const external = [];
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  page.on('pageerror', (e) => errors.push(String(e)));
+
+  // localhost 以外への通信は握りつぶす。これで「本当に手元だけで動くか」が分かる
+  await ctx.route('**', (route) => {
+    const url = route.request().url();
+    if (url.startsWith(`http://localhost:${PORT}/`)) return route.continue();
+    external.push(url);
+    return route.abort();
+  });
+
+  await page.addInitScript(instrument);
+  await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(600);
+  // 音を鳴らす（アプリごとに操作が違うので、当たりそうなものを一通り叩く）
+  await page.mouse.click(206, 400);
+  await page.waitForTimeout(900);
+  for (const key of ['a', 'z', 'q', '1']) {
+    await page.keyboard.press(key).catch(() => {});
+    await page.waitForTimeout(120);
+  }
+
+  const result = await page.evaluate(async () => {
+    const an = window.__probes[0];
+    let peak = 0;
+    if (an) {
+      const buf = new Float32Array(an.fftSize);
+      for (let i = 0; i < 30; i++) {
+        an.getFloatTimeDomainData(buf);
+        for (const s of buf) peak = Math.max(peak, Math.abs(s));
+        await new Promise((r) => setTimeout(r, 25));
+      }
+    }
+    return { wl: window.__wl, peak, secure: window.isSecureContext };
+  });
+
+  const workletOk = result.wl.ok > 0 && result.wl.fail.length === 0;
+  const audioOk = result.peak > 0.001;
+  const ok = workletOk && audioOk && external.length === 0 && errors.length === 0;
+  if (!ok) failures++;
+
+  console.log(
+    app.id.padEnd(13),
+    (workletOk ? `ok(${result.wl.ok})` : 'FAIL').padEnd(13),
+    (audioOk ? result.peak.toFixed(3) : '無音').padEnd(6),
+    String(external.length).padEnd(9),
+    errors.length ? errors.slice(0, 1).join(' ') : 'なし'
+  );
+  if (result.wl.fail.length) console.log('   ワークレット:', result.wl.fail);
+  if (external.length) console.log('   外部参照:', [...new Set(external)].slice(0, 5));
+  await ctx.close();
+}
+
+await browser.close();
+server.close();
+
+if (failures) {
+  console.error(`\n${failures} 個のアプリに問題があります`);
+  process.exit(1);
+}
+console.log('\nすべてオフラインで完結し、AudioWorklet も動作しました');

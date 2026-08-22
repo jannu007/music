@@ -1,0 +1,11 @@
+{
+  "appId": "shop.youkoku.piano",
+  "appName": "Aozora Grand Piano",
+  "webDir": "../../dist-native/piano",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
