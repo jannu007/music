@@ -38,10 +38,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Capacitor CLI が Node 22 以上を要求する
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Setup Java
