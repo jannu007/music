@@ -1,3 +1,4 @@
+import { registerServiceWorker } from '../../shared/runtime';
 import { PianoApp } from './ui/App';
 import './styles/piano.css';
 
@@ -6,10 +7,4 @@ if (root) {
   new PianoApp(root);
 }
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {
-      // オフライン動作は必須ではないため、登録に失敗しても無視する
-    });
-  });
-}
+registerServiceWorker();

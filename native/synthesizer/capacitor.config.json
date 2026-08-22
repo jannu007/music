@@ -1,0 +1,11 @@
+{
+  "appId": "shop.youkoku.synth",
+  "appName": "Akatsuki Synth",
+  "webDir": "../../dist-native/synthesizer",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

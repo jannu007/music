@@ -1,3 +1,4 @@
+import { registerServiceWorker } from '../../shared/runtime';
 import { App } from './ui/App';
 import { basePatch } from './audio/presets';
 
@@ -9,10 +10,4 @@ if (root) {
   (window as unknown as Record<string, unknown>).__mssBasePatch = basePatch;
 }
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {
-      // オフライン対応は必須機能ではないため、登録失敗時は無視する
-    });
-  });
-}
+registerServiceWorker();

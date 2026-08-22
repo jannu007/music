@@ -34,9 +34,14 @@
     "vocal:build:win": "vite build && electron-builder --win portable --config electron-builder.vocal.json",
     "vocal:test": "node scripts/test-vocal-transcribe.mjs",
     "test:audio": "node scripts/audio-smoke.mjs",
-    "test": "tsc --noEmit && vite build && node scripts/test-bass-dsp.mjs && node scripts/test-vocal-transcribe.mjs && node scripts/audio-smoke.mjs"
+    "test": "tsc --noEmit && vite build && node scripts/test-bass-dsp.mjs && node scripts/test-vocal-transcribe.mjs && node scripts/audio-smoke.mjs",
+    "native:build": "npm run build && node scripts/build-native.mjs",
+    "native:verify": "node scripts/verify-native.mjs"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
     "esbuild": "^0.21.5",
     "playwright": "^1.49.1",
     "typescript": "^5.5.4",
