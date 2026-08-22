@@ -7,3 +7,5 @@ release/
 dist-native/
 native/*/android/
 native/*/node_modules/
+/android/
+/capacitor.config.json

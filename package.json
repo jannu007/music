@@ -39,9 +39,6 @@
     "native:verify": "node scripts/verify-native.mjs"
   },
   "devDependencies": {
-    "@capacitor/android": "^8.5.0",
-    "@capacitor/cli": "^8.5.0",
-    "@capacitor/core": "^8.5.0",
     "esbuild": "^0.21.5",
     "playwright": "^1.49.1",
     "typescript": "^5.5.4",

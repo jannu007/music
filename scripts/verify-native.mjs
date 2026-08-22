@@ -99,7 +99,14 @@ console.log('アプリ         ワークレット  音    外部通信  エラ�
 console.log('------------------------------------------------------');
 let failures = 0;
 
-for (const app of NATIVE_APPS) {
+const only = process.argv[2];
+const targets = only ? NATIVE_APPS.filter((a) => a.id === only) : NATIVE_APPS;
+if (targets.length === 0) {
+  console.error(`不明なアプリ: ${only}`);
+  process.exit(1);
+}
+
+for (const app of targets) {
   serveRoot = join(ROOT, 'dist-native', app.id);
   if (!existsSync(serveRoot)) {
     console.log(`${app.id.padEnd(13)} バンドルがありません（先に build-native を実行）`);

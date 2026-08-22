@@ -101,21 +101,31 @@ async function folderSize(dir) {
   return total;
 }
 
-/** Capacitor 用の設定。アプリごとに native/<id>/ を作る */
-async function writeCapacitorConfig(app) {
+/**
+ * Capacitor 用の設定を書く。
+ *
+ * `native/<id>/` … 手元で複数アプリを扱うとき用（webDir は相対で 2階層上）
+ * リポジトリ直下 … 単一アプリを指定したとき用。`npx cap add android` は
+ *                  カレントの capacitor.config.json しか見ないため
+ */
+async function writeCapacitorConfig(app, alsoAtRoot) {
   const dir = join(ROOT, 'native', app.id);
   await mkdir(dir, { recursive: true });
-  const config = {
+  const make = (webDir) => ({
     appId: app.appId,
     appName: app.name,
     // ここを指すことで、ビルド済みファイルがそのまま APK に入る
-    webDir: join('..', '..', 'dist-native', app.id).split('\\').join('/'),
+    webDir,
     // 端末内のファイルを https://localhost から配る。
     // AudioWorklet はセキュアコンテキストでしか動かないため file:// は使えない
     server: { androidScheme: 'https' },
     android: { allowMixedContent: false },
-  };
-  await writeFile(join(dir, 'capacitor.config.json'), JSON.stringify(config, null, 2) + '\n');
+  });
+  const write = (path, cfg) => writeFile(path, JSON.stringify(cfg, null, 2) + '\n');
+  await write(join(dir, 'capacitor.config.json'), make(`../../dist-native/${app.id}`));
+  if (alsoAtRoot) {
+    await write(join(ROOT, 'capacitor.config.json'), make(`dist-native/${app.id}`));
+  }
   return dir;
 }
 
@@ -130,7 +140,7 @@ async function main() {
   }
   for (const app of targets) {
     const built = await buildOne(app);
-    const cfg = await writeCapacitorConfig(app);
+    const cfg = await writeCapacitorConfig(app, Boolean(only));
     console.log(`  ${app.id.padEnd(12)} ${mb(built.bytes).padStart(8)}  ${app.appId}`);
     console.log(`  ${''.padEnd(12)} bundle: dist-native/${app.id}/   config: ${cfg.replace(ROOT + '/', '')}/`);
   }
