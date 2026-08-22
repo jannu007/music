@@ -57,6 +57,9 @@ jobs:
         run: npm ci
 
       # 端末内で完結するバンドルを作り、外部参照が無いことを確かめる
+      - name: Build the web app
+        run: npm run build
+
       - name: Build offline bundle
         run: node scripts/build-native.mjs "${{ inputs.app }}"
 
