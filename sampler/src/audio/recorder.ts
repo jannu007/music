@@ -74,6 +74,17 @@ export class Recorder {
     this.open.delete(note);
   }
 
+  /**
+   * 外から演奏を入れる（収録デモの読み込み）。
+   * 弾いて録ったものと同じ扱いになるので、そのまま再生も書き出しもできる
+   */
+  load(events: PerformanceEvent[]) {
+    this.recording = false;
+    this.open.clear();
+    this.events = events.map((ev) => ({ ...ev }));
+    this.lastTime = this.events.reduce((max, ev) => Math.max(max, ev.time + (ev.duration ?? 0)), 0);
+  }
+
   get isEmpty(): boolean {
     return this.events.length === 0;
   }

@@ -19,6 +19,7 @@ import { Keyboard } from './Keyboard';
 import { Waveform, type WaveformValues } from './Waveform';
 import { SamplerEngine, type EngineSample } from '../audio/SamplerEngine';
 import { buildFactory, FACTORY_IDS } from '../audio/factory';
+import { DEMO_SONGS, buildDemo, type DemoSong } from '../data/demos';
 import {
   ImportError,
   fromRecording,
@@ -64,7 +65,7 @@ import type {
 } from '../audio/types';
 import { noteName } from '../audio/types';
 
-type Tab = 'browse' | 'map' | 'sound' | 'fx' | 'rec' | 'export';
+type Tab = 'map' | 'sound' | 'fx' | 'rec' | 'export';
 
 const STORAGE_KEY = 'yamabiko-sampler-state';
 const SAMPLE_RATE = 48000;
@@ -83,7 +84,9 @@ export class SamplerApp {
   private readonly voiceMeter: HTMLElement;
   private readonly instrumentLabel: HTMLElement;
   private readonly keyboard: Keyboard;
-  private waveform: Waveform | null = null;
+  private readonly waveform: Waveform;
+  private readonly waveStrip: HTMLElement;
+  private readonly waveLabel: HTMLElement;
 
   private ctx: AudioContext | null = null;
   private engine: SamplerEngine | null = null;
@@ -96,7 +99,17 @@ export class SamplerApp {
   /** 保管庫にある自分の素材 */
   private mySamples: SampleMeta[] = [];
 
-  private tab: Tab = 'browse';
+  private tab: Tab = 'map';
+  /**
+   * いま載っている付属音源の id。自分の素材から作った楽器のときは null。
+   *
+   * 表示名は言語で変わるので、名前そのものではなく id を覚えておき、
+   * 画面を組むたびに引き直す。名前を持ったままだと、言語を切り替えても
+   * 見出しだけ前の言語のまま残ってしまう。
+   */
+  private factoryId: string | null = null;
+  /** いま読み込んでいる収録デモ。一覧で印を付けるのに使う */
+  private loadedDemo: string | null = null;
   private selectedZone = 0;
   private masterVolume = 0.85;
   private exporting = false;
@@ -122,12 +135,13 @@ export class SamplerApp {
     title.append(this.instrumentLabel);
 
     this.voiceMeter = el('div', 'voice-meter');
-    const lang = button(t('header.lang'), 'ghost', () => toggleLocale());
+    const lang = button(t('lang.toggle'), 'ghost', () => toggleLocale());
     lang.classList.add('lang-btn');
+    lang.title = t('lang.toggle.hint');
     header.append(title, this.voiceMeter, lang);
 
     const tabs = el('nav', 'tab-bar');
-    const tabIds: Tab[] = ['browse', 'map', 'sound', 'fx', 'rec', 'export'];
+    const tabIds: Tab[] = ['map', 'sound', 'fx', 'rec', 'export'];
     for (const id of tabIds) {
       const btn = button(t(`tab.${id}`), 'tab-btn', () => this.showTab(id));
       btn.dataset.tab = id;
@@ -137,13 +151,19 @@ export class SamplerApp {
     this.panel = el('main', 'panel');
     this.statusLine = el('div', 'status-line');
 
+    // 波形はタブを切り替えても消さない。どの画面にいても、いま触っている音が
+    // どんな形をしているかが見えているようにする
+    this.waveform = new Waveform((values) => this.updateZone(values));
+    this.waveStrip = el('div', 'wave-strip');
+    this.waveLabel = el('div', 'wave-strip-label');
+    this.waveStrip.append(this.waveLabel, this.waveform.root);
+
     this.keyboard = new Keyboard(
       {
         noteOn: (note, velocity) => this.playNote(note, velocity),
         noteOff: (note) => this.stopNote(note),
         hasZone: (note) => this.engine?.hasZoneFor(note) ?? false,
         highlight: () => {
-          if (this.tab !== 'map') return null;
           const zone = this.instrument.zones[this.selectedZone];
           return zone ? { lo: zone.loKey, hi: zone.hiKey } : null;
         },
@@ -151,7 +171,7 @@ export class SamplerApp {
       () => this.keyboard.paint()
     );
 
-    this.root.append(header, tabs, this.panel, this.statusLine, this.keyboard.root);
+    this.root.append(header, tabs, this.panel, this.waveStrip, this.statusLine, this.keyboard.root);
 
     this.restore();
     onLocaleChange(() => this.rebuild());
@@ -182,6 +202,10 @@ export class SamplerApp {
       if (typeof saved?.masterVolume === 'number') {
         this.masterVolume = Math.max(0, Math.min(1, saved.masterVolume));
       }
+      // 保存データも書き換えられうるので、知っている id のときだけ受け取る
+      if (typeof saved?.factoryId === 'string' && FACTORY_IDS.includes(saved.factoryId)) {
+        this.factoryId = saved.factoryId;
+      }
     } catch {
       /* 壊れていれば初期状態で始める */
     }
@@ -191,7 +215,11 @@ export class SamplerApp {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ instrument: encodeInstrument(this.instrument), masterVolume: this.masterVolume })
+        JSON.stringify({
+          instrument: encodeInstrument(this.instrument),
+          masterVolume: this.masterVolume,
+          factoryId: this.factoryId,
+        })
       );
     } catch {
       /* 保存できなくても操作は続けられる */
@@ -285,6 +313,8 @@ export class SamplerApp {
       const [built] = buildFactory(SAMPLE_RATE, id);
       if (!built) return;
       this.instrument = built.instrument;
+      this.factoryId = id;
+      this.loadedDemo = null;
       this.instrument.name = t(`inst.${id}`);
       this.sampleData = new Map();
       this.sampleMeta = new Map();
@@ -300,6 +330,58 @@ export class SamplerApp {
     } finally {
       this.busy = false;
       this.rebuild();
+    }
+  }
+
+  /**
+   * 収録デモを読み込む。
+   *
+   * 音源を載せ、その曲のための音づくりを重ね、演奏を録音済みの状態に入れる。
+   * そのまま「再生」で聞けて、そのまま WAV へ書き出せる——という置き方にして
+   * あるので、気に入った曲をそのまま素材として持ち出せる。
+   */
+  private async loadDemo(demo: DemoSong) {
+    this.busy = true;
+    this.setStatus(t('browse.loading'));
+    this.rebuild();
+    await new Promise((resolve) => setTimeout(resolve, 16));
+    try {
+      const [built] = buildFactory(SAMPLE_RATE, demo.instrument);
+      if (!built) return;
+
+      // 付属音源の設定に、その曲ぶんを重ねる。値の妥当性は decode に任せる
+      const merged = {
+        ...built.instrument,
+        ...(demo.tweak ?? {}),
+        fx: { ...built.instrument.fx, ...(demo.tweak?.fx ?? {}) },
+      };
+      const instrument = decodeInstrument(merged);
+      // ゾーンは合成した本物を使う（decode は素材の id しか見ていない）
+      instrument.zones = built.instrument.zones;
+      instrument.name = t(`demo.${demo.id}.name`);
+
+      this.instrument = instrument;
+      this.factoryId = null;
+      this.loadedDemo = demo.id;
+      this.sampleData = new Map();
+      this.sampleMeta = new Map();
+      for (const sample of built.samples) {
+        this.sampleData.set(sample.meta.id, sample.channels);
+        this.sampleMeta.set(sample.meta.id, sample.meta);
+      }
+      this.selectedZone = 0;
+
+      await this.ensureAudio();
+      this.pushBuffers();
+      this.applyInstrument();
+
+      // 演奏を録音済みとして入れておく
+      this.recorder.load(buildDemo(demo));
+      this.setStatus(t('demo.loaded', { name: t(`demo.${demo.id}.name`) }));
+    } finally {
+      this.busy = false;
+      this.rebuild();
+      void this.playRecording();
     }
   }
 
@@ -491,6 +573,8 @@ export class SamplerApp {
       },
     ];
     this.instrument = base;
+    this.factoryId = null;
+    this.loadedDemo = null;
     this.selectedZone = 0;
     await this.ensureAudio();
     this.pushBuffers();
@@ -521,6 +605,8 @@ export class SamplerApp {
   }
 
   private rebuild() {
+    // 付属音源は言語で名前が変わる。切り替えたときに見出しも追従させる
+    if (this.factoryId) this.instrument.name = t(`inst.${this.factoryId}`);
     this.instrumentLabel.textContent = this.instrument.name;
     for (const btn of this.root.querySelectorAll('.tab-btn')) {
       btn.classList.toggle('active', btn instanceof HTMLElement && btn.dataset.tab === this.tab);
@@ -529,14 +615,15 @@ export class SamplerApp {
       }
     }
     const lang = this.root.querySelector('.lang-btn');
-    if (lang) lang.textContent = t('header.lang');
+    if (lang instanceof HTMLElement) {
+      lang.textContent = t('lang.toggle');
+      lang.title = t('lang.toggle.hint');
+    }
+
+    this.refreshWaveStrip();
 
     this.panel.textContent = '';
-    this.waveform = null;
     switch (this.tab) {
-      case 'browse':
-        this.buildBrowseTab();
-        break;
       case 'map':
         this.buildMapTab();
         break;
@@ -558,7 +645,26 @@ export class SamplerApp {
 
   // ------------------------------------------------------------- 音源タブ
 
-  private buildBrowseTab() {
+  /** このアプリについて。タブのいちばん下に置く */
+  private buildAboutSection(): HTMLElement {
+    const about = section(t('privacy.title'));
+    about.append(el('p', 'about-note', t('privacy.offline')));
+    about.append(el('p', 'about-note', t('privacy.original')));
+    about.append(
+      button(t('privacy.clear'), 'ghost small', () => {
+        void clearSamples().then(async () => {
+          this.sampleData.clear();
+          await this.refreshMySamples();
+          this.setStatus(t('privacy.cleared'));
+          this.rebuild();
+        });
+      })
+    );
+    return about;
+  }
+
+  /** 音源・収録デモ・自分の素材。割り当てタブの中に置く */
+  private buildSoundSections() {
     const factory = section(t('browse.factory'), t('browse.factory.hint'));
     const list = el('div', 'sound-list');
     for (const id of FACTORY_IDS) {
@@ -568,7 +674,7 @@ export class SamplerApp {
       texts.append(el('span', 'sound-name', t(`inst.${id}`)));
       texts.append(el('span', 'sound-desc', t(`inst.${id}.desc`)));
       row.append(texts);
-      if (this.instrument.name === t(`inst.${id}`)) row.classList.add('active');
+      if (this.factoryId === id) row.classList.add('active');
       row.disabled = this.busy;
       row.addEventListener('click', () => void this.loadFactory(id));
       list.append(row);
@@ -619,21 +725,26 @@ export class SamplerApp {
       });
     }
 
-    const about = section(t('privacy.title'));
-    about.append(el('p', 'about-note', t('privacy.offline')));
-    about.append(el('p', 'about-note', t('privacy.original')));
-    about.append(
-      button(t('privacy.clear'), 'ghost small', () => {
-        void clearSamples().then(async () => {
-          this.sampleData.clear();
-          await this.refreshMySamples();
-          this.setStatus(t('privacy.cleared'));
-          this.rebuild();
-        });
-      })
-    );
+    // 収録デモ
+    const demos = section(t('demo.title'), t('demo.hint'));
+    const demoList = el('div', 'sound-list');
+    for (const demo of DEMO_SONGS) {
+      const row = el('button', 'sound-row');
+      row.type = 'button';
+      const texts = el('div', 'sound-texts');
+      texts.append(el('span', 'sound-name', t(`demo.${demo.id}.name`)));
+      texts.append(
+        el('span', 'sound-desc', `${t(`demo.${demo.id}.desc`)} · ${t(`inst.${demo.instrument}`)}`)
+      );
+      row.append(texts);
+      if (this.loadedDemo === demo.id) row.classList.add('active');
+      row.disabled = this.busy;
+      row.addEventListener('click', () => void this.loadDemo(demo));
+      demoList.append(row);
+    }
+    demos.append(demoList);
 
-    this.panel.append(factory, mine, about);
+    this.panel.append(factory, demos, mine);
   }
 
   // ----------------------------------------------------------- 割り当てタブ
@@ -656,11 +767,14 @@ export class SamplerApp {
   }
 
   private buildMapTab() {
+    // 音源選びと割り当ては続けて行う作業なので、1つのタブにまとめている
+    this.buildSoundSections();
+
     const head = section(t('map.title'), t('map.hint'));
 
     if (this.instrument.zones.length === 0) {
       head.append(el('p', 'empty-note', t('map.noZones')));
-      this.panel.append(head);
+      this.panel.append(head, this.buildAboutSection());
       return;
     }
 
@@ -687,37 +801,27 @@ export class SamplerApp {
     this.panel.append(head);
 
     const zone = this.zone;
-    if (!zone) return;
+    if (!zone) {
+      this.panel.append(this.buildAboutSection());
+      return;
+    }
 
-    // 波形
-    const waveSection = section(t('wave.title'), t('wave.hint'));
-    const waveform = new Waveform((values) => this.updateZone(values));
-    this.waveform = waveform;
-    waveSection.append(waveform.root);
-    const channels = this.sampleData.get(zone.sampleId);
-    if (channels) waveform.setSample(channels, this.waveValues(zone));
-
-    const trimRow = el('div', 'wave-readout');
-    const seconds = (channels?.[0]?.length ?? 0) / SAMPLE_RATE;
-    trimRow.append(
-      el('span', '', `${t('wave.start')} ${(zone.start * seconds).toFixed(2)}s`),
-      el('span', '', `${t('wave.end')} ${(zone.end * seconds).toFixed(2)}s`)
-    );
-    waveSection.append(trimRow);
-    waveSection.append(
+    // 鳴らし方（波形そのものは常設の帯にある）
+    const playSection = section(t('wave.title'), t('wave.hint'));
+    playSection.append(
       switchRow(t('map.loop'), zone.loop, (v) => {
         this.editZone((z) => (z.loop = v));
         this.rebuild();
       })
     );
-    waveSection.append(
+    playSection.append(
       switchRow(t('map.reverse'), zone.reverse, (v) => {
         this.editZone((z) => (z.reverse = v));
         // 逆再生ぶんは作り直しになるので、波形を渡し直す
         this.pushBuffers();
       })
     );
-    this.panel.append(waveSection);
+    this.panel.append(playSection);
 
     // 素材の選択
     const sampleSection = section(t('map.sample'));
@@ -852,7 +956,25 @@ export class SamplerApp {
       )
     );
     tuneSection.append(tuneGrid);
-    this.panel.append(tuneSection);
+    this.panel.append(tuneSection, this.buildAboutSection());
+  }
+
+  /** 常設の波形帯を、いま選んでいるゾーンの中身にそろえる */
+  private refreshWaveStrip() {
+    const zone = this.zone;
+    const channels = zone ? this.sampleData.get(zone.sampleId) : undefined;
+    if (!zone || !channels) {
+      this.waveStrip.classList.add('empty');
+      this.waveLabel.textContent = '';
+      return;
+    }
+    this.waveStrip.classList.remove('empty');
+    const seconds = (channels[0]?.length ?? 0) / SAMPLE_RATE;
+    this.waveLabel.textContent =
+      `${this.sampleLabel(zone.sampleId)} · ` +
+      `${noteName(zone.loKey)}–${noteName(zone.hiKey)} · ` +
+      `${(zone.start * seconds).toFixed(2)}–${(zone.end * seconds).toFixed(2)}s`;
+    this.waveform.setSample(channels, this.waveValues(zone));
   }
 
   private waveValues(zone: Zone): WaveformValues {
@@ -872,6 +994,15 @@ export class SamplerApp {
       z.loopStart = values.loopStart;
       z.loopEnd = values.loopEnd;
     });
+    // 掴んで動かしている最中。波形は描き直さず、数字だけ追いかける
+    const zone = this.zone;
+    const channels = zone ? this.sampleData.get(zone.sampleId) : undefined;
+    if (!zone || !channels) return;
+    const seconds = (channels[0]?.length ?? 0) / SAMPLE_RATE;
+    this.waveLabel.textContent =
+      `${this.sampleLabel(zone.sampleId)} · ` +
+      `${noteName(zone.loKey)}–${noteName(zone.hiKey)} · ` +
+      `${(zone.start * seconds).toFixed(2)}–${(zone.end * seconds).toFixed(2)}s`;
   }
 
   private editZone(fn: (zone: Zone) => void) {
@@ -1755,6 +1886,8 @@ export class SamplerApp {
           await putSample(meta, channels).catch(() => {});
         }
         this.instrument = parsed.instrument;
+        this.factoryId = null;
+        this.loadedDemo = null;
         this.selectedZone = 0;
         await this.refreshMySamples();
         await this.reloadSamplesForInstrument();
