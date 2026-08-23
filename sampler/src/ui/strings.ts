@@ -20,7 +20,9 @@ const ja: Record<string, string> = {
 
   'header.voices': '同時発音',
   'header.volume': '音量',
-  'header.lang': 'English',
+  // 表示中の言語を出す（押すともう一方へ切り替わる）。他の6本と同じ書き方
+  'lang.toggle': 'JP',
+  'lang.toggle.hint': 'Switch to English',
 
   // 付属音源
   'inst.kotoStrings': '木の弦',
@@ -220,7 +222,8 @@ const en: Record<string, string> = {
 
   'header.voices': 'Voices',
   'header.volume': 'Volume',
-  'header.lang': '日本語',
+  'lang.toggle': 'EN',
+  'lang.toggle.hint': '日本語に切り替える',
 
   'inst.kotoStrings': 'Wooden Strings',
   'inst.kotoStrings.desc': 'Plucked strings over a wooden body',

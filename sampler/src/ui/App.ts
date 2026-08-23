@@ -97,6 +97,14 @@ export class SamplerApp {
   private mySamples: SampleMeta[] = [];
 
   private tab: Tab = 'browse';
+  /**
+   * いま載っている付属音源の id。自分の素材から作った楽器のときは null。
+   *
+   * 表示名は言語で変わるので、名前そのものではなく id を覚えておき、
+   * 画面を組むたびに引き直す。名前を持ったままだと、言語を切り替えても
+   * 見出しだけ前の言語のまま残ってしまう。
+   */
+  private factoryId: string | null = null;
   private selectedZone = 0;
   private masterVolume = 0.85;
   private exporting = false;
@@ -122,8 +130,9 @@ export class SamplerApp {
     title.append(this.instrumentLabel);
 
     this.voiceMeter = el('div', 'voice-meter');
-    const lang = button(t('header.lang'), 'ghost', () => toggleLocale());
+    const lang = button(t('lang.toggle'), 'ghost', () => toggleLocale());
     lang.classList.add('lang-btn');
+    lang.title = t('lang.toggle.hint');
     header.append(title, this.voiceMeter, lang);
 
     const tabs = el('nav', 'tab-bar');
@@ -182,6 +191,10 @@ export class SamplerApp {
       if (typeof saved?.masterVolume === 'number') {
         this.masterVolume = Math.max(0, Math.min(1, saved.masterVolume));
       }
+      // 保存データも書き換えられうるので、知っている id のときだけ受け取る
+      if (typeof saved?.factoryId === 'string' && FACTORY_IDS.includes(saved.factoryId)) {
+        this.factoryId = saved.factoryId;
+      }
     } catch {
       /* 壊れていれば初期状態で始める */
     }
@@ -191,7 +204,11 @@ export class SamplerApp {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ instrument: encodeInstrument(this.instrument), masterVolume: this.masterVolume })
+        JSON.stringify({
+          instrument: encodeInstrument(this.instrument),
+          masterVolume: this.masterVolume,
+          factoryId: this.factoryId,
+        })
       );
     } catch {
       /* 保存できなくても操作は続けられる */
@@ -285,6 +302,7 @@ export class SamplerApp {
       const [built] = buildFactory(SAMPLE_RATE, id);
       if (!built) return;
       this.instrument = built.instrument;
+      this.factoryId = id;
       this.instrument.name = t(`inst.${id}`);
       this.sampleData = new Map();
       this.sampleMeta = new Map();
@@ -491,6 +509,7 @@ export class SamplerApp {
       },
     ];
     this.instrument = base;
+    this.factoryId = null;
     this.selectedZone = 0;
     await this.ensureAudio();
     this.pushBuffers();
@@ -521,6 +540,8 @@ export class SamplerApp {
   }
 
   private rebuild() {
+    // 付属音源は言語で名前が変わる。切り替えたときに見出しも追従させる
+    if (this.factoryId) this.instrument.name = t(`inst.${this.factoryId}`);
     this.instrumentLabel.textContent = this.instrument.name;
     for (const btn of this.root.querySelectorAll('.tab-btn')) {
       btn.classList.toggle('active', btn instanceof HTMLElement && btn.dataset.tab === this.tab);
@@ -529,7 +550,10 @@ export class SamplerApp {
       }
     }
     const lang = this.root.querySelector('.lang-btn');
-    if (lang) lang.textContent = t('header.lang');
+    if (lang instanceof HTMLElement) {
+      lang.textContent = t('lang.toggle');
+      lang.title = t('lang.toggle.hint');
+    }
 
     this.panel.textContent = '';
     this.waveform = null;
@@ -568,7 +592,7 @@ export class SamplerApp {
       texts.append(el('span', 'sound-name', t(`inst.${id}`)));
       texts.append(el('span', 'sound-desc', t(`inst.${id}.desc`)));
       row.append(texts);
-      if (this.instrument.name === t(`inst.${id}`)) row.classList.add('active');
+      if (this.factoryId === id) row.classList.add('active');
       row.disabled = this.busy;
       row.addEventListener('click', () => void this.loadFactory(id));
       list.append(row);
@@ -1755,6 +1779,7 @@ export class SamplerApp {
           await putSample(meta, channels).catch(() => {});
         }
         this.instrument = parsed.instrument;
+        this.factoryId = null;
         this.selectedZone = 0;
         await this.refreshMySamples();
         await this.reloadSamplesForInstrument();
