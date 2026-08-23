@@ -67,15 +67,26 @@ export class Waveform {
     this.layout();
   }
 
-  /** 波形を描く。1ピクセルごとに最小・最大を取って縦棒にする */
+  /**
+   * 波形を描く。
+   *
+   * 1ピクセルごとに最小・最大を取って縦棒にする、という描き方そのものは
+   * 波形編集ソフトが昔からやっているとおり。そこに2つ足している。
+   *
+   *   ・上の波形は、中心へ行くほど明るくなるグラデーションで塗る
+   *   ・その下に、薄く反転した「返り」を描く
+   *
+   * 返りを描くのは飾りではなく、このアプリの名前（山彦）そのもの。
+   * アイコンも同じ形をしていて、画面と入口で言っていることをそろえている。
+   */
   private draw() {
     const rect = this.root.getBoundingClientRect();
     const width = Math.max(1, Math.floor(rect.width));
     const height = Math.max(1, Math.floor(rect.height));
-    if (width === this.drawnWidth && this.canvas.height === height) return;
+    if (width === this.drawnWidth && this.canvas.height === height * this.dpr()) return;
     this.drawnWidth = width;
 
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = this.dpr();
     this.canvas.width = Math.floor(width * dpr);
     this.canvas.height = Math.floor(height * dpr);
     this.canvas.style.width = `${width}px`;
@@ -92,7 +103,6 @@ export class Waveform {
     // そのままの振幅で描くと、撥弦のように頭だけ大きい音は、
     // 立ち上がり以外がぜんぶ中心線に潰れて何も見えない。
     // いちばん大きいところを基準にそろえ、さらに小さい音を持ち上げる。
-    // 波形編集の画面では見慣れたやり方で、ループ点を探すのに要る。
     let peak = 0;
     for (let i = 0; i < data.length; i++) {
       const a = Math.abs(data[i]);
@@ -101,9 +111,18 @@ export class Waveform {
     const scale = peak > 1e-6 ? 1 / peak : 1;
     const shape = (v: number) => Math.sign(v) * Math.pow(Math.abs(v) * scale, 0.62);
 
-    const mid = height / 2;
+    // 上に本体、下に返り。あいだの線が「水面」になる。
+    // 本体の中心と水面を同じ高さに置くと、本体の下半分と返りが重なって
+    // ただの塊に見えてしまうので、中心は水面より上に取る
+    const centre = height * 0.37;
+    const bodyHeight = height * 0.31;
+    const surface = height * 0.72;
+    const echoHeight = height * 0.25;
+
+    // 1ピクセルごとの上端・下端を先に出しておく（本体と返りで2回使う）
     const perPixel = data.length / width;
-    ctx.fillStyle = 'rgba(126, 200, 205, 0.85)';
+    const tops = new Float32Array(width);
+    const bottoms = new Float32Array(width);
     for (let x = 0; x < width; x++) {
       const from = Math.floor(x * perPixel);
       const to = Math.min(data.length, Math.floor((x + 1) * perPixel));
@@ -114,15 +133,54 @@ export class Waveform {
         if (v < lo) lo = v;
         else if (v > hi) hi = v;
       }
-      const top = mid - shape(hi) * mid * 0.92;
-      const bottom = mid - shape(lo) * mid * 0.92;
-      // 無音でも線が消えないように、最低1ピクセルは描く
-      ctx.fillRect(x, top, 1, Math.max(1, bottom - top));
+      tops[x] = shape(hi);
+      bottoms[x] = shape(lo);
     }
 
-    // 中心線
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
-    ctx.fillRect(0, mid, width, 1);
+    // 中心ほど明るく、外へ行くほど溶ける。
+    // 真ん中を白で抜くと帯に見えてしまうので、いちばん明るいところも色を残す
+    const body = ctx.createLinearGradient(0, centre - bodyHeight, 0, centre + bodyHeight);
+    body.addColorStop(0, 'rgba(146, 222, 230, 0.72)');
+    body.addColorStop(0.32, 'rgba(180, 238, 243, 0.88)');
+    body.addColorStop(0.5, 'rgba(214, 250, 252, 1)');
+    body.addColorStop(0.68, 'rgba(180, 238, 243, 0.88)');
+    body.addColorStop(1, 'rgba(146, 222, 230, 0.72)');
+
+    ctx.save();
+    // にじみ。輪郭を立てず、光っているように見せる
+    ctx.shadowColor = 'rgba(111, 199, 205, 0.5)';
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = body;
+    for (let x = 0; x < width; x++) {
+      const top = centre - tops[x] * bodyHeight;
+      const bottom = centre - bottoms[x] * bodyHeight;
+      ctx.fillRect(x, top, 1, Math.max(0.8, bottom - top));
+    }
+    ctx.restore();
+
+    // 返り。上下をひっくり返し、遠くへ行くほど薄くする
+    const echo = ctx.createLinearGradient(0, surface, 0, height);
+    echo.addColorStop(0, 'rgba(138, 212, 218, 0.52)');
+    echo.addColorStop(0.5, 'rgba(104, 174, 182, 0.22)');
+    echo.addColorStop(1, 'rgba(80, 140, 150, 0)');
+    ctx.fillStyle = echo;
+    for (let x = 0; x < width; x++) {
+      // 上向きの山が、そのまま下向きに落ちる
+      const depth = Math.max(Math.abs(tops[x]), Math.abs(bottoms[x])) * echoHeight;
+      ctx.fillRect(x, surface, 1, Math.max(0.8, depth));
+    }
+
+    // 水面の線
+    const line = ctx.createLinearGradient(0, 0, width, 0);
+    line.addColorStop(0, 'rgba(111, 199, 205, 0)');
+    line.addColorStop(0.5, 'rgba(111, 199, 205, 0.42)');
+    line.addColorStop(1, 'rgba(111, 199, 205, 0)');
+    ctx.fillStyle = line;
+    ctx.fillRect(0, surface, width, 1);
+  }
+
+  private dpr(): number {
+    return Math.min(2, window.devicePixelRatio || 1);
   }
 
   /** 印と帯を、いまの値の位置へ動かす */

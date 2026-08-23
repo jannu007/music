@@ -599,9 +599,18 @@ body {
 .waveform {
   position: relative;
   height: 132px;
-  border: 1px solid var(--line-soft);
+  border: 1px solid rgba(38, 65, 74, 0.55);
   border-radius: var(--radius);
-  background: linear-gradient(180deg, #0c1518, #101d21);
+  /*
+   * 上が空、下が水。境目に波形が浮かんでいるように見せる。
+   *
+   * 明るみは波形の中心（高さの 37%）に合わせる。ここがずれていると、
+   * 半透明の波形の上半分と下半分で地の明るさが違い、左右対称のはずの形が
+   * 上だけ明るく見えてしまう。
+   */
+  background:
+    radial-gradient(120% 80% at 50% 37%, rgba(40, 82, 90, 0.34), transparent 72%),
+    linear-gradient(180deg, #0b1519 0%, #0d1b1f 62%, #08181c 100%);
   overflow: hidden;
   touch-action: none;
 }
@@ -698,6 +707,38 @@ body {
   font-size: 11px;
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------- 常設の波形（画面の下） */
+
+/*
+ * どのタブにいても、いま触っている音の形が見えているようにする。
+ * 鍵盤のすぐ上に置くので、弾きながら範囲を詰められる。
+ */
+.wave-strip {
+  flex: 0 0 auto;
+  padding: 6px 12px 8px;
+  border-top: 1px solid var(--line-soft);
+  background: linear-gradient(180deg, rgba(9, 17, 20, 0.6), rgba(11, 20, 22, 0.95));
+}
+
+.wave-strip.empty {
+  display: none;
+}
+
+.wave-strip-label {
+  margin-bottom: 4px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wave-strip .waveform {
+  height: 84px;
 }
 
 /* -------------------------------------------------------------- 鍵盤 */
@@ -849,6 +890,36 @@ body {
 
   .waveform {
     height: 96px;
+  }
+
+  /*
+   * 横向きは高さが足りない。波形は出したままにしたいので、
+   * 帯そのものをできるだけ薄くして、中身の場所を残す。
+   * 見出しはここでは省く（同じことがゾーンの札にも出ている）
+   */
+  .wave-strip {
+    padding: 2px 8px 3px;
+  }
+
+  .wave-strip .waveform {
+    height: 46px;
+  }
+
+  .wave-strip-label {
+    display: none;
+  }
+
+  .keyboard-bar {
+    padding: 1px 8px;
+  }
+
+  .oct-btn {
+    min-height: 26px;
+  }
+
+  .status-line {
+    min-height: 18px;
+    font-size: 11px;
   }
 }
 

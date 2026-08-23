@@ -161,7 +161,7 @@ check('鍵盤を押すと音が出る', sound.peak > 0.002, `peak=${sound.peak.t
 
 // ---------------------------------------------------------------- 3. 各タブ
 for (const [tab, selector, label] of [
-  ['map', '.waveform', '割り当て（波形）'],
+  ['map', '.zone-strip', '割り当て（ゾーン）'],
   ['sound', '.ctl-range', '音づくり'],
   ['fx', '.segmented', 'エフェクト'],
   ['rec', '.row-actions', '録音'],
@@ -173,11 +173,19 @@ for (const [tab, selector, label] of [
   check(`${label}タブが組み立つ`, count > 0, `${count} 個`);
 }
 
+// 波形は常設。どのタブにいても出ていること
+for (const tab of ['sound', 'fx', 'export']) {
+  await page.locator(`.tab-btn[data-tab="${tab}"]`).click();
+  await page.waitForTimeout(120);
+  const visible = await page.locator('.wave-strip:not(.empty) .waveform').count();
+  check(`${tab} タブでも波形が出ている`, visible === 1, `${visible} 個`);
+}
+
 // 波形が本当に描かれているか（真っ黒なら描画に失敗している）
 await page.locator('.tab-btn[data-tab="map"]').click();
 await page.waitForTimeout(250);
 const drawn = await page.evaluate(() => {
-  const canvas = document.querySelector('.waveform-canvas');
+  const canvas = document.querySelector('.wave-strip .waveform-canvas');
   if (!canvas) return 0;
   const c = canvas.getContext('2d');
   const { data } = c.getImageData(0, 0, canvas.width, canvas.height);
@@ -187,10 +195,41 @@ const drawn = await page.evaluate(() => {
 });
 check('波形が描かれている', drawn > 0.01, `${(drawn * 100).toFixed(1)}% のピクセル`);
 
+// ------------------------------------------------------------ 3b. 収録デモ
+const demoRows = page
+  .locator('.panel-section', { hasText: /Included pieces|収録デモ/ })
+  .locator('.sound-row');
+const demoCount = await demoRows.count();
+check('収録デモが並ぶ', demoCount === 10, `${demoCount} 曲`);
+
+await demoRows.nth(0).click();
+const demoLoaded = await waitFor(page, () => {
+  const line = document.querySelector('.status-line');
+  return Boolean(line && /Loaded|読み込みました/.test(line.textContent ?? ''));
+});
+check('収録デモが読み込める', demoLoaded, await page.locator('.status-line').textContent());
+
+const demoSound = await page.evaluate(async () => {
+  const an = window.__probes[0];
+  if (!an) return 0;
+  const buf = new Float32Array(an.fftSize);
+  let peak = 0;
+  for (let i = 0; i < 60; i++) {
+    an.getFloatTimeDomainData(buf);
+    for (const s of buf) peak = Math.max(peak, Math.abs(s));
+    await new Promise((r) => setTimeout(r, 25));
+  }
+  return peak;
+});
+check('収録デモが鳴る', demoSound > 0.002, `peak=${demoSound.toFixed(4)}`);
+
 // ---------------------------------------------------------------- 4. 書き出し
 await page.locator('.tab-btn[data-tab="rec"]').click();
 await page.waitForTimeout(120);
-await page.locator('.panel .btn', { hasText: /録音|Record/ }).first().click();
+// デモの演奏が入っているので、いったん消してから手弾きを録る
+await page.locator('.panel .btn', { hasText: /消す|Clear/ }).first().click();
+await page.waitForTimeout(120);
+await page.locator('.panel .btn', { hasText: /^録音$|^Record$/ }).first().click();
 await page.waitForTimeout(100);
 
 // 鍵盤をいくつか弾く
