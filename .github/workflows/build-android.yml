@@ -165,7 +165,7 @@ jobs:
           done
           echo ""
           echo "app-debug.apk … 実機に入れて動作確認する用（署名済み・Play へは出せません）"
-          echo "app-release.aab … Play へアップロードする用
+          echo "app-release.aab … Play へアップロードする用"
 
       - name: Upload
         uses: actions/upload-artifact@v4
