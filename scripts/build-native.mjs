@@ -26,14 +26,22 @@ const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const DIST = join(ROOT, 'dist');
 const OUT = join(ROOT, 'dist-native');
 
-/** アプリID → ストア表示名とパッケージ名 */
+/**
+ * アプリID → ストア表示名とパッケージ名。
+ *
+ * worklet: そのアプリが音源に AudioWorklet を使うか。
+ * 6本は合成なので使うが、サンプラーだけは波形をなぞるだけなので
+ * AudioBufferSourceNode で足りる（そちらのほうが速く、音も良い）。
+ * 検証はこの印を見て、期待どおりかを確かめる。
+ */
 export const NATIVE_APPS = [
-  { id: 'synthesizer', appId: 'shop.youkoku.synth', name: 'Akatsuki Synth' },
-  { id: 'piano', appId: 'shop.youkoku.piano', name: 'Aozora Grand Piano' },
-  { id: 'drums', appId: 'shop.youkoku.drums', name: 'Hibiki Drum Machine' },
-  { id: 'guitar', appId: 'shop.youkoku.guitar', name: 'Takibi Guitar' },
-  { id: 'bass', appId: 'shop.youkoku.bass', name: 'Kurogane Bass' },
-  { id: 'vocal', appId: 'shop.youkoku.vocal', name: 'Hoshizora Vocal' },
+  { id: 'synthesizer', appId: 'shop.youkoku.synth', name: 'Akatsuki Synth', worklet: true },
+  { id: 'piano', appId: 'shop.youkoku.piano', name: 'Aozora Grand Piano', worklet: true },
+  { id: 'drums', appId: 'shop.youkoku.drums', name: 'Hibiki Drum Machine', worklet: true },
+  { id: 'guitar', appId: 'shop.youkoku.guitar', name: 'Takibi Guitar', worklet: true },
+  { id: 'bass', appId: 'shop.youkoku.bass', name: 'Kurogane Bass', worklet: true },
+  { id: 'vocal', appId: 'shop.youkoku.vocal', name: 'Hoshizora Vocal', worklet: true },
+  { id: 'sampler', appId: 'shop.youkoku.sampler', name: 'Yamabiko Sampler', worklet: false },
 ];
 
 /** 同梱しないもの（web 配信専用） */
@@ -69,8 +77,11 @@ async function buildOne(app) {
   }
   // 同梱版であることを本体に知らせる印。これがあると Service Worker を登録しない
   // （sw.js は同梱していないので、登録を試みると 404 になる）
-  const marker = '<script>window.__NATIVE_BUNDLE__ = true;</script>';
-  if (!html.includes('__NATIVE_BUNDLE__')) {
+  //
+  // インラインの <script> ではなく <meta> にしているのは、
+  // script-src 'self' の CSP を敷いたページではインラインが実行されないため。
+  const marker = '<meta name="native-bundle" content="1" />';
+  if (!html.includes('name="native-bundle"')) {
     if (!html.includes('</head>')) throw new Error(`${app.id}: </head> が見つかりません`);
     html = html.replace('</head>', `  ${marker}\n</head>`);
   }

@@ -20,6 +20,7 @@ on:
           - guitar
           - bass
           - vocal
+          - sampler
       versionCode:
         description: 'バージョンコード（Play にアップするたびに増やす整数）'
         required: true

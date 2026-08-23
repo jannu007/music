@@ -1,0 +1,896 @@
+/*
+ * Yamabiko Sampler の見た目。
+ *
+ * 多段サンプラーの画面は、暗い背景に細い線と、水面のような青緑を置くのが
+ * 定石になっている。手元でずっと見ていても目が疲れないので、それに倣う。
+ *
+ * ただし置き方は縦画面が前提。下に鍵盤を固定して、その上を差し替える。
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* 深い水の色。上から下へわずかに明るくして、奥行きを出す */
+  --bg-top: #10191c;
+  --bg: #101a1d;
+  --surface: #16242a;
+  --surface-high: #1c2e35;
+  --line: #26414a;
+  --line-soft: #1d333a;
+
+  --text: #dfeced;
+  --text-dim: #8ba7ad;
+  --text-faint: #5f7c83;
+
+  /* 主役の色。水面に光が当たったときの青緑 */
+  --accent: #6fc7cd;
+  --accent-dim: #3d8c93;
+  --accent-glow: rgba(111, 199, 205, 0.28);
+  --warn: #d98b62;
+  --danger: #cf6b62;
+
+  --key-w: 30px;
+  --radius: 9px;
+  --tap: 44px;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Hiragino Sans', 'Noto Sans JP', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  overscroll-behavior: none;
+}
+
+#app {
+  height: 100%;
+}
+
+.sampler-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  /* 端末のノッチや下端のバーを避ける */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+  background:
+    radial-gradient(120% 60% at 50% 0%, #1b2f36 0%, transparent 70%),
+    linear-gradient(180deg, var(--bg-top), var(--bg));
+}
+
+/* ------------------------------------------------------------------ 見出し */
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--line-soft);
+  flex: 0 0 auto;
+}
+
+.app-title {
+  min-width: 0;
+  flex: 1;
+}
+
+.app-title h1 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.app-instrument {
+  font-size: 19px;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.voice-meter {
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  padding: 3px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+}
+
+.voice-meter.busy {
+  color: var(--warn);
+  border-color: var(--warn);
+}
+
+.lang-btn {
+  flex: 0 0 auto;
+}
+
+/* -------------------------------------------------------------------- タブ */
+
+.tab-bar {
+  display: flex;
+  gap: 2px;
+  padding: 6px 8px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 0 0 auto;
+}
+
+.tab-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-btn {
+  flex: 1 0 auto;
+  min-height: 38px;
+  padding: 0 14px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ------------------------------------------------------------------ 中身 */
+
+.panel {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  /* 鍵盤に隠れないよう、下に余白を残す */
+  padding-bottom: 20px;
+}
+
+.panel-section {
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.panel-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.panel-section-head h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-dim);
+}
+
+.panel-hint,
+.ctl-hint {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-faint);
+}
+
+.empty-note {
+  margin: 6px 0;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.about-note {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+.status-line {
+  flex: 0 0 auto;
+  min-height: 22px;
+  padding: 2px 12px;
+  font-size: 12px;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-line.empty {
+  min-height: 22px;
+}
+
+/* ----------------------------------------------------------------- つまみ */
+
+.ctl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 12px 20px;
+}
+
+.ctl {
+  min-width: 0;
+}
+
+.ctl-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ctl-label {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.ctl-value {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.ctl-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: var(--tap);
+  margin: 0;
+  background: transparent;
+}
+
+/* 溝。つまみの左側だけ色が乗るようにして、量が一目で分かるようにする */
+.ctl-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--accent-dim) 0%,
+    var(--accent-dim) var(--fill, 0%),
+    var(--line) var(--fill, 0%),
+    var(--line) 100%
+  );
+}
+
+.ctl-range::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--accent-dim) 0%,
+    var(--accent-dim) var(--fill, 0%),
+    var(--line) var(--fill, 0%),
+    var(--line) 100%
+  );
+}
+
+.ctl-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -7.5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 5px var(--accent-glow);
+}
+
+.ctl-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 5px var(--accent-glow);
+}
+
+/* ------------------------------------------------------------------ ボタン */
+
+.btn {
+  min-height: var(--tap);
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-high);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.btn:active {
+  background: var(--line-soft);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+}
+
+.btn.primary {
+  border-color: var(--accent-dim);
+  background: linear-gradient(180deg, #2a565c, #1f4147);
+  color: #eafbfc;
+}
+
+.btn.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--text-dim);
+}
+
+.btn.small {
+  min-height: 34px;
+  padding: 0 11px;
+  font-size: 12px;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.row-actions.tight {
+  gap: 6px;
+}
+
+.segmented {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--bg);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.segmented::-webkit-scrollbar {
+  display: none;
+}
+
+.seg-btn {
+  flex: 1 0 auto;
+  min-height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.seg-btn.active {
+  background: var(--accent-dim);
+  color: #06181a;
+}
+
+/* --------------------------------------------------------------- スイッチ */
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tap);
+  cursor: pointer;
+}
+
+.switch-texts {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.switch-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch-track {
+  flex: 0 0 auto;
+  position: relative;
+  width: 44px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--line);
+  transition: background 0.15s;
+}
+
+.switch-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: transform 0.15s, background 0.15s;
+}
+
+.switch-input:checked + .switch-track {
+  background: var(--accent-dim);
+}
+
+.switch-input:checked + .switch-track::after {
+  transform: translateX(18px);
+  background: #eafbfc;
+}
+
+/* ---------------------------------------------------------------- 数値入力 */
+
+.stepper {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.stepper-btn {
+  width: 40px;
+  min-height: var(--tap);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-high);
+  color: var(--text);
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.stepper-input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+  font-size: 15px;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------ 音源の一覧 */
+
+.sound-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sound-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 54px;
+  padding: 8px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sound-row.static {
+  cursor: default;
+  flex-wrap: wrap;
+}
+
+.sound-row.active {
+  border-color: var(--accent-dim);
+  background: linear-gradient(90deg, rgba(111, 199, 205, 0.12), transparent 60%);
+}
+
+.sound-texts {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sound-name {
+  font-size: 15px;
+  color: var(--text);
+}
+
+.sound-desc {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* -------------------------------------------------------------- ゾーン */
+
+.zone-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 10px;
+  scrollbar-width: none;
+}
+
+.zone-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.zone-chip {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 46px;
+  padding: 5px 11px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text-dim);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.zone-chip.active {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.zone-chip-name {
+  font-size: 12px;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zone-chip-range {
+  font-size: 10px;
+  color: var(--accent-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------------- 波形 */
+
+.waveform {
+  position: relative;
+  height: 132px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #0c1518, #101d21);
+  overflow: hidden;
+  touch-action: none;
+}
+
+.waveform-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.waveform-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+/* 鳴らさない範囲を暗く落とす */
+.wave-shade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(6, 14, 16, 0.72);
+  pointer-events: none;
+}
+
+.wave-shade.left {
+  left: 0;
+}
+
+.wave-shade.right {
+  right: 0;
+}
+
+.wave-loop {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(217, 139, 98, 0.14);
+  border-left: 1px dashed rgba(217, 139, 98, 0.75);
+  border-right: 1px dashed rgba(217, 139, 98, 0.75);
+  pointer-events: none;
+}
+
+/* 掴む印。見た目より広い当たり判定を持たせる */
+.wave-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--accent);
+  cursor: ew-resize;
+}
+
+.wave-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -13px;
+  right: -13px;
+}
+
+.wave-handle::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.wave-handle.loopStart,
+.wave-handle.loopEnd {
+  background: var(--warn);
+}
+
+.wave-handle.loopStart::after,
+.wave-handle.loopEnd::after {
+  background: var(--warn);
+  top: auto;
+  bottom: 4px;
+}
+
+.wave-handle.active::after {
+  box-shadow: 0 0 0 5px var(--accent-glow);
+}
+
+.wave-readout {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------------- 鍵盤 */
+
+.keyboard {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--line);
+  background: #0b1416;
+}
+
+.keyboard-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 10px;
+}
+
+.oct-btn {
+  min-width: 42px;
+  min-height: 30px;
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.oct-label {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.keyboard-keys {
+  position: relative;
+  height: 116px;
+  touch-action: none;
+  user-select: none;
+  --key-w: calc(100% / var(--white-count, 28));
+}
+
+.key-row-white {
+  display: flex;
+  height: 100%;
+}
+
+.key-row-black {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 62%;
+  pointer-events: none;
+}
+
+.key {
+  position: relative;
+  cursor: pointer;
+}
+
+.key.white {
+  flex: 1 1 0;
+  min-width: 0;
+  border-right: 1px solid #0b1416;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(180deg, #e7efef, #c3d2d3);
+}
+
+.key.black {
+  position: absolute;
+  top: 0;
+  width: calc(var(--key-w) * 0.6);
+  height: 100%;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(180deg, #26383c, #101c1f);
+  pointer-events: auto;
+  z-index: 2;
+}
+
+/* 素材が割り当たっている鍵盤に色を差す。どこが鳴るかを一目で */
+.key.white.mapped {
+  background: linear-gradient(180deg, #d9efef, #9dc9cc);
+}
+
+.key.black.mapped {
+  background: linear-gradient(180deg, #2f565b, #163337);
+}
+
+/* いま編集しているゾーンの範囲 */
+.key.white.in-zone {
+  background: linear-gradient(180deg, #c9ecef, #7ec8cd);
+}
+
+.key.black.in-zone {
+  background: linear-gradient(180deg, #3d757c, #1d454a);
+}
+
+.key.down,
+.key.playing {
+  background: var(--accent);
+}
+
+.key.black.down,
+.key.black.playing {
+  background: var(--accent-dim);
+}
+
+.key-name {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 9px;
+  color: #5c7377;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------- 横向き・広い画面 */
+
+/* 高さが足りないときは、鍵盤と余白を詰めて中身の場所を確保する */
+@media (max-height: 620px) {
+  .app-header {
+    padding: 5px 12px 4px;
+  }
+
+  .app-title h1 {
+    display: none;
+  }
+
+  .app-instrument {
+    font-size: 16px;
+  }
+
+  .tab-btn {
+    min-height: 32px;
+    font-size: 12px;
+  }
+
+  .panel {
+    padding: 8px;
+    gap: 10px;
+  }
+
+  .keyboard-keys {
+    height: 84px;
+  }
+
+  .waveform {
+    height: 96px;
+  }
+}
+
+/*
+ * 横向きで、なおかつ幅がある画面。
+ *
+ * 高さが足りないので、中身を2列にして縦の場所を稼ぐ。
+ * ここを入れないと、鍵盤に押されて中身がほとんど見えなくなる。
+ */
+@media (max-height: 620px) and (min-width: 720px) {
+  .panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: 10px;
+  }
+
+  .panel > .panel-section:has(.waveform),
+  .panel > .panel-section:has(.zone-strip) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 広い画面では、つまみを何列にも並べたほうが見渡しやすい */
+@media (min-width: 760px) {
+  .panel {
+    padding: 16px 20px;
+  }
+
+  .ctl-grid {
+    grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
+  }
+}
+
+/* 鍵盤を広げてよいのは、縦の余裕があるときだけ。
+   幅だけを見て広げると、横向きのときに中身の場所を奪ってしまう */
+@media (min-width: 760px) and (min-height: 621px) {
+  .keyboard-keys {
+    height: 132px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+  }
+
+  /* 波形は横に長いほうが読みやすいので、1行ぶん使う */
+  .panel > .panel-section:has(.waveform) {
+    grid-column: 1 / -1;
+  }
+}

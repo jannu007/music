@@ -22,6 +22,9 @@
 > - 🎤 **[Hoshizora Vocal](VOCAL.md)** … 収録音声（ボイスバンク）を使わない日本語歌声シンセ。
 >   かな歌詞をピアノロールに書くだけで歌い、伴奏つきで WAV / MIDI に書き出せます。
 >   `/vocal/` で公開、開発時は `npm run vocal:dev`
+> - 🌊 **[Yamabiko Sampler](SAMPLER.md)** … 取り込んだ音・録った音を鍵盤に割り当てて弾ける
+>   サンプラー。付属音源も録音素材ではなくその場で合成しており、作った音源はそのまま
+>   商用利用できます。`/sampler/` で公開、開発時は `npm run sampler:dev`
 
 ---
 
@@ -108,7 +111,7 @@ npm run preview    # ビルド結果をローカルで確認
 |---|---|
 | `/` | 各アプリへのリンクを並べたランディングページ |
 | `/synthesizer/` | **Akatsuki Synth（このシンセ）** |
-| `/piano/` `/drums/` `/guitar/` `/bass/` `/vocal/` | 姉妹アプリ |
+| `/piano/` `/drums/` `/guitar/` `/bass/` `/vocal/` `/sampler/` | 姉妹アプリ |
 
 ### 自動テスト（音声の品質検証）
 
@@ -206,9 +209,9 @@ electron/                   Windows デスクトップアプリ用エントリ�
 
 姉妹アプリのソースは `piano/src/`（[PIANO.md](PIANO.md)）・`drums/src/`（[DRUMS.md](DRUMS.md)）・
 `guitar/src/`（[GUITAR.md](GUITAR.md)）・`bass/src/`（[BASS.md](BASS.md)）・
-`vocal/src/`（[VOCAL.md](VOCAL.md)）にあります。
+`vocal/src/`（[VOCAL.md](VOCAL.md)）・`sampler/src/`（[SAMPLER.md](SAMPLER.md)）にあります。
 ビルドはまとめて `npm run build` で行われ、`dist/synthesizer/`（シンセ）・`dist/piano/`・
-`dist/drums/`・`dist/guitar/`・`dist/bass/`・`dist/vocal/` に出力されます。
+`dist/drums/`・`dist/guitar/`・`dist/bass/`・`dist/vocal/`・`dist/sampler/` に出力されます。
 
 ---
 

@@ -1,0 +1,11 @@
+{
+  "appId": "shop.youkoku.sampler",
+  "appName": "Yamabiko Sampler",
+  "webDir": "../../dist-native/sampler",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
