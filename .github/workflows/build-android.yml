@@ -142,7 +142,15 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: cd android && ./gradlew bundleRelease --no-daemon
 
-      - name: Build .apk (端末に直接入れて試す用)
+      # release の APK は、署名鍵が無いと app-release-unsigned.apk になり、
+      # Android が受け付けないので端末に入れられない。
+      # debug なら Gradle が自動で署名するため、鍵が無くても実機で試せる。
+      # （debug 版は Play へは出せません。動作確認専用です）
+      - name: Build .apk (実機での動作確認用)
+        run: cd android && ./gradlew assembleDebug --no-daemon
+
+      - name: Build .apk (署名鍵がある場合の配布用)
+        if: ${{ steps.keystore.outputs.present == 'true' }}
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -152,9 +160,12 @@ jobs:
       - name: Show what was produced
         run: |
           echo "署名: ${{ steps.keystore.outputs.present == 'true' && 'あり' || 'なし（Play へ出すには鍵の登録が必要）' }}"
-          find android/app/build/outputs -name '*.aab' -o -name '*.apk' | while read -r f; do
+          find android/app/build/outputs \( -name '*.aab' -o -name '*.apk' \) | while read -r f; do
             echo "$(du -h "$f" | cut -f1)  $f"
           done
+          echo ""
+          echo "app-debug.apk … 実機に入れて動作確認する用（署名済み・Play へは出せません）"
+          echo "app-release.aab … Play へアップロードする用
 
       - name: Upload
         uses: actions/upload-artifact@v4
@@ -162,5 +173,6 @@ jobs:
           name: ${{ inputs.app }}-${{ inputs.versionName }}
           path: |
             android/app/build/outputs/bundle/release/*.aab
+            android/app/build/outputs/apk/debug/*.apk
             android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
