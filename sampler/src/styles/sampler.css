@@ -496,53 +496,95 @@ body {
 
 /* ------------------------------------------------------------ 音源の一覧 */
 
-.sound-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+/* ------------------------------------------------------------ 選択の札 */
 
-.sound-row {
+/*
+ * 音源・デモ・自分の素材を選ぶところ。
+ * 縦の一覧にすると割り当てが画面の外へ押し出されるので、横に流す。
+ */
+/* 札の並びに付ける小さな見出し */
+.pick-label {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 100%;
-  min-height: 54px;
-  padding: 8px 12px;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius);
-  background: var(--bg);
-  color: var(--text);
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
+  margin: 8px 0 5px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
 }
 
-.sound-row.static {
-  cursor: default;
+.pick-label.with-actions {
+  justify-content: space-between;
   flex-wrap: wrap;
 }
 
-.sound-row.active {
-  border-color: var(--accent-dim);
-  background: linear-gradient(90deg, rgba(111, 199, 205, 0.12), transparent 60%);
+.pick-label:first-of-type {
+  margin-top: 0;
 }
 
-.sound-texts {
-  flex: 1;
-  min-width: 0;
+.pick-row {
   display: flex;
-  flex-direction: column;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
 }
 
-.sound-name {
-  font-size: 15px;
+.pick-row::-webkit-scrollbar {
+  display: none;
+}
+
+.pick-chip {
+  position: relative;
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pick-chip.active {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, rgba(111, 199, 205, 0.18), rgba(111, 199, 205, 0.06));
   color: var(--text);
 }
 
-.sound-desc {
-  font-size: 11px;
+.pick-chip:disabled {
+  opacity: 0.45;
+}
+
+/* 自分の素材だけ、札の肩に消すボタンが付く */
+.pick-remove {
+  margin-left: 8px;
+  padding: 0 2px;
+  border: none;
+  background: transparent;
   color: var(--text-faint);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pick-remove:hover {
+  color: var(--danger);
+}
+
+/* 選んでいるものの説明。1行だけ出す */
+.pick-desc {
+  margin-top: 4px;
+  min-height: 15px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* -------------------------------------------------------------- ゾーン */

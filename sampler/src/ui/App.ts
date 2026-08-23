@@ -67,6 +67,21 @@ import { noteName } from '../audio/types';
 
 type Tab = 'map' | 'sound' | 'fx' | 'rec' | 'export';
 
+/**
+ * 素材の id から、どの付属音源のものかを見分ける。
+ *
+ * 付属音源の素材は `<音源id>-<なにか>` という形をしている。付属音源は
+ * 保存していない（合成し直せる）ので、開き直すときはここから辿って
+ * 作り直す。辿れないと、その素材を指すゾーンごと消えてしまう。
+ */
+function factoryIdForSample(sampleId: string): string | null {
+  const prefix = sampleId.split('-')[0];
+  if (FACTORY_IDS.includes(prefix)) return prefix;
+  // 以前の版は打楽器を drum-… という id で保存していた
+  if (prefix === 'drum') return 'drumField';
+  return null;
+}
+
 const STORAGE_KEY = 'yamabiko-sampler-state';
 const SAMPLE_RATE = 48000;
 
@@ -400,11 +415,13 @@ export class SamplerApp {
       }
     }
     // 付属音源のぶんは合成し直す（保存していないため）
-    const factoryIds = new Set(missing.map((id) => id.split('-')[0]));
-    for (const id of factoryIds) {
-      const spec = FACTORY_IDS.find((f) => f === id || id === 'drum');
-      if (!spec) continue;
-      const [built] = buildFactory(SAMPLE_RATE, spec);
+    const wanted2 = new Set<string>();
+    for (const id of missing) {
+      const factory = factoryIdForSample(id);
+      if (factory) wanted2.add(factory);
+    }
+    for (const factory of wanted2) {
+      const [built] = buildFactory(SAMPLE_RATE, factory);
       if (!built) continue;
       for (const s of built.samples) {
         if (!this.sampleData.has(s.meta.id)) {
@@ -413,8 +430,17 @@ export class SamplerApp {
         }
       }
     }
+
     // それでも見つからない素材を指すゾーンは、鳴らないので外す
     this.instrument.zones = this.instrument.zones.filter((z) => this.sampleData.has(z.sampleId));
+
+    // 1つも残らなかったら、保存データが古すぎるか壊れている。
+    // 何も鳴らない画面を出すより、付属音源に戻したほうがましなので、そうする
+    if (this.instrument.zones.length === 0) {
+      await this.loadFactory(this.factoryId ?? FACTORY_IDS[0]);
+      return;
+    }
+
     await this.ensureAudio();
     this.pushBuffers();
     this.applyInstrument();
@@ -663,88 +689,136 @@ export class SamplerApp {
     return about;
   }
 
-  /** 音源・収録デモ・自分の素材。割り当てタブの中に置く */
+  /**
+   * 音源・収録デモ・自分の素材。
+   *
+   * ここは「割り当て」の一部として置く。縦に長い一覧にすると、結局
+   * 前のタブがそのまま上に乗っただけになり、肝心の割り当てがずっと下へ
+   * 追いやられてしまう。そこで横に流れる札にして、1画面に収める。
+   */
   private buildSoundSections() {
-    const factory = section(t('browse.factory'), t('browse.factory.hint'));
-    const list = el('div', 'sound-list');
-    for (const id of FACTORY_IDS) {
-      const row = el('button', 'sound-row');
-      row.type = 'button';
-      const texts = el('div', 'sound-texts');
-      texts.append(el('span', 'sound-name', t(`inst.${id}`)));
-      texts.append(el('span', 'sound-desc', t(`inst.${id}.desc`)));
-      row.append(texts);
-      if (this.factoryId === id) row.classList.add('active');
-      row.disabled = this.busy;
-      row.addEventListener('click', () => void this.loadFactory(id));
-      list.append(row);
-    }
-    factory.append(list);
+    // 見出しは1つにまとめる。3つに分けると、それだけで縦を200px近く食い、
+    // 肝心の割り当てが最初の画面から押し出されてしまう
+    const pick = section(t('browse.title'), t('browse.factory.hint'));
 
-    const mine = section(t('browse.mine'), t('browse.mine.hint'));
-    const actions = el('div', 'row-actions');
-    actions.append(button(t('browse.import'), 'primary', () => this.importFile()));
-    actions.append(
-      button(this.micRecorder ? t('rec.stop') : t('browse.record'), this.micRecorder ? 'danger' : '', () =>
-        void this.toggleMicRecording()
+    pick.append(el('div', 'pick-label', t('browse.factory')));
+    pick.append(
+      this.pickRow(
+        FACTORY_IDS.map((id) => ({ id, label: t(`inst.${id}`), desc: t(`inst.${id}.desc`) })),
+        this.factoryId,
+        (id) => void this.loadFactory(id)
       )
     );
-    mine.append(actions);
+
+    pick.append(el('div', 'pick-label', t('demo.title')));
+    pick.append(
+      this.pickRow(
+        DEMO_SONGS.map((demo) => ({
+          id: demo.id,
+          label: t(`demo.${demo.id}.name`),
+          desc: `${t(`demo.${demo.id}.desc`)} · ${t(`inst.${demo.instrument}`)}`,
+        })),
+        this.loadedDemo,
+        (id) => {
+          const demo = DEMO_SONGS.find((d) => d.id === id);
+          if (demo) void this.loadDemo(demo);
+        }
+      )
+    );
+
+    const mineLabel = el('div', 'pick-label with-actions');
+    mineLabel.append(el('span', '', t('browse.mine')));
+    const actions = el('div', 'row-actions tight');
+    actions.append(button(t('browse.import'), 'small', () => this.importFile()));
+    actions.append(
+      button(
+        this.micRecorder ? t('rec.stop') : t('browse.record'),
+        this.micRecorder ? 'danger small' : 'small',
+        () => void this.toggleMicRecording()
+      )
+    );
+    mineLabel.append(actions);
+    pick.append(mineLabel);
 
     if (this.mySamples.length === 0) {
-      mine.append(el('p', 'empty-note', t('browse.empty')));
+      pick.append(el('p', 'pick-desc', t('browse.empty')));
     } else {
-      const myList = el('div', 'sound-list');
-      for (const meta of this.mySamples) {
-        const row = el('div', 'sound-row static');
-        const texts = el('div', 'sound-texts');
-        texts.append(el('span', 'sound-name', meta.name));
-        texts.append(
-          el(
-            'span',
-            'sound-desc',
-            `${(meta.frames / meta.sampleRate).toFixed(2)} s · ${meta.channels === 2 ? 'stereo' : 'mono'}`
-          )
-        );
-        row.append(texts);
-        const rowActions = el('div', 'row-actions tight');
-        rowActions.append(button(t('browse.makeInstrument'), 'small', () => void this.makeInstrumentFrom(meta)));
-        rowActions.append(button(t('browse.delete'), 'small ghost', () => void this.removeSample(meta)));
-        row.append(rowActions);
-        myList.append(row);
-      }
-      mine.append(myList);
+      pick.append(
+        this.pickRow(
+          this.mySamples.map((meta) => ({
+            id: meta.id,
+            label: meta.name,
+            desc: `${(meta.frames / meta.sampleRate).toFixed(2)} s · ${meta.channels === 2 ? 'stereo' : 'mono'}`,
+          })),
+          null,
+          (id) => {
+            const meta = this.mySamples.find((m) => m.id === id);
+            if (meta) void this.makeInstrumentFrom(meta);
+          },
+          (id) => {
+            const meta = this.mySamples.find((m) => m.id === id);
+            if (meta) void this.removeSample(meta);
+          }
+        )
+      );
       void usedBytes().then((used) => {
-        mine.append(
-          el(
-            'p',
-            'panel-hint',
-            t('browse.storage', { used: fmtMb(used), max: fmtMb(MAX_STORE_BYTES) })
-          )
+        pick.append(
+          el('p', 'panel-hint', t('browse.storage', { used: fmtMb(used), max: fmtMb(MAX_STORE_BYTES) }))
         );
       });
     }
 
-    // 収録デモ
-    const demos = section(t('demo.title'), t('demo.hint'));
-    const demoList = el('div', 'sound-list');
-    for (const demo of DEMO_SONGS) {
-      const row = el('button', 'sound-row');
-      row.type = 'button';
-      const texts = el('div', 'sound-texts');
-      texts.append(el('span', 'sound-name', t(`demo.${demo.id}.name`)));
-      texts.append(
-        el('span', 'sound-desc', `${t(`demo.${demo.id}.desc`)} · ${t(`inst.${demo.instrument}`)}`)
-      );
-      row.append(texts);
-      if (this.loadedDemo === demo.id) row.classList.add('active');
-      row.disabled = this.busy;
-      row.addEventListener('click', () => void this.loadDemo(demo));
-      demoList.append(row);
-    }
-    demos.append(demoList);
+    this.panel.append(pick);
+  }
 
-    this.panel.append(factory, demos, mine);
+  /**
+   * 横に流れる選択札。
+   *
+   * 選ばれているものの説明だけを下に出す。全部の説明を並べると縦に伸びて、
+   * 一覧にするのと変わらなくなってしまう。
+   */
+  private pickRow(
+    items: { id: string; label: string; desc: string }[],
+    selected: string | null,
+    onPick: (id: string) => void,
+    onRemove?: (id: string) => void
+  ): HTMLElement {
+    const wrap = el('div', 'pick');
+    const row = el('div', 'pick-row');
+    const desc = el('div', 'pick-desc');
+
+    const show = (text: string) => {
+      desc.textContent = text;
+    };
+
+    for (const item of items) {
+      const chip = el('button', 'pick-chip', item.label);
+      chip.type = 'button';
+      chip.disabled = this.busy;
+      if (item.id === selected) {
+        chip.classList.add('active');
+        show(item.desc);
+      }
+      // 触れただけで説明が出る。押す前に何なのか分かるように
+      chip.addEventListener('pointerenter', () => show(item.desc));
+      chip.addEventListener('click', () => {
+        show(item.desc);
+        onPick(item.id);
+      });
+      row.append(chip);
+
+      if (onRemove) {
+        const remove = el('button', 'pick-remove', '×');
+        remove.type = 'button';
+        remove.title = t('browse.delete');
+        remove.addEventListener('click', () => onRemove(item.id));
+        chip.append(remove);
+      }
+    }
+
+    if (!desc.textContent && items[0]) show(items[0].desc);
+    wrap.append(row, desc);
+    return wrap;
   }
 
   // ----------------------------------------------------------- 割り当てタブ
