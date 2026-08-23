@@ -112,3 +112,75 @@ Android Studio で **Build → Generated Signed Bundle / APK** から
 2. 音が出ること（AudioWorklet がセキュアコンテキストで動いている証拠）
 3. WAV / MIDI の書き出しができること
 4. URL バーやブラウザの UI がどこにも出ないこと
+
+---
+
+## 署名鍵（キーストア）の作り方と登録
+
+Play にアップロードする `.aab` には署名が必要です。
+署名鍵はあなただけが持つファイルで、**紛失すると同じアプリを更新できなくなります**。
+
+### 鍵が見つからない場合
+
+アプリが Play から削除されている場合は、**新しい鍵を作って新規登録**で問題ありません。
+古い鍵が要るのは「生きている既存アプリを更新する」ときだけです。
+
+なお、Play App Signing を使っていた場合は、Google 側にアップロード鍵の
+リセットを申請する道もあります（Play Console のヘルプから）。
+
+### スマホだけで鍵を作る（Termux）
+
+パソコンが無い場合は、Android の端末で作れます。
+
+1. **Termux** をインストールします（F-Droid 版を推奨。Play 版は更新が止まっています）
+2. 次を順に実行します
+
+```bash
+pkg update
+pkg install openjdk-17
+
+# 鍵を作る（有効期限は約27年）
+keytool -genkeypair -v -keystore upload.jks -alias upload \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
+
+途中で聞かれるもの
+
+| 質問 | 入れるもの |
+| --- | --- |
+| Enter keystore password | 好きなパスワード（**必ず控える**） |
+| 姓名 / 組織 / 都市 / 国 | 適当で構いませんが、正確な方が無難です |
+| Enter key password for `<upload>` | 空 Enter でキーストアと同じにできます |
+
+3. GitHub に貼るための文字列にします
+
+```bash
+base64 -w0 upload.jks > upload.txt
+cat upload.txt
+```
+
+表示された文字列をすべてコピーします。
+
+### GitHub に登録する
+
+リポジトリ → **Settings** → **Secrets and variables** → **Actions**
+→ **New repository secret** で4つ登録します。
+
+| 名前 | 中身 |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | 上でコピーした文字列 |
+| `ANDROID_KEYSTORE_PASSWORD` | キーストアのパスワード |
+| `ANDROID_KEY_ALIAS` | `upload`（上のコマンドどおりなら） |
+| `ANDROID_KEY_PASSWORD` | 鍵のパスワード（同じにしたならキーストアと同じ） |
+
+登録すると、次回のビルドから**自動で署名済みの `.aab`** ができます。
+
+### 必ずバックアップしてください
+
+`upload.jks` とパスワードを失うと、**そのアプリは二度と更新できません**。
+
+- クラウド（Google ドライブなど）にファイルを保存
+- パスワードはパスワード管理アプリに保存
+
+GitHub の Secrets は**登録後に中身を読み出せません**。GitHub に入れたことは
+バックアップになりませんので、必ず別途保管してください。
