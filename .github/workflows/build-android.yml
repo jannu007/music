@@ -73,14 +73,34 @@ jobs:
 
       # Capacitor は Android のビルドにしか使わないので、ここでだけ入れる
       # （web 側の依存を増やさないため package.json には載せていない）
+      #
+      # --no-save ではなく保存して入れているのは、Capacitor がプラグインを
+      # package.json の dependencies から探すため。--no-save だと node_modules に
+      # 在っても「プラグインが無い」と判断され、ファイル保存が動かない APK ができる。
+      # 変更はランナー上の作業コピーだけで、リポジトリには入らない。
       - name: Install Capacitor
-        run: npm install --no-save @capacitor/cli@^8 @capacitor/core@^8 @capacitor/android@^8
+        run: |
+          npm install @capacitor/cli@^8 @capacitor/core@^8 @capacitor/android@^8 \
+            @capacitor/filesystem@^8 @capacitor/share@^8
 
       - name: Create Android project
         run: npx cap add android
 
       - name: Copy the bundle into the project
         run: npx cap sync android
+
+      # WebView は <a download> を無視するので、書き出しは Filesystem プラグイン経由で行う。
+      # 組み込まれ損ねると「書き出したのにファイルが無い」APK になるため、ここで確かめる
+      - name: Check the file-saving plugins made it in
+        run: |
+          for plugin in Filesystem Share; do
+            if ! grep -q "$plugin" android/app/src/main/assets/capacitor.plugins.json; then
+              echo "::error::${plugin} プラグインが組み込まれていません。ファイルの書き出しができない APK になります"
+              cat android/app/src/main/assets/capacitor.plugins.json
+              exit 1
+            fi
+          done
+          echo "ファイル保存のプラグインは組み込まれています"
 
       - name: Set version
         run: |

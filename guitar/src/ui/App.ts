@@ -1507,8 +1507,7 @@ export class GuitarApp {
         this.tuning().notes,
         Math.max(1, duration)
       );
-      downloadBlob(encodeWav(buffer), timestampName(prefix, 'wav'));
-      this.setStatus(t('status.wavExported'));
+      await this.saveFile(encodeWav(buffer), timestampName(prefix, 'wav'), t('status.wavExported'));
     } catch (err) {
       this.setStatus(t('status.exportFailed', { err: String(err) }));
     } finally {
@@ -1517,7 +1516,7 @@ export class GuitarApp {
     }
   }
 
-  private exportMidi() {
+  private async exportMidi() {
     const events = this.recorder.isEmpty ? this.lastSequence?.events : this.recorder.events;
     if (!events || events.length === 0) {
       this.setStatus(t('status.nothingToExport'));
@@ -1527,10 +1526,23 @@ export class GuitarApp {
     const preset = this.settings;
     const program = preset.tuningId === 'bass' ? 33 : preset.ampType === 'off' ? 25 : 27;
     const blob = encodeMidi(events, this.tuning().notes, this.settings.capo, this.ui.bpm, program);
-    downloadBlob(blob, timestampName('takibi-guitar', 'mid'));
-    this.setStatus(t('status.midiExported'));
+    try {
+      await this.saveFile(blob, timestampName('takibi-guitar', 'mid'), t('status.midiExported'));
+    } catch (err) {
+      this.setStatus(t('status.exportFailed', { err: String(err) }));
+    }
     window.setTimeout(() => this.setStatus(), 2000);
   }
+
+  /**
+   * 保存して、済んだことを伝える。
+   * 同梱アプリでは端末のどこに置いたかまで出す（web ではブラウザ任せなので出さない）
+   */
+  private async saveFile(blob: Blob, filename: string, done: string) {
+    const outcome = await downloadBlob(blob, filename);
+    this.setStatus(outcome.kind === 'file' ? `${done} → ${outcome.path}` : done);
+  }
+
 
   private toggleHelp() {
     const existing = this.root.querySelector('.help-overlay');

@@ -966,8 +966,7 @@ export class PianoApp {
     try {
       const last = source.events.reduce((max, ev) => Math.max(max, ev.time), 0);
       const buffer = await renderPerformance(source.events, this.settings, last + 6);
-      downloadBlob(encodeWav(buffer), timestampName('aozora-piano', 'wav'));
-      this.flashNowPlaying(t('flash.wavSaved'));
+      await this.saveFile(encodeWav(buffer), timestampName('aozora-piano', 'wav'), t('flash.wavSaved'));
     } catch (err) {
       this.flashNowPlaying(t('flash.exportFailed', { err: String(err) }));
     } finally {
@@ -976,15 +975,32 @@ export class PianoApp {
     }
   }
 
-  private exportMidi() {
+  private async exportMidi() {
     const source = this.exportEvents();
     if (!source || source.events.length === 0) {
       this.flashNowPlaying(t('flash.nothingToExport'));
       return;
     }
-    downloadBlob(encodeMidi(source.events), timestampName('aozora-piano', 'mid'));
-    this.flashNowPlaying(t('flash.midiSaved'));
+    try {
+      await this.saveFile(
+        encodeMidi(source.events),
+        timestampName('aozora-piano', 'mid'),
+        t('flash.midiSaved')
+      );
+    } catch (err) {
+      this.flashNowPlaying(t('flash.exportFailed', { err: String(err) }));
+    }
   }
+
+  /**
+   * 保存して、済んだことを伝える。
+   * 同梱アプリでは端末のどこに置いたかまで出す（web ではブラウザ任せなので出さない）
+   */
+  private async saveFile(blob: Blob, filename: string, done: string) {
+    const outcome = await downloadBlob(blob, filename);
+    this.flashNowPlaying(outcome.kind === 'file' ? `${done} → ${outcome.path}` : done);
+  }
+
 
   private toggleHelp() {
     const existing = this.root.querySelector('.help-modal');
