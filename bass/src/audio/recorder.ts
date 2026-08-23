@@ -261,16 +261,9 @@ export function encodeMidi(events: PerformanceEvent[], bpm = 100): Blob {
   });
 }
 
-export function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-}
+// 書き出しは6アプリで共通。Android の WebView では <a download> が効かないため、
+// 同梱アプリでは端末へ直接書き込む（詳しくは shared/download.ts）
+export { saveBlob as downloadBlob, type SaveOutcome } from '../../../shared/download';
 
 export function timestampName(prefix: string, ext: string): string {
   const d = new Date();

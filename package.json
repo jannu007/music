@@ -34,9 +34,10 @@
     "vocal:build:win": "vite build && electron-builder --win portable --config electron-builder.vocal.json",
     "vocal:test": "node scripts/test-vocal-transcribe.mjs",
     "test:audio": "node scripts/audio-smoke.mjs",
-    "test": "tsc --noEmit && vite build && node scripts/test-bass-dsp.mjs && node scripts/test-vocal-transcribe.mjs && node scripts/audio-smoke.mjs",
+    "test": "tsc --noEmit && vite build && node scripts/test-bass-dsp.mjs && node scripts/test-vocal-transcribe.mjs && node scripts/audio-smoke.mjs && node scripts/test-download.mjs",
     "native:build": "npm run build && node scripts/build-native.mjs",
-    "native:verify": "node scripts/verify-native.mjs"
+    "native:verify": "node scripts/verify-native.mjs",
+    "test:download": "node scripts/test-download.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.21.5",

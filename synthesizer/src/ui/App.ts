@@ -10,6 +10,7 @@ import { renderSong } from '../audio/render';
 import { Sequencer, STEPS_PER_BAR, type Track } from '../audio/Sequencer';
 import type { ArpParams, Patch } from '../audio/types';
 import { audioBufferToWav, encodeWav } from '../audio/wav';
+import { saveBlob, type SaveOutcome } from '../../../shared/download';
 import { buildMasterPanel } from './MasterPanel';
 import { buildMixer, type MixerHandle } from './Mixer';
 import { buildPatchBrowser } from './PatchBrowser';
@@ -597,15 +598,14 @@ export class App {
     toast(t('toast.tempo', { bpm }));
   }
 
-  private toggleRecord() {
+  private async toggleRecord() {
     const btn = document.getElementById('rec-btn');
     if (this.engine.recording) {
       const result = this.engine.stopRecording();
       btn?.classList.remove('on');
       if (result) {
         const blob = encodeWav(result.channels, result.sampleRate, 24);
-        this.download(blob, `akatsuki-recording-${stamp()}.wav`);
-        toast(t('toast.recordSaved'));
+        await this.saveFile(blob, `akatsuki-recording-${stamp()}.wav`, t('toast.recordSaved'));
       } else {
         toast(t('toast.noRecordData'));
       }
@@ -667,9 +667,8 @@ export class App {
           tail: 3.5,
         });
         const blob = audioBufferToWav(buffer, 24);
-        this.download(blob, `akatsuki-song-${stamp()}.wav`);
+        await this.saveFile(blob, `akatsuki-song-${stamp()}.wav`, t('toast.wavExported'));
         progress.textContent = t('export.done');
-        toast(t('toast.wavExported'));
         close();
       } catch (err) {
         progress.textContent = t('export.failed', { err: String(err) });
@@ -680,22 +679,33 @@ export class App {
     close = openModal(t('export.modalTitle'), content, [go]);
   }
 
-  private exportMidiFile() {
+  private async exportMidiFile() {
     try {
       const blob = exportMidi(this.sequencer);
-      this.download(blob, `akatsuki-song-${stamp()}.mid`);
-      toast(t('toast.midiExported'));
+      await this.saveFile(blob, `akatsuki-song-${stamp()}.mid`, t('toast.midiExported'));
     } catch (err) {
       toast(t('toast.midiExportFailed', { err: String(err) }));
     }
   }
 
-  private saveSongFile() {
+  private async saveSongFile() {
     const data = this.sequencer.toJSON();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    this.download(blob, `akatsuki-song-${stamp()}.json`);
-    this.autosave();
-    toast(t('toast.songSaved'));
+    try {
+      await this.saveFile(blob, `akatsuki-song-${stamp()}.json`, t('toast.songSaved'));
+      this.autosave();
+    } catch (err) {
+      toast(t('toast.midiExportFailed', { err: String(err) }));
+    }
+  }
+
+  /**
+   * 保存して、済んだことを伝える。
+   * 同梱アプリでは端末のどこに置いたかまで出す（web ではブラウザ任せなので出さない）
+   */
+  private async saveFile(blob: Blob, filename: string, done: string) {
+    const outcome = await this.download(blob, filename);
+    toast(outcome.kind === 'file' ? `${done} → ${outcome.path}` : done);
   }
 
   private loadSongFile(input: HTMLInputElement) {
@@ -729,15 +739,10 @@ export class App {
     this.autosaveSoon();
   }
 
-  private download(blob: Blob, filename: string) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 8000);
+  // Android の WebView では <a download> が効かないため、保存は共通処理に任せる
+  // （同梱アプリでは端末へ直接書き込む。詳しくは shared/download.ts）
+  private download(blob: Blob, filename: string): Promise<SaveOutcome> {
+    return saveBlob(blob, filename);
   }
 
   private autosaveSoon() {

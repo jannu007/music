@@ -1556,11 +1556,11 @@ export class VocalApp {
       };
       const buffer = await renderSong(compiled, this.song.settings, this.song.bpm, { mute });
       const suffix = kind === 'mix' ? '' : kind === 'vocal' ? '-vocal' : '-inst';
-      downloadBlob(
+      await this.saveFile(
         encodeWav(buffer),
-        `${safeFileName(this.song.title)}${suffix}-${timestampName('', 'wav').slice(1)}`
+        `${safeFileName(this.song.title)}${suffix}-${timestampName('', 'wav').slice(1)}`,
+        t('status.wavExported')
       );
-      this.setStatus(t('status.wavExported'));
     } catch (err) {
       this.setStatus(t('status.exportFailed', { err: String(err) }));
     } finally {
@@ -1568,15 +1568,39 @@ export class VocalApp {
     }
   }
 
-  private exportMidi() {
-    downloadBlob(encodeMidi(this.song), `${safeFileName(this.song.title)}.mid`);
-    this.setStatus(t('status.midiExported'));
+  private async exportMidi() {
+    try {
+      await this.saveFile(
+        encodeMidi(this.song),
+        `${safeFileName(this.song.title)}.mid`,
+        t('status.midiExported')
+      );
+    } catch (err) {
+      this.setStatus(t('status.exportFailed', { err: String(err) }));
+    }
   }
 
-  private saveProject() {
-    downloadBlob(encodeProject(this.song), `${safeFileName(this.song.title)}.hvocal.json`);
-    this.setStatus(t('status.projectSaved'));
+  private async saveProject() {
+    try {
+      await this.saveFile(
+        encodeProject(this.song),
+        `${safeFileName(this.song.title)}.hvocal.json`,
+        t('status.projectSaved')
+      );
+    } catch (err) {
+      this.setStatus(t('status.exportFailed', { err: String(err) }));
+    }
   }
+
+  /**
+   * 保存して、済んだことを伝える。
+   * 同梱アプリでは端末のどこに置いたかまで出す（web ではブラウザ任せなので出さない）
+   */
+  private async saveFile(blob: Blob, filename: string, done: string) {
+    const outcome = await downloadBlob(blob, filename);
+    this.setStatus(outcome.kind === 'file' ? `${done} → ${outcome.path}` : done);
+  }
+
 
   private openProject() {
     const input = el('input');

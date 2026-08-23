@@ -1331,8 +1331,11 @@ export class DrumApp {
       await this.ensureAudio();
       const buffer = await renderProject(this.project, { loops: this.ui.exportLoops });
       const wav = encodeWav(buffer);
-      downloadBlob(new Blob([wav], { type: 'audio/wav' }), timestampName('hibiki-drums', 'wav'));
-      this.updateExportStatus(t('export.wavDone', { size: (wav.length / 1024 / 1024).toFixed(1) }));
+      await this.saveFile(
+        new Blob([wav], { type: 'audio/wav' }),
+        timestampName('hibiki-drums', 'wav'),
+        t('export.wavDone', { size: (wav.length / 1024 / 1024).toFixed(1) })
+      );
     } catch (err) {
       console.error(err);
       this.updateExportStatus(t('export.failed'));
@@ -1364,8 +1367,7 @@ export class DrumApp {
         });
       }
       const zip = createZip(entries);
-      downloadBlob(zip, timestampName('hibiki-stems', 'zip'));
-      this.updateExportStatus(t('export.stemsDone', { count: entries.length }));
+      await this.saveFile(zip, timestampName('hibiki-stems', 'zip'), t('export.stemsDone', { count: entries.length }));
     } catch (err) {
       console.error(err);
       this.updateExportStatus(t('export.failed'));
@@ -1374,23 +1376,45 @@ export class DrumApp {
     }
   }
 
-  private exportMidi() {
+  private async exportMidi() {
     const midi = encodeMidi(this.project, this.ui.exportLoops);
-    downloadBlob(new Blob([midi], { type: 'audio/midi' }), timestampName('hibiki-drums', 'mid'));
-    this.updateExportStatus(t('export.midiDone'));
+    try {
+      await this.saveFile(
+        new Blob([midi], { type: 'audio/midi' }),
+        timestampName('hibiki-drums', 'mid'),
+        t('export.midiDone')
+      );
+    } catch (err) {
+      console.error(err);
+      this.updateExportStatus(t('export.failed'));
+    }
   }
 
-  private exportProject() {
+  private async exportProject() {
     const data = {
       app: 'hibiki-drum-machine',
       version: 1,
       project: encodeProject(this.project),
     };
-    downloadBlob(
-      new Blob([JSON.stringify(data)], { type: 'application/json' }),
-      `${safeName(this.project.name)}.hibiki.json`
-    );
-    this.updateExportStatus(t('export.projectSaved'));
+    try {
+      await this.saveFile(
+        new Blob([JSON.stringify(data)], { type: 'application/json' }),
+        `${safeName(this.project.name)}.hibiki.json`,
+        t('export.projectSaved')
+      );
+    } catch (err) {
+      console.error(err);
+      this.updateExportStatus(t('export.failed'));
+    }
+  }
+
+  /**
+   * 保存して、済んだことを伝える。
+   * 同梱アプリでは端末のどこに置いたかまで出す（web ではブラウザ任せなので出さない）
+   */
+  private async saveFile(blob: Blob, filename: string, done: string) {
+    const outcome = await downloadBlob(blob, filename);
+    this.updateExportStatus(outcome.kind === 'file' ? `${done} → ${outcome.path}` : done);
   }
 
   private importProject() {
