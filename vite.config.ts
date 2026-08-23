@@ -23,6 +23,8 @@ export default defineConfig({
         bass: resolve(__dirname, 'bass/index.html'),
         // Hoshizora Vocal（日本語歌声シンセ・/vocal/ で公開）
         vocal: resolve(__dirname, 'vocal/index.html'),
+        // Yamabiko Sampler（サンプラー・/sampler/ で公開）
+        sampler: resolve(__dirname, 'sampler/index.html'),
       },
     },
   },

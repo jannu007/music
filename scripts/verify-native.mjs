@@ -133,10 +133,27 @@ for (const app of targets) {
 
   await page.addInitScript(instrument);
   await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(600);
-  // 音を鳴らす（アプリごとに操作が違うので、当たりそうなものを一通り叩く）
-  await page.mouse.click(206, 400);
-  await page.waitForTimeout(900);
+  // 付属音源を合成してから鳴らせるアプリがあるので、少し待つ
+  await page.waitForTimeout(1500);
+
+  // 音を鳴らす。
+  //
+  // やみくもに何度も叩くと、いちど点けたものを消してしまうアプリがある
+  // （ドラムのステップなど）。そこで「1回だけ叩く」に留め、鍵盤があるアプリでは
+  // 押しっぱなしにして鳴らす。短く叩くだけだと、離した後の余韻しか測れない。
+  const key = await page.$('.key.white, .key');
+  if (key) {
+    const box = await key.boundingBox();
+    if (box) {
+      // 鍵盤は下へ行くほど強く鳴る作りなので、下寄りを押す
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.75);
+      await page.mouse.down();
+    }
+  } else {
+    await page.mouse.click(206, 400);
+  }
+  // 立ち上がりを逃さないよう、待ちは短くする（撥弦は1秒で -45dB まで落ちる）
+  await page.waitForTimeout(250);
   for (const key of ['a', 'z', 'q', '1']) {
     await page.keyboard.press(key).catch(() => {});
     await page.waitForTimeout(120);
@@ -156,14 +173,19 @@ for (const app of targets) {
     return { wl: window.__wl, peak, secure: window.isSecureContext };
   });
 
-  const workletOk = result.wl.ok > 0 && result.wl.fail.length === 0;
+  // 使わないと分かっているアプリに、あるはずのないものを求めない
+  if (key) await page.mouse.up().catch(() => {});
+
+  const workletOk = app.worklet
+    ? result.wl.ok > 0 && result.wl.fail.length === 0
+    : result.wl.fail.length === 0;
   const audioOk = result.peak > 0.001;
   const ok = workletOk && audioOk && external.length === 0 && errors.length === 0;
   if (!ok) failures++;
 
   console.log(
     app.id.padEnd(13),
-    (workletOk ? `ok(${result.wl.ok})` : 'FAIL').padEnd(13),
+    (workletOk ? (app.worklet ? `ok(${result.wl.ok})` : '不要') : 'FAIL').padEnd(13),
     (audioOk ? result.peak.toFixed(3) : '無音').padEnd(6),
     String(external.length).padEnd(9),
     errors.length ? errors.slice(0, 1).join(' ') : 'なし'

@@ -9,18 +9,21 @@
 /**
  * 端末に同梱された状態で動いているか。
  *
- * 同梱バンドルは index.html に __NATIVE_BUNDLE__ を埋め込んでいる。
+ * 同梱バンドルは index.html に <meta name="native-bundle"> を埋め込んでいる。
  * Capacitor の有無に頼らず、ビルド成果物そのものが自分の素性を名乗る形にして
  * あるので、どんなシェルで包んでも判定を間違えない。
+ *
+ * 印を <script> ではなく <meta> にしているのは、script-src 'self' の CSP を
+ * 敷いたページではインラインスクリプトが実行されないため。
+ * （以前のバンドルが埋めた __NATIVE_BUNDLE__ も、引き続き見る）
  */
 export function isNativeShell(): boolean {
   if (typeof window === 'undefined') return false;
   const w = window as unknown as { Capacitor?: unknown; __NATIVE_BUNDLE__?: boolean };
-  return (
-    w.__NATIVE_BUNDLE__ === true ||
-    typeof w.Capacitor !== 'undefined' ||
-    location.protocol === 'capacitor:'
-  );
+  if (w.__NATIVE_BUNDLE__ === true) return true;
+  if (typeof w.Capacitor !== 'undefined') return true;
+  if (location.protocol === 'capacitor:') return true;
+  return document.querySelector('meta[name="native-bundle"]') !== null;
 }
 
 /**

@@ -33,8 +33,11 @@
     "vocal:electron": "vite build && electron electron/vocal-main.cjs",
     "vocal:build:win": "vite build && electron-builder --win portable --config electron-builder.vocal.json",
     "vocal:test": "node scripts/test-vocal-transcribe.mjs",
+    "sampler:dev": "vite --open /sampler/",
+    "sampler:icons": "node scripts/gen-sampler-icons.mjs",
+    "sampler:test": "node scripts/test-sampler.mjs && node scripts/test-sampler-project.mjs",
     "test:audio": "node scripts/audio-smoke.mjs",
-    "test": "tsc --noEmit && vite build && node scripts/test-bass-dsp.mjs && node scripts/test-vocal-transcribe.mjs && node scripts/audio-smoke.mjs && node scripts/test-download.mjs",
+    "test": "tsc --noEmit && vite build && node scripts/test-bass-dsp.mjs && node scripts/test-vocal-transcribe.mjs && node scripts/audio-smoke.mjs && node scripts/test-download.mjs && node scripts/test-sampler.mjs && node scripts/test-sampler-project.mjs",
     "native:build": "npm run build && node scripts/build-native.mjs",
     "native:verify": "node scripts/verify-native.mjs",
     "test:download": "node scripts/test-download.mjs"

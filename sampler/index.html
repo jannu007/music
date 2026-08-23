@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+
+  <!--
+    このアプリは通信を一切しない。それを「そういう作りにしてある」で終わらせず、
+    ブラウザ自身に守らせる。下の指定があると、たとえ将来うっかり外部への
+    参照を書いてしまっても、ブラウザの側で止まる。
+
+      default-src 'none'  … 既定は全部禁止。必要なものだけ下で開ける
+      connect-src 'none'  … fetch / XHR / WebSocket を一切許さない
+      script-src 'self'   … 同梱したスクリプトだけ。インラインも eval も不可
+      object-src 'none'   … プラグインの埋め込みを禁止
+      base-uri 'none'     … <base> による参照先のすり替えを禁止
+      form-action 'none'  … どこへも送信させない
+
+    frame-ancestors はここには書いていない。<meta> で配ると
+    ブラウザに無視されるため（HTTP ヘッダーでしか効かない）。
+    他サイトの枠に入れられていないかは、代わりに本体側で見ている（main.ts）。
+
+    style-src にだけ 'unsafe-inline' を許しているのは、ビルド前の開発サーバーが
+    スタイルを <style> で差し込むため。中身は同梱の CSS だけで、外部は入らない。
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; media-src 'none'; connect-src 'none'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta name="referrer" content="no-referrer" />
+
+  <title>Yamabiko Sampler - 自分の音で楽器をつくるサンプラー</title>
+  <meta name="description" content="取り込んだ音・録った音を鍵盤に割り当てて演奏できるサンプラー。付属音源はすべてその場で合成しており、録音素材を含みません。鍵盤マッピング、ループ、エンベロープ、10種類のエフェクト、WAV/MIDI書き出しに対応。広告なし・通信なし・オフライン動作。" />
+  <link rel="icon" href="./icon-192.png" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <meta name="theme-color" content="#101a1d" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Yamabiko" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Yamabiko Sampler" />
+  <meta property="og:description" content="自分の音を鍵盤に割り当てて弾けるサンプラー。付属音源は合成なので、作った音源はそのまま商用利用できます。" />
+  <meta property="og:image" content="./icon-512.png" />
+</head>
+<body>
+  <div id="app"></div>
+  <noscript>このアプリの動作には JavaScript が必要です。</noscript>
+  <script type="module" src="/sampler/src/main.ts"></script>
+</body>
+</html>

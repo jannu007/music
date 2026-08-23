@@ -43,6 +43,7 @@ npm run native:build
 | guitar | `shop.youkoku.guitar` | 約 1.16 MB |
 | bass | `shop.youkoku.bass` | 約 1.10 MB |
 | vocal | `shop.youkoku.vocal` | 約 1.16 MB |
+| sampler | `shop.youkoku.sampler` | 約 1.09 MB |
 
 Service Worker（`sw.js`）は同梱していません。ファイルが端末内にある以上
 キャッシュ層は不要で、あると更新の邪魔になるためです。同梱版の
