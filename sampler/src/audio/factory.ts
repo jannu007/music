@@ -499,7 +499,9 @@ export function buildFactory(sampleRate: number, only?: string): FactoryBuild[] 
     for (const slot of DRUM_SLOTS) {
       const channels = slot.render(sampleRate);
       normalize(channels, 0.85);
-      const sampleId = `drum-${slot.id}`;
+      // id の頭は必ず音源の id にする。ここがずれると、保存した楽器を
+      // 開き直したときに「どの音源の素材か」を辿れなくなる
+      const sampleId = `drumField-${slot.id}`;
       samples.push({
         meta: {
           id: sampleId,

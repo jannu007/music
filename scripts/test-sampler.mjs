@@ -61,10 +61,10 @@ await new Promise((r) => server.listen(PORT, r));
  * script-src 'self' のこのページでは弾かれる（CSP が効いている証拠）。
  * evaluate は別経路なので通る。こちらを繰り返して待つ。
  */
-async function waitFor(page, fn, { timeout = 20000, interval = 100 } = {}) {
+async function waitFor(page, fn, { timeout = 20000, interval = 100, arg } = {}) {
   const until = Date.now() + timeout;
   for (;;) {
-    if (await page.evaluate(fn)) return true;
+    if (await page.evaluate(fn, arg)) return true;
     if (Date.now() > until) return false;
     await page.waitForTimeout(interval);
   }
@@ -129,10 +129,21 @@ await page.addInitScript(instrument);
 await page.goto(`http://localhost:${PORT}/sampler/`, { waitUntil: 'networkidle' });
 
 // ---------------------------------------------------------------- 1. 起動
-const started = await waitFor(page, () => document.querySelectorAll('.sound-row').length > 0);
+const started = await waitFor(page, () => document.querySelectorAll('.pick-chip').length > 0);
 check('起動する', started);
-const factoryCount = await page.locator('.sound-row').count();
-check('付属音源が並ぶ', factoryCount >= 6, `${factoryCount} 件`);
+const factoryCount = await page.locator('.pick-chip').count();
+check('音源と収録デモが並ぶ', factoryCount >= 16, `${factoryCount} 件`);
+
+// 音源選びと割り当てが1つのタブに収まっていること
+const merged = await page.evaluate(() => {
+  const panel = document.querySelector('.panel');
+  const head = [...document.querySelectorAll('.panel-section-head h3')].find((h) =>
+    /MAPPING|割り当て/i.test(h.textContent ?? '')
+  );
+  if (!panel || !head) return -1;
+  return Math.round(head.getBoundingClientRect().top - panel.getBoundingClientRect().top);
+});
+check('音源選びと割り当てが同じ画面に収まる', merged >= 0 && merged < 420, `割り当ては ${merged}px から`);
 check('鍵盤が出る', (await page.locator('.key').count()) > 20);
 
 const mapped = await page.evaluate(() => document.querySelectorAll('.key.mapped').length);
@@ -195,11 +206,39 @@ const drawn = await page.evaluate(() => {
 });
 check('波形が描かれている', drawn > 0.01, `${(drawn * 100).toFixed(1)}% のピクセル`);
 
+// ------------------------------------------- 3a. 開き直しても楽器が残るか
+//
+// 付属音源は保存せず、素材の id から辿って合成し直している。辿り方を
+// 間違えると、開き直した瞬間にゾーンが全部消えて「音の出ないアプリ」になる。
+// 打楽器は id の付け方が他と違っていたため、実際にそうなっていた。
+for (const name of ['Percussion', 'Wooden Strings']) {
+  await page.locator('.tab-btn[data-tab="map"]').click();
+  await page.waitForTimeout(120);
+  await page.locator('.pick-chip', { hasText: name }).first().click();
+  // 合成が終わるまで待つ。ゾーンの数だけ見ていると、前の音源のぶんを数えてしまう
+  const switched = await waitFor(
+    page,
+    (want) => (document.querySelector('.app-instrument')?.textContent ?? '') === want,
+    { arg: name }
+  );
+  check(`${name}: 読み込める`, switched);
+  const before = await page.locator('.zone-chip').count();
+
+  await page.reload({ waitUntil: 'networkidle' });
+  await waitFor(page, () => document.querySelectorAll('.pick-chip').length > 0);
+  await page.waitForTimeout(400);
+  const after = await page.locator('.zone-chip').count();
+  const wave = await page.locator('.wave-strip:not(.empty)').count();
+
+  check(`${name}: 開き直してもゾーンが残る`, after === before && after > 0, `${before} → ${after}`);
+  check(`${name}: 開き直しても波形が出る`, wave === 1);
+}
+
 // ------------------------------------------------------------ 3b. 収録デモ
-const demoRows = page
-  .locator('.panel-section', { hasText: /Included pieces|収録デモ/ })
-  .locator('.sound-row');
-const demoCount = await demoRows.count();
+const demoRows = page.locator('.pick-chip', { hasText: /Stone Garden|石庭|Frost|氷結/ });
+const demoCount = await page.evaluate(
+  () => document.querySelectorAll('.pick-chip').length
+) - 6;
 check('収録デモが並ぶ', demoCount === 10, `${demoCount} 曲`);
 
 await demoRows.nth(0).click();

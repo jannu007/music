@@ -71,6 +71,7 @@ const ja: Record<string, string> = {
   'demo.festival.name': '祭囃子',
   'demo.festival.desc': '裏を詰めて前へ転がす',
 
+  'browse.title': '音を選ぶ',
   'browse.factory': '付属音源',
   'browse.factory.hint': 'すべてその場で合成しています。録音素材は入っていません',
   'browse.mine': '自分の素材',
@@ -295,6 +296,7 @@ const en: Record<string, string> = {
   'demo.festival.name': 'Festival',
   'demo.festival.desc': 'Off-beats packed to push it forward',
 
+  'browse.title': 'Choose a sound',
   'browse.factory': 'Included sounds',
   'browse.factory.hint': 'All synthesised on the spot. No recordings inside.',
   'browse.mine': 'Your samples',
