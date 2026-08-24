@@ -1531,3 +1531,129 @@ select {
     transition: none !important;
   }
 }
+
+/*
+ * 横向き（高さの足りない画面）。
+ *
+ * 縦に積んでいる帯（波形表示・見出し・ピアノロール・鍵盤・状態）の合計が
+ * 画面の高さを超えると、真ん中の操作盤に配られる高さが 0 になり、
+ * ツマミ類がまるごと消えたうえで、ページ全体がスクロールしてしまう。
+ *
+ * そこで、無くても弾ける帯から順に削って、操作盤の場所を作る。
+ */
+@media (max-height: 620px) {
+  /* 波形表示は見るためのもの。弾くのには要らない */
+  .analyzer {
+    display: none;
+  }
+
+  /*
+   * 段の割り当てを引き直す。
+   *
+   * .analyzer を display:none で消すと、その要素が段から抜けるので、
+   * 以降が1つずつ繰り上がる。放っておくと「伸びる段」が操作盤ではなく
+   * 鍵盤の側に移り、今度は鍵盤が潰れる。消したぶん、明示的に組み直す。
+   */
+  .shell {
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    /*
+     * 幅の狭い画面向けの指定が height:auto にしている（縦画面では
+     * ページ全体をスクロールさせる作り）。横向きでは画面に収めたいので戻す
+     */
+    height: 100%;
+    min-height: 0;
+  }
+
+  /*
+   * 横向きは幅に余裕がある。縦画面のように1列へ積むと縦が足りなくなるので、
+   * トラック一覧を左へ戻して横を使う
+   */
+  .main {
+    grid-template-columns: 178px minmax(0, 1fr);
+  }
+
+  .panel-mixer {
+    max-height: none;
+  }
+
+  .mixer-list {
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  .actions {
+    width: auto;
+    order: 0;
+  }
+
+  /* 見出しは折り返さず、入りきらなければ横に流す（3段になると高い） */
+  .header {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 10px;
+    padding: 4px 10px;
+    scrollbar-width: none;
+  }
+
+  .header::-webkit-scrollbar {
+    display: none;
+  }
+
+  .header > * {
+    flex: 0 0 auto;
+  }
+
+  /* 縦に積まれている見出しの部品を、1行に収める */
+  .tempo,
+  .master-strip {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* min-height は max-height より強いので、両方とも下げる必要がある */
+  .roll-wrap {
+    height: 104px;
+    min-height: 0;
+  }
+
+  .keyboard {
+    height: 82px;
+  }
+
+  .keyboard-area {
+    padding: 4px 8px;
+    gap: 8px;
+  }
+
+  .status {
+    padding: 2px 10px;
+    font-size: 11px;
+  }
+
+  /* 中身が溢れても、ページ全体を押し広げない */
+  .shell {
+    overflow: hidden;
+  }
+}
+
+/* さらに背が低い画面。操作盤の場所を残すため、下の帯をもう一段詰める */
+@media (max-height: 430px) {
+  .roll-wrap {
+    height: 76px;
+  }
+
+  .keyboard {
+    height: 66px;
+  }
+
+  .header {
+    padding: 2px 8px;
+    gap: 8px;
+  }
+
+  .status {
+    padding: 1px 8px;
+    font-size: 10px;
+  }
+}

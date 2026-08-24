@@ -392,7 +392,13 @@ html, body {
 }
 .seg-btn.active { background: var(--ember); color: #1a0e05; font-weight: 600; }
 
+/*
+ * 隠しチェックボックスは position: absolute なので、ここを位置の基準にする。
+ * 基準が無いとページ全体が基準になり、スクロール領域の外へ抜け出して
+ * html の高さを押し広げる（横向きで下に余白ができる原因になっていた）
+ */
 .switch-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.7rem;

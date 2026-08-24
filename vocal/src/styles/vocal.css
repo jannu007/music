@@ -717,3 +717,39 @@ html, body {
 }
 
 .btn.ghost.active { color: var(--star); border-color: var(--line-strong); }
+
+/*
+ * 横向き（高さの足りない画面）。
+ *
+ * 幅が 900px 以下だと、ピアノロールの下に設定パネルを積む作りになる。
+ * 縦画面ではそれでよいが、横向きでは 42vh + 46vh が縦に並んで画面から溢れ、
+ * ページ全体がスクロールしてしまう。横向きは幅に余裕があるので、
+ * 設定パネルを横に戻す。
+ */
+@media (max-height: 620px) and (min-width: 620px) {
+  .workspace {
+    flex-direction: row;
+  }
+
+  .side {
+    width: 300px;
+    max-height: none;
+    border-left: 1px solid var(--line);
+    border-top: none;
+  }
+
+  .roll-area {
+    min-height: 0;
+  }
+}
+
+/* 幅も高さも足りないときは、積んだまま丈を詰める */
+@media (max-height: 620px) and (max-width: 619px) {
+  .side {
+    max-height: 40vh;
+  }
+
+  .roll-area {
+    min-height: 30vh;
+  }
+}
