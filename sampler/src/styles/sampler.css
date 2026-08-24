@@ -797,6 +797,42 @@ body {
   touch-action: none;
 }
 
+/*
+ * 地の色も、表示の種類に合わせて振る。
+ *
+ * 波形だけ色を変えても、周りが青緑のままだと打ち消し合って濁る。
+ * 明るみの位置は種類ごとの中心に合わせる（山彦だけ 37%、他は真ん中）。
+ */
+.waveform[data-mode='mirror'] {
+  background:
+    radial-gradient(120% 80% at 50% 50%, rgba(74, 62, 132, 0.36), transparent 72%),
+    linear-gradient(180deg, #0e0c1c 0%, #131029 62%, #0b0a18 100%);
+}
+
+.waveform[data-mode='bars'] {
+  background:
+    radial-gradient(120% 80% at 50% 50%, rgba(96, 70, 34, 0.32), transparent 72%),
+    linear-gradient(180deg, #16110a 0%, #1a1409 62%, #120e07 100%);
+}
+
+.waveform[data-mode='line'] {
+  background:
+    radial-gradient(120% 80% at 50% 50%, rgba(36, 86, 62, 0.32), transparent 72%),
+    linear-gradient(180deg, #08150f 0%, #0a1b13 62%, #06120d 100%);
+}
+
+.waveform[data-mode='heat'] {
+  background:
+    radial-gradient(120% 80% at 50% 50%, rgba(38, 56, 96, 0.34), transparent 72%),
+    linear-gradient(180deg, #0a0e1a 0%, #0c1120 62%, #070a14 100%);
+}
+
+.waveform[data-mode='radial'] {
+  background:
+    radial-gradient(70% 92% at 50% 50%, rgba(88, 46, 118, 0.38), transparent 74%),
+    linear-gradient(180deg, #120c1c 0%, #170f24 62%, #0d0816 100%);
+}
+
 .waveform-canvas {
   display: block;
   width: 100%;

@@ -264,10 +264,15 @@ check('収録デモが鳴る', demoSound > 0.002, `peak=${demoSound.toFixed(4)}`
 
 // -------------------------------------------------- 3b2. 波形の見せ方
 //
-// 5種類あるが、切り替えても中身が同じだと意味がない。
+// 6種類あるが、切り替えても中身が同じだと意味がない。
 // 実際に描かれた画素を数えて、種類ごとに違う絵になっていることを確かめる。
+//
+// 形だけでなく色も見る。以前は全部が同じ青緑で、切り替えたことに
+// 気づけなかった。塗られた画素の平均の色を取り、種類どうしが
+// 十分に離れていることを確かめる。
 {
   const seen = new Map();
+  const colors = new Map();
   let switched = 0;
   for (let i = 0; i < 6; i++) {
     const name = (await page.locator('.wave-mode').textContent()) ?? `?${i}`;
@@ -280,6 +285,12 @@ check('収録デモが鳴る', demoSound > 0.002, `peak=${demoSound.toFixed(4)}`
       // 上半分と下半分を別々に数える。上下対称かどうかも見分けたい
       let top = 0;
       let bottom = 0;
+      // 見えている画素の平均の色。うっすら乗っただけの画素は、
+      // どの種類でも似た色になるので混ぜない
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let lit = 0;
       const half = Math.floor(canvas.height / 2) * canvas.width * 4;
       for (let k = 3; k < data.length; k += 4) {
         if (data[k] > 8) {
@@ -287,12 +298,20 @@ check('収録デモが鳴る', demoSound > 0.002, `peak=${demoSound.toFixed(4)}`
           if (k < half) top++;
           else bottom++;
         }
+        if (data[k] > 40) {
+          r += data[k - 3];
+          g += data[k - 2];
+          b += data[k - 1];
+          lit++;
+        }
       }
-      return { ratio: filled / (data.length / 4), top, bottom };
+      const rgb = lit ? [r / lit, g / lit, b / lit] : null;
+      return { ratio: filled / (data.length / 4), top, bottom, rgb };
     });
     if (painted) {
       check(`波形「${name}」が描かれる`, painted.ratio > 0.01, `${(painted.ratio * 100).toFixed(1)}%`);
       seen.set(name, `${painted.top}:${painted.bottom}`);
+      if (painted.rgb) colors.set(name, painted.rgb);
     }
     await page.locator('.wave-mode').click();
     await page.waitForTimeout(350);
@@ -300,6 +319,25 @@ check('収録デモが鳴る', demoSound > 0.002, `peak=${demoSound.toFixed(4)}`
   }
   check('6種類ある', seen.size === 6, [...seen.keys()].join(', '));
   check('種類ごとに違う絵になる', new Set(seen.values()).size === 6, [...seen.values()].join(' / '));
+
+  // 色の隔たり。0〜255 の3軸で測り、これ未満なら「同じ色」と見なす。
+  // 隣り合う色でも、並べて見れば違うと分かるくらいの幅
+  const MIN_COLOR_GAP = 30;
+  const names = [...colors.keys()];
+  check('全種類の色が取れる', colors.size === 6, `${colors.size}`);
+  let closest = { pair: '', gap: Infinity };
+  for (let a = 0; a < names.length; a++) {
+    for (let b = a + 1; b < names.length; b++) {
+      const [x, y] = [colors.get(names[a]), colors.get(names[b])];
+      const gap = Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]);
+      if (gap < closest.gap) closest = { pair: `${names[a]}/${names[b]}`, gap };
+    }
+  }
+  check(
+    '種類ごとに色が違う',
+    closest.gap >= MIN_COLOR_GAP,
+    `いちばん近い組 ${closest.pair} = ${closest.gap.toFixed(0)}`
+  );
   check('ひと回りして戻る', switched === 6 && (await page.locator('.wave-mode').textContent()) !== null);
 }
 
