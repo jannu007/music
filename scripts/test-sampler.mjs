@@ -262,6 +262,54 @@ const demoSound = await page.evaluate(async () => {
 });
 check('収録デモが鳴る', demoSound > 0.002, `peak=${demoSound.toFixed(4)}`);
 
+// -------------------------------------------------- 3b2. 波形の見せ方
+//
+// 5種類あるが、切り替えても中身が同じだと意味がない。
+// 実際に描かれた画素を数えて、種類ごとに違う絵になっていることを確かめる。
+{
+  const seen = new Map();
+  let switched = 0;
+  for (let i = 0; i < 6; i++) {
+    const name = (await page.locator('.wave-mode').textContent()) ?? `?${i}`;
+    const painted = await page.evaluate(() => {
+      const canvas = document.querySelector('.wave-strip .waveform-canvas');
+      if (!canvas) return null;
+      const c = canvas.getContext('2d');
+      const { data } = c.getImageData(0, 0, canvas.width, canvas.height);
+      let filled = 0;
+      // 上半分と下半分を別々に数える。上下対称かどうかも見分けたい
+      let top = 0;
+      let bottom = 0;
+      const half = Math.floor(canvas.height / 2) * canvas.width * 4;
+      for (let k = 3; k < data.length; k += 4) {
+        if (data[k] > 8) {
+          filled++;
+          if (k < half) top++;
+          else bottom++;
+        }
+      }
+      return { ratio: filled / (data.length / 4), top, bottom };
+    });
+    if (painted) {
+      check(`波形「${name}」が描かれる`, painted.ratio > 0.01, `${(painted.ratio * 100).toFixed(1)}%`);
+      seen.set(name, `${painted.top}:${painted.bottom}`);
+    }
+    await page.locator('.wave-mode').click();
+    await page.waitForTimeout(350);
+    switched++;
+  }
+  check('6種類ある', seen.size === 6, [...seen.keys()].join(', '));
+  check('種類ごとに違う絵になる', new Set(seen.values()).size === 6, [...seen.values()].join(' / '));
+  check('ひと回りして戻る', switched === 6 && (await page.locator('.wave-mode').textContent()) !== null);
+}
+
+// 選んだ見せ方は、開き直しても残る
+await page.locator('.wave-mode').click();
+const chosenMode = await page.locator('.wave-mode').textContent();
+await page.reload({ waitUntil: 'networkidle' });
+await waitFor(page, () => document.querySelectorAll('.pick-chip').length > 0);
+check('見せ方が開き直しても残る', (await page.locator('.wave-mode').textContent()) === chosenMode, `${chosenMode}`);
+
 // ------------------------------------------------------ 3c. 再生と停止
 //
 // 記録した演奏は、音を先の時刻まで一気に予約して鳴らしている。
@@ -329,6 +377,78 @@ await waitFor(
   { arg: 'Wooden Strings' }
 );
 
+// ------------------------------------------------------------ 3d. パッド
+//
+// パッドは録音を「音そのもの」に焼いて載せている。押した瞬間に鳴らないと
+// 楽器にならないので、焼けているか・押して鳴るか・開き直しても残るかを見る。
+await page.locator('.tab-btn[data-tab="rec"]').click();
+await page.waitForTimeout(150);
+check('パッドが16枚ある', (await page.locator('.pad').count()) === 16, `${await page.locator('.pad').count()} 枚`);
+
+// 演奏を録る
+await page.locator('.panel .btn', { hasText: /消す|Clear/ }).first().click();
+await page.waitForTimeout(120);
+await page.locator('.panel .btn', { hasText: /^録音$|^Record$/ }).first().click();
+await page.waitForTimeout(120);
+{
+  const keys = page.locator('.key.white.mapped');
+  for (const index of [3, 5, 7]) {
+    const box = await keys.nth(index).boundingBox();
+    if (!box) continue;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.7);
+    await page.mouse.down();
+    await page.waitForTimeout(140);
+    await page.mouse.up();
+    await page.waitForTimeout(60);
+  }
+}
+await page.locator('.panel .btn', { hasText: /停止|Stop/ }).first().click();
+await page.waitForTimeout(150);
+
+// 空のパッドを押すと、いまの録音が載る
+await page.locator('.pad').first().dispatchEvent('pointerdown');
+const baked = await waitFor(page, () => document.querySelectorAll('.pad.filled').length === 1, {
+  timeout: 30000,
+});
+check('空のパッドに録音が載る', baked);
+
+const padLabel = await page.locator('.pad').first().textContent();
+check('パッドに名前と長さが出る', /\d\.\ds/.test(padLabel ?? ''), padLabel ?? '');
+
+// 静かになってから叩く
+await page.waitForTimeout(1800);
+const beforeHit = await measure(400);
+check('叩く前は鳴っていない', beforeHit < 0.002, `peak=${beforeHit.toFixed(4)}`);
+await page.locator('.pad').first().dispatchEvent('pointerdown');
+const afterHit = await measure(900);
+check('パッドを押すと鳴る', afterHit > 0.02, `peak=${afterHit.toFixed(3)}`);
+
+// 開き直しても残る（パッドは保管庫に入れている）
+await page.reload({ waitUntil: 'networkidle' });
+await waitFor(page, () => document.querySelectorAll('.pick-chip').length > 0);
+await page.locator('.tab-btn[data-tab="rec"]').click();
+await waitFor(page, () => document.querySelectorAll('.pad.filled').length === 1);
+check('開き直してもパッドが残る', (await page.locator('.pad.filled').count()) === 1);
+await page.waitForTimeout(400);
+await page.locator('.pad').first().dispatchEvent('pointerdown');
+const afterReload = await measure(900);
+check('開き直したパッドも鳴る', afterReload > 0.02, `peak=${afterReload.toFixed(3)}`);
+
+// × で空にできる
+await page.locator('.pad').first().locator('.pad-clear').dispatchEvent('pointerdown');
+const cleared = await waitFor(page, () => document.querySelectorAll('.pad.filled').length === 0);
+check('パッドを空にできる', cleared);
+
+// このあと弾いて録るので、音源を戻しておく
+await page.locator('.tab-btn[data-tab="map"]').click();
+await page.waitForTimeout(150);
+await page.locator('.pick-chip', { hasText: /Wooden Strings|木の弦/ }).first().click();
+await waitFor(
+  page,
+  (want) => (document.querySelector('.app-instrument')?.textContent ?? '') === want,
+  { arg: 'Wooden Strings' }
+);
+
 // ---------------------------------------------------------------- 4. 書き出し
 await page.locator('.tab-btn[data-tab="rec"]').click();
 await page.waitForTimeout(120);
@@ -353,8 +473,10 @@ for (const index of [2, 4, 6]) {
 await page.locator('.panel .btn', { hasText: /停止|Stop/ }).first().click();
 await page.waitForTimeout(120);
 
+// 録音の節は1つめ。パッドの節も hint を持つので、そちらを拾わないようにする
 const noteCount = await page.evaluate(() => {
-  const hints = document.querySelectorAll('.panel .panel-hint');
+  const first = document.querySelector('.panel .panel-section');
+  const hints = first?.querySelectorAll('.panel-hint') ?? [];
   return hints.length ? hints[hints.length - 1].textContent : '';
 });
 check('弾いた音が記録される', /[1-9]/.test(noteCount), noteCount);

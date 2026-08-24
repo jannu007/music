@@ -12,6 +12,11 @@ import { el } from './controls';
 
 export type Marker = 'start' | 'end' | 'loopStart' | 'loopEnd';
 
+/** 波形の見せ方 */
+export type WaveMode = 'echo' | 'mirror' | 'bars' | 'line' | 'heat' | 'radial';
+
+export const WAVE_MODES: WaveMode[] = ['echo', 'mirror', 'bars', 'line', 'heat', 'radial'];
+
 export interface WaveformValues {
   start: number;
   end: number;
@@ -30,6 +35,9 @@ export class Waveform {
   private dragging: Marker | null = null;
   /** 直近に描いた波形の見た目。画面の幅が変わったら描き直す */
   private drawnWidth = 0;
+  private mode: WaveMode = 'echo';
+  /** 幅が変わっていなくても描き直したいとき（表示の種類を変えたなど） */
+  private dirty = false;
 
   constructor(private readonly onChange: (values: WaveformValues) => void) {
     this.root = el('div', 'waveform');
@@ -58,8 +66,21 @@ export class Waveform {
     this.channels = channels;
     this.values = { ...values };
     this.drawnWidth = 0;
+    this.dirty = true;
     this.draw();
     this.layout();
+  }
+
+  /** 見せ方を変える */
+  setMode(mode: WaveMode) {
+    if (mode === this.mode) return;
+    this.mode = mode;
+    this.dirty = true;
+    this.draw();
+  }
+
+  get displayMode(): WaveMode {
+    return this.mode;
   }
 
   setValues(values: WaveformValues) {
@@ -70,23 +91,21 @@ export class Waveform {
   /**
    * 波形を描く。
    *
-   * 1ピクセルごとに最小・最大を取って縦棒にする、という描き方そのものは
-   * 波形編集ソフトが昔からやっているとおり。そこに2つ足している。
-   *
-   *   ・上の波形は、中心へ行くほど明るくなるグラデーションで塗る
-   *   ・その下に、薄く反転した「返り」を描く
-   *
-   * 返りを描くのは飾りではなく、このアプリの名前（山彦）そのもの。
-   * アイコンも同じ形をしていて、画面と入口で言っていることをそろえている。
+   * 1ピクセルごとに最小・最大を取って縦棒にする、という下ごしらえは
+   * どの表示でも同じ（波形編集ソフトが昔からやっているとおり）。
+   * そのあとの見せ方だけを、選ばれた種類ごとに変える。
    */
   private draw() {
     const rect = this.root.getBoundingClientRect();
     const width = Math.max(1, Math.floor(rect.width));
     const height = Math.max(1, Math.floor(rect.height));
-    if (width === this.drawnWidth && this.canvas.height === height * this.dpr()) return;
-    this.drawnWidth = width;
-
     const dpr = this.dpr();
+    if (width === this.drawnWidth && this.canvas.height === Math.floor(height * dpr) && !this.dirty) {
+      return;
+    }
+    this.drawnWidth = width;
+    this.dirty = false;
+
     this.canvas.width = Math.floor(width * dpr);
     this.canvas.height = Math.floor(height * dpr);
     this.canvas.style.width = `${width}px`;
@@ -111,15 +130,7 @@ export class Waveform {
     const scale = peak > 1e-6 ? 1 / peak : 1;
     const shape = (v: number) => Math.sign(v) * Math.pow(Math.abs(v) * scale, 0.62);
 
-    // 上に本体、下に返り。あいだの線が「水面」になる。
-    // 本体の中心と水面を同じ高さに置くと、本体の下半分と返りが重なって
-    // ただの塊に見えてしまうので、中心は水面より上に取る
-    const centre = height * 0.37;
-    const bodyHeight = height * 0.31;
-    const surface = height * 0.72;
-    const echoHeight = height * 0.25;
-
-    // 1ピクセルごとの上端・下端を先に出しておく（本体と返りで2回使う）
+    // 1ピクセルごとの上端・下端。どの表示でも、ここまでは同じ
     const perPixel = data.length / width;
     const tops = new Float32Array(width);
     const bottoms = new Float32Array(width);
@@ -136,6 +147,47 @@ export class Waveform {
       tops[x] = shape(hi);
       bottoms[x] = shape(lo);
     }
+
+    switch (this.mode) {
+      case 'mirror':
+        this.drawMirror(ctx, width, height, tops, bottoms);
+        break;
+      case 'bars':
+        this.drawBars(ctx, width, height, tops, bottoms);
+        break;
+      case 'line':
+        this.drawLine(ctx, width, height, tops, bottoms);
+        break;
+      case 'heat':
+        this.drawHeat(ctx, width, height, tops, bottoms);
+        break;
+      case 'radial':
+        this.drawRadial(ctx, width, height, tops, bottoms);
+        break;
+      default:
+        this.drawEcho(ctx, width, height, tops, bottoms);
+    }
+  }
+
+  /**
+   * 本体と、その下の「返り」。
+   *
+   * 返りを描くのは飾りではなく、このアプリの名前（山彦）そのもの。
+   * アイコンも同じ形をしていて、画面と入口で言っていることをそろえている。
+   */
+  private drawEcho(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    tops: Float32Array,
+    bottoms: Float32Array
+  ) {
+    // 本体の中心と水面を同じ高さに置くと、本体の下半分と返りが重なって
+    // ただの塊に見えてしまうので、中心は水面より上に取る
+    const centre = height * 0.37;
+    const bodyHeight = height * 0.31;
+    const surface = height * 0.72;
+    const echoHeight = height * 0.25;
 
     // 中心ほど明るく、外へ行くほど溶ける。
     // 真ん中を白で抜くと帯に見えてしまうので、いちばん明るいところも色を残す
@@ -165,18 +217,204 @@ export class Waveform {
     echo.addColorStop(1, 'rgba(80, 140, 150, 0)');
     ctx.fillStyle = echo;
     for (let x = 0; x < width; x++) {
-      // 上向きの山が、そのまま下向きに落ちる
       const depth = Math.max(Math.abs(tops[x]), Math.abs(bottoms[x])) * echoHeight;
       ctx.fillRect(x, surface, 1, Math.max(0.8, depth));
     }
 
-    // 水面の線
+    this.drawSurface(ctx, width, surface);
+  }
+
+  /** 上下対称の塗り。波形編集ソフトで見慣れた形 */
+  private drawMirror(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    tops: Float32Array,
+    bottoms: Float32Array
+  ) {
+    const mid = height / 2;
+    const half = height * 0.46;
+    const fill = ctx.createLinearGradient(0, mid - half, 0, mid + half);
+    fill.addColorStop(0, 'rgba(120, 206, 214, 0.55)');
+    fill.addColorStop(0.5, 'rgba(206, 248, 251, 0.98)');
+    fill.addColorStop(1, 'rgba(120, 206, 214, 0.55)');
+    ctx.fillStyle = fill;
+    for (let x = 0; x < width; x++) {
+      const top = mid - tops[x] * half;
+      const bottom = mid - bottoms[x] * half;
+      ctx.fillRect(x, top, 1, Math.max(0.8, bottom - top));
+    }
+    this.drawSurface(ctx, width, mid);
+  }
+
+  /**
+   * 縦の棒。
+   *
+   * 隙間を空けて束ねると、細かい揺れが均されて全体の起伏が読みやすくなる。
+   * ループ点を探すときのように「どこで音量が変わるか」を見たいときに向く。
+   */
+  private drawBars(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    tops: Float32Array,
+    bottoms: Float32Array
+  ) {
+    const mid = height / 2;
+    const half = height * 0.44;
+    const barWidth = 3;
+    const gap = 2;
+    const step = barWidth + gap;
+
+    const fill = ctx.createLinearGradient(0, mid - half, 0, mid + half);
+    fill.addColorStop(0, 'rgba(126, 208, 216, 0.75)');
+    fill.addColorStop(0.5, 'rgba(198, 246, 249, 1)');
+    fill.addColorStop(1, 'rgba(126, 208, 216, 0.75)');
+    ctx.fillStyle = fill;
+
+    for (let x = 0; x < width; x += step) {
+      // 束ねる範囲でいちばん大きいところを、その棒の高さにする
+      let hi = 0;
+      let lo = 0;
+      for (let i = x; i < Math.min(width, x + step); i++) {
+        if (tops[i] > hi) hi = tops[i];
+        if (bottoms[i] < lo) lo = bottoms[i];
+      }
+      const top = mid - hi * half;
+      const bottom = mid - lo * half;
+      const h = Math.max(2, bottom - top);
+      // 角を丸めると、棒が並んだときに柔らかく見える
+      const r = Math.min(barWidth / 2, h / 2);
+      ctx.beginPath();
+      ctx.roundRect(x, top, barWidth, h, r);
+      ctx.fill();
+    }
+  }
+
+  /** 輪郭だけ。中を塗らないので、下の目盛りや帯が透けて見える */
+  private drawLine(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    tops: Float32Array,
+    bottoms: Float32Array
+  ) {
+    const mid = height / 2;
+    const half = height * 0.44;
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(111, 199, 205, 0.65)';
+    ctx.shadowBlur = 6;
+    ctx.strokeStyle = 'rgba(198, 246, 249, 0.95)';
+    ctx.lineWidth = 1.4;
+    ctx.lineJoin = 'round';
+
+    for (const edge of [tops, bottoms]) {
+      ctx.beginPath();
+      for (let x = 0; x < width; x++) {
+        const y = mid - edge[x] * half;
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+    this.drawSurface(ctx, width, mid);
+  }
+
+  /**
+   * 強さで色が変わる帯。
+   *
+   * 高さではなく色で音量を見せる。細かい形は分からなくなるが、
+   * どこが盛り上がっているかだけを掴みたいときは、こちらのほうが速い。
+   */
+  private drawHeat(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    tops: Float32Array,
+    bottoms: Float32Array
+  ) {
+    const mid = height / 2;
+    const half = height * 0.44;
+    for (let x = 0; x < width; x++) {
+      const level = Math.max(Math.abs(tops[x]), Math.abs(bottoms[x]));
+      // 静かなところは青緑、大きいところは暖色へ
+      const hue = 186 - level * 160;
+      const light = 26 + level * 46;
+      ctx.fillStyle = `hsl(${hue} 72% ${light}%)`;
+      const h = Math.max(2, level * half * 2);
+      ctx.fillRect(x, mid - h / 2, 1, h);
+    }
+    this.drawSurface(ctx, width, mid);
+  }
+
+  /**
+   * 放射状。
+   *
+   * 時間を1周に丸めて、強さを外向きの長さにする。頭から終わりまでが
+   * ひと目に収まるので、曲の起伏を「形」として掴みたいときに向く。
+   *
+   * 帯は横に長く縦に短いので、真円ではなく楕円に開く。真円にすると
+   * 高さに合わせた小さな輪が真ん中にぽつんと残ってしまう。
+   */
+  private drawRadial(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    tops: Float32Array,
+    bottoms: Float32Array
+  ) {
+    const cx = width / 2;
+    const cy = height / 2;
+    const rx = width * 0.47;
+    const ry = height * 0.46;
+    // 内側に輪を残す。中心へ集めきると、細い線が団子になって読めない
+    const inner = 0.34;
+
+    // 内側の輪。ここが「始まりの円」になる
+    ctx.save();
+    ctx.strokeStyle = 'rgba(111, 199, 205, 0.28)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx * inner, ry * inner, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(111, 199, 205, 0.45)';
+    ctx.shadowBlur = 6;
+    ctx.lineWidth = 1.1;
+    ctx.lineCap = 'round';
+
+    for (let x = 0; x < width; x++) {
+      const level = Math.max(Math.abs(tops[x]), Math.abs(bottoms[x]));
+      // 真上から始めて、時計回りにひと回り
+      const angle = -Math.PI / 2 + (x / width) * Math.PI * 2;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      // 消え入るところも短い棘だけは残す。0 にすると輪の半分が
+      // 描かれていないように見えてしまう（減衰する音ではそこが大半になる）
+      const outer = inner + (0.07 + level * 0.93) * (1 - inner);
+
+      // 強いところほど明るく。輪の中でどこが山かが分かる
+      ctx.strokeStyle = `hsl(186 ${58 + level * 24}% ${44 + level * 38}% / ${0.45 + level * 0.5})`;
+      ctx.beginPath();
+      ctx.moveTo(cx + rx * inner * cos, cy + ry * inner * sin);
+      ctx.lineTo(cx + rx * outer * cos, cy + ry * outer * sin);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /** 中心の線。どの表示でも、基準の高さが分かるように引く */
+  private drawSurface(ctx: CanvasRenderingContext2D, width: number, y: number) {
     const line = ctx.createLinearGradient(0, 0, width, 0);
     line.addColorStop(0, 'rgba(111, 199, 205, 0)');
     line.addColorStop(0.5, 'rgba(111, 199, 205, 0.42)');
     line.addColorStop(1, 'rgba(111, 199, 205, 0)');
     ctx.fillStyle = line;
-    ctx.fillRect(0, surface, width, 1);
+    ctx.fillRect(0, y, width, 1);
   }
 
   private dpr(): number {
