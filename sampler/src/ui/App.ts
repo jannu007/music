@@ -29,15 +29,20 @@ import {
 } from '../audio/import';
 import {
   MAX_FILE_BYTES,
+  MAX_PAD_SECONDS,
   MAX_SAMPLE_SECONDS,
   MAX_STORE_BYTES,
   clearSamples,
+  deletePad,
   deleteSample,
   getSample,
+  listPads,
   listSamples,
+  putPad,
   putSample,
   usedBytes,
 } from '../audio/store';
+import { PAD_COUNT, PadPlayer, padHue } from '../audio/pads';
 import {
   PROJECT_APP,
   PROJECT_VERSION,
@@ -132,6 +137,10 @@ export class SamplerApp {
   private includeSamples = true;
 
   private readonly recorder = new Recorder();
+  /** パッド。音を焼いて載せてあるので、押した瞬間に鳴る */
+  private padPlayer: PadPlayer | null = null;
+  /** 焼く前の待ち。二重に押されても1回で済ませる */
+  private baking = false;
   /**
    * 再生中に仕掛けたタイマー。
    *
@@ -272,6 +281,14 @@ export class SamplerApp {
     const engine = new SamplerEngine(ctx, this.instrument);
     engine.output.connect(master);
     this.engine = engine;
+
+    // パッドは楽器のエフェクトを通さない。載せた時点で焼き込まれているため、
+    // ここで通すと二重にかかってしまう
+    const pads = new PadPlayer(ctx);
+    pads.output.connect(master);
+    this.padPlayer = pads;
+    await this.restorePads(ctx, pads);
+
     this.pushBuffers();
     return ctx;
   }
@@ -1765,6 +1782,134 @@ export class SamplerApp {
     this.panel.append(dist, crush, sweep, chorus, flanger, phaser, ring, mod, space);
   }
 
+  // --------------------------------------------------------------- パッド
+
+  /** 前に載せたパッドを、保管庫から戻す */
+  private async restorePads(ctx: AudioContext, pads: PadPlayer) {
+    let saved: Awaited<ReturnType<typeof listPads>> = [];
+    try {
+      saved = await listPads();
+    } catch {
+      return;
+    }
+    for (const pad of saved) {
+      if (pad.slot < 0 || pad.slot >= PAD_COUNT) continue;
+      const frames = pad.channels[0]?.length ?? 0;
+      if (frames === 0) continue;
+      const buffer = ctx.createBuffer(pad.channels.length, frames, pad.sampleRate);
+      for (let c = 0; c < pad.channels.length; c++) buffer.copyToChannel(pad.channels[c], c);
+      pads.set(pad.slot, pad.name, buffer);
+    }
+  }
+
+  /**
+   * いま録音してある演奏を、音に焼いてパッドへ載せる。
+   *
+   * 焼くのはここだけ。押すたびに合成し直すのでは、押した瞬間に鳴らない。
+   */
+  private async bakeToPad(slot: number) {
+    if (this.baking) return;
+    if (this.recorder.isEmpty) {
+      this.setStatus(t('pad.needRecording'));
+      return;
+    }
+    this.baking = true;
+    this.setStatus(t('pad.baking'));
+    this.rebuild();
+    try {
+      const ctx = await this.ensureAudio();
+      const pads = this.padPlayer;
+      if (!pads) return;
+
+      // 長すぎるものは端末のメモリを食うので、頭から上限ぶんだけ焼く
+      const seconds = Math.min(MAX_PAD_SECONDS, this.recorder.duration());
+      const buffer = await renderPerformance(
+        this.recorder.events,
+        this.instrument,
+        this.sampleData,
+        SAMPLE_RATE,
+        seconds
+      );
+      const name = this.instrument.name;
+      pads.set(slot, name, buffer);
+
+      const channels: Float32Array[] = [];
+      for (let c = 0; c < buffer.numberOfChannels; c++) channels.push(buffer.getChannelData(c).slice());
+      await putPad(slot, name, channels, buffer.sampleRate).catch(() => {
+        this.setStatus(t('import.failed.store'));
+      });
+      this.setStatus(t('pad.added', { n: slot + 1, name }));
+    } catch (err) {
+      console.error(err);
+      this.setStatus(t('export.failed'));
+    } finally {
+      this.baking = false;
+      this.rebuild();
+    }
+  }
+
+  private async clearPad(slot: number) {
+    this.padPlayer?.remove(slot);
+    await deletePad(slot).catch(() => {});
+    this.rebuild();
+  }
+
+  /**
+   * 4×4 のパッド。
+   *
+   * 空いているパッドを押すと、いまの録音が載る。載っているパッドを押すと鳴る。
+   * ——押す先で意味が変わるが、実機もそうなっているので迷いにくい。
+   */
+  private buildPads(): HTMLElement {
+    const pads = el('div', 'pad-grid');
+    for (let slot = 0; slot < PAD_COUNT; slot++) {
+      const loaded = this.padPlayer?.get(slot);
+      const pad = el('button', 'pad');
+      pad.type = 'button';
+      pad.dataset.slot = String(slot);
+      pad.style.setProperty('--pad-hue', String(padHue(slot)));
+      pad.classList.toggle('filled', Boolean(loaded));
+      pad.disabled = this.baking;
+
+      const label = el('span', 'pad-name', loaded ? loaded.name : String(slot + 1));
+      pad.append(label);
+      if (loaded) {
+        pad.append(el('span', 'pad-time', `${loaded.buffer.duration.toFixed(1)}s`));
+        const clear = el('span', 'pad-clear', '×');
+        clear.title = t('pad.clear');
+        clear.addEventListener('pointerdown', (e) => {
+          // 消すつもりが鳴ってしまわないよう、パッド側へは渡さない
+          e.stopPropagation();
+          e.preventDefault();
+          void this.clearPad(slot);
+        });
+        pad.append(clear);
+      }
+
+      // 指を置いた瞬間に鳴らす。click を待つと、押した手応えより遅れる
+      pad.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        void this.hitPad(slot, pad);
+      });
+      pads.append(pad);
+    }
+    return pads;
+  }
+
+  private async hitPad(slot: number, element: HTMLElement) {
+    const pads = this.padPlayer ?? (await this.ensureAudio(), this.padPlayer);
+    if (!pads) return;
+
+    if (!pads.has(slot)) {
+      await this.bakeToPad(slot);
+      return;
+    }
+    await this.ensureAudio();
+    const seconds = pads.play(slot);
+    element.classList.add('hit');
+    window.setTimeout(() => element.classList.remove('hit'), Math.min(400, seconds * 1000));
+  }
+
   // ------------------------------------------------------------- 録音タブ
 
   private buildRecTab() {
@@ -1794,6 +1939,25 @@ export class SamplerApp {
       )
     );
     this.panel.append(rec);
+
+    // パッド
+    const padSection = section(t('pad.title'), t('pad.hint'));
+    padSection.append(this.buildPads());
+
+    const padActions = el('div', 'row-actions');
+    const free = this.padPlayer?.firstFree() ?? null;
+    const add = button(t('pad.add'), 'small primary', () => {
+      if (free !== null) void this.bakeToPad(free);
+    });
+    add.disabled = free === null || this.recorder.isEmpty || this.baking;
+    padActions.append(add);
+    padActions.append(
+      button(t('pad.stopAll'), 'small ghost', () => {
+        this.padPlayer?.stopAll();
+      })
+    );
+    padSection.append(padActions);
+    this.panel.append(padSection);
   }
 
   private async toggleRecording() {

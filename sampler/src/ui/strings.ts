@@ -202,6 +202,15 @@ const ja: Record<string, string> = {
   'room.hall': 'ホール',
   'room.cavern': 'カヴァーン',
 
+  'pad.title': 'パッド',
+  'pad.hint': '空いているパッドを押すと、いまの録音が載ります。載ったパッドは押すと鳴ります',
+  'pad.add': '空いているパッドに載せる',
+  'pad.stopAll': 'すべて止める',
+  'pad.clear': 'このパッドを空にする',
+  'pad.baking': 'パッドに焼いています…',
+  'pad.added': 'パッド {n} に {name} を載せました',
+  'pad.needRecording': '先に演奏を録音してください',
+
   'rec.start': '録音',
   'rec.stop': '停止',
   'rec.play': '再生',
@@ -426,6 +435,15 @@ const en: Record<string, string> = {
   'room.plate': 'Plate',
   'room.hall': 'Hall',
   'room.cavern': 'Cavern',
+
+  'pad.title': 'Pads',
+  'pad.hint': 'Press an empty pad to put the current recording on it. Press a loaded pad to play it.',
+  'pad.add': 'Put on a free pad',
+  'pad.stopAll': 'Stop all',
+  'pad.clear': 'Empty this pad',
+  'pad.baking': 'Rendering to the pad…',
+  'pad.added': 'Pad {n} now holds {name}',
+  'pad.needRecording': 'Record a performance first',
 
   'rec.start': 'Record',
   'rec.stop': 'Stop',
