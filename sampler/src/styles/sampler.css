@@ -117,14 +117,35 @@ body {
 }
 
 /*
- * JP / EN の2文字。切り替えても幅が動かないよう、下限をそろえておく。
- * .btn より後ろに書かれた規則に負けないよう、親を添えて強めにしている
+ * 見出しに並ぶ丸いボタン（再生・言語）。
+ *
+ * どちらも .btn を土台にしているが、.btn は角丸9pxで、この2つだけは丸くしたい。
+ * .btn はこれより後ろに書かれているので、親を添えて優先度を上げている。
  */
+.app-header .play-btn,
 .app-header .lang-btn {
   flex: 0 0 auto;
+  border-radius: 999px;
+}
+
+/* 再生・停止。どのタブにいても押せるよう、見出しに置いている */
+.app-header .play-btn {
+  min-width: 46px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.app-header .play-btn.playing {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(111, 199, 205, 0.14);
+}
+
+/* JP / EN の2文字。切り替えても幅が動かないよう、下限をそろえておく */
+.app-header .lang-btn {
   min-width: 54px;
   padding: 0 12px;
-  border-radius: 999px;
   font-size: 13px;
   letter-spacing: 0.08em;
 }

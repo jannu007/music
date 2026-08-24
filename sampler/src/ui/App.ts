@@ -132,7 +132,16 @@ export class SamplerApp {
   private includeSamples = true;
 
   private readonly recorder = new Recorder();
-  private playbackTimer: number | null = null;
+  /**
+   * 再生中に仕掛けたタイマー。
+   *
+   * 音そのものは AudioContext の時刻で先に予約してしまうが、鍵盤を光らせる
+   * ほうは実時間で追いかける必要がある。止めたときにこれらが残っていると、
+   * 鳴っていない音で鍵盤が光り続けるので、まとめて覚えておいて消す。
+   */
+  private playbackTimers: number[] = [];
+  private playing = false;
+  private playButton: HTMLButtonElement | null = null;
   private micRecorder: {
     stop: () => void;
     stream: MediaStream;
@@ -149,11 +158,16 @@ export class SamplerApp {
     this.instrumentLabel = el('div', 'app-instrument');
     title.append(this.instrumentLabel);
 
+    // 再生は、どのタブにいても押せるところに置く。
+    // 録音タブまで戻らないと聞き直せないのは不便なので
+    this.playButton = button('▶', 'ghost play-btn', () => void this.togglePlayback());
+    this.playButton.title = t('rec.play');
+
     this.voiceMeter = el('div', 'voice-meter');
     const lang = button(t('lang.toggle'), 'ghost', () => toggleLocale());
     lang.classList.add('lang-btn');
     lang.title = t('lang.toggle.hint');
-    header.append(title, this.voiceMeter, lang);
+    header.append(title, this.playButton, this.voiceMeter, lang);
 
     const tabs = el('nav', 'tab-bar');
     const tabIds: Tab[] = ['map', 'sound', 'fx', 'rec', 'export'];
@@ -319,6 +333,7 @@ export class SamplerApp {
 
   /** 付属音源を合成して読み込む */
   private async loadFactory(id: string) {
+    this.stopPlayback();
     this.busy = true;
     this.setStatus(t('browse.loading'));
     this.rebuild();
@@ -646,6 +661,7 @@ export class SamplerApp {
       lang.title = t('lang.toggle.hint');
     }
 
+    this.updatePlayButton();
     this.refreshWaveStrip();
 
     this.panel.textContent = '';
@@ -1759,9 +1775,12 @@ export class SamplerApp {
         void this.toggleRecording()
       )
     );
-    actions.append(button(t('rec.play'), '', () => void this.playRecording()));
+    actions.append(
+      button(this.playing ? t('rec.stop') : t('rec.play'), '', () => void this.togglePlayback())
+    );
     actions.append(
       button(t('rec.clear'), 'ghost', () => {
+        this.stopPlayback();
         this.recorder.clear();
         this.rebuild();
       })
@@ -1779,6 +1798,8 @@ export class SamplerApp {
 
   private async toggleRecording() {
     const ctx = await this.ensureAudio();
+    // 再生しながら録るとその音まで拾ってしまうので、先に止める
+    this.stopPlayback();
     if (this.recorder.recording) {
       this.recorder.stop(ctx.currentTime);
       this.setStatus(t('rec.notes', { count: this.recorder.events.length }));
@@ -1789,25 +1810,64 @@ export class SamplerApp {
   }
 
   /** 記録した演奏をそのまま鳴らす。鍵盤も光らせる */
+  /** 押すと再生、もう一度押すと停止 */
+  private async togglePlayback() {
+    if (this.playing) this.stopPlayback();
+    else await this.playRecording();
+  }
+
   private async playRecording() {
-    if (this.recorder.isEmpty) return;
-    const ctx = await this.ensureAudio();
-    if (this.playbackTimer !== null) {
-      window.clearTimeout(this.playbackTimer);
-      this.playbackTimer = null;
+    if (this.recorder.isEmpty) {
+      this.setStatus(t('rec.empty'));
+      return;
     }
+    const ctx = await this.ensureAudio();
+    this.stopPlayback();
+
+    this.playing = true;
+    this.updatePlayButton();
+
     const at = ctx.currentTime + 0.1;
     for (const ev of this.recorder.events) {
       this.engine?.noteOn(ev.note, ev.velocity, at + ev.time);
       this.engine?.noteOff(ev.note, at + ev.time + (ev.duration ?? 0.5));
       // 画面のほうは実時間で追いかける
-      window.setTimeout(() => this.keyboard.flash(ev.note, true), ev.time * 1000 + 100);
-      window.setTimeout(() => this.keyboard.flash(ev.note, false), (ev.time + (ev.duration ?? 0.5)) * 1000 + 100);
+      this.playbackTimers.push(
+        window.setTimeout(() => this.keyboard.flash(ev.note, true), ev.time * 1000 + 100),
+        window.setTimeout(() => this.keyboard.flash(ev.note, false), (ev.time + (ev.duration ?? 0.5)) * 1000 + 100)
+      );
     }
-    this.playbackTimer = window.setTimeout(
-      () => this.keyboard.releaseAll(),
-      this.recorder.duration(0.5) * 1000 + 200
+    // 終わりまで来たら、自分で止まる
+    this.playbackTimers.push(
+      window.setTimeout(() => this.stopPlayback(), this.recorder.duration(0.5) * 1000 + 200)
     );
+  }
+
+  /**
+   * 止める。
+   *
+   * 音は先の時刻まで予約済みなので、鳴っているものを消すだけでは足りない。
+   * allNotesOff で今出ている音を落としたうえで、これから鳴る予約を持った
+   * ボイスも含めて片付ける。
+   */
+  private stopPlayback() {
+    for (const timer of this.playbackTimers) window.clearTimeout(timer);
+    this.playbackTimers = [];
+    // 印の有無にかかわらず落とす。同時発音数の制限で「離した」印が
+    // 付いてしまった音も、放っておくと予約どおり鳴ってしまう
+    this.engine?.panic();
+    this.keyboard.releaseAll();
+    this.playing = false;
+    this.updatePlayButton();
+  }
+
+  private updatePlayButton() {
+    const btn = this.playButton;
+    if (!btn) return;
+    btn.textContent = this.playing ? '■' : '▶';
+    btn.title = this.playing ? t('rec.stop') : t('rec.play');
+    btn.classList.toggle('playing', this.playing);
+    btn.disabled = this.recorder.isEmpty && !this.playing;
   }
 
   // ----------------------------------------------------------- 書き出しタブ
@@ -1977,7 +2037,7 @@ export class SamplerApp {
   /** 後片付け（テストや、埋め込みで使うとき用） */
   dispose() {
     if (this.meterTimer !== null) window.clearInterval(this.meterTimer);
-    if (this.playbackTimer !== null) window.clearTimeout(this.playbackTimer);
+    this.stopPlayback();
     this.micRecorder?.stop();
     this.engine?.allNotesOff();
     void this.ctx?.close();
