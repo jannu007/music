@@ -262,6 +262,73 @@ const demoSound = await page.evaluate(async () => {
 });
 check('収録デモが鳴る', demoSound > 0.002, `peak=${demoSound.toFixed(4)}`);
 
+// ------------------------------------------------------ 3c. 再生と停止
+//
+// 記録した演奏は、音を先の時刻まで一気に予約して鳴らしている。
+// 途中で止めるには予約ごと片付ける必要があり、押している音を離すだけでは
+// 止まらない（同時発音数の制限に引っかかった音は「離した」印が付いていて、
+// それでも予約どおり鳴ってしまう）。ここはその取りこぼしを見張る。
+const measure = (ms) =>
+  page.evaluate(async (limit) => {
+    const an = window.__probes[0];
+    if (!an) return 0;
+    const buf = new Float32Array(an.fftSize);
+    let peak = 0;
+    const until = Date.now() + limit;
+    while (Date.now() < until) {
+      an.getFloatTimeDomainData(buf);
+      for (const s of buf) peak = Math.max(peak, Math.abs(s));
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    return peak;
+  }, ms);
+
+const playButton = page.locator('.play-btn');
+check('再生ボタンがある', (await playButton.count()) === 1);
+
+// 見た目の指定が本当に効いているか。セレクタを書き損ねても
+// 画面は出てしまうので、当たっているかどうかは測って確かめる
+const shape = await page.evaluate(() => {
+  const b = document.querySelector('.play-btn');
+  if (!b) return null;
+  const r = b.getBoundingClientRect();
+  return { size: Math.round(Math.min(r.width, r.height)), radius: getComputedStyle(b).borderRadius };
+});
+check('再生ボタンが丸い', shape !== null && parseInt(shape.radius, 10) >= shape.size / 2, JSON.stringify(shape));
+check('指で押せる大きさ', shape !== null && shape.size >= 44, `${shape?.size}px`);
+
+// 残響の短い、詰まったデモを使う（残響が長いと止まったかどうか判らない）
+await page.locator('.tab-btn[data-tab="map"]').click();
+await page.waitForTimeout(120);
+await page.locator('.pick-chip', { hasText: /Festival|祭囃子/ }).first().click();
+await waitFor(page, () => document.querySelector('.play-btn')?.textContent === '■');
+await page.waitForTimeout(1200);
+
+const whilePlaying = await measure(600);
+check('再生すると鳴る', whilePlaying > 0.05, `peak=${whilePlaying.toFixed(3)}`);
+
+await playButton.click();
+check('押すと停止の表示に戻る', (await playButton.textContent()) === '▶');
+await page.waitForTimeout(1600);
+const afterStop = await measure(1500);
+check('停止すると本当に止まる', afterStop < 0.002, `peak=${afterStop.toFixed(4)}`);
+
+await playButton.click();
+await page.waitForTimeout(700);
+const replayed = await measure(900);
+check('もう一度再生できる', replayed > 0.05, `peak=${replayed.toFixed(3)}`);
+await playButton.click();
+await page.waitForTimeout(300);
+
+// このあとは鍵盤を弾いて録るので、音程のある音源に戻しておく
+// （打楽器は鍵盤ごとに1音しか置かれておらず、押せる白鍵がほとんど無い）
+await page.locator('.pick-chip', { hasText: /Wooden Strings|木の弦/ }).first().click();
+await waitFor(
+  page,
+  (want) => (document.querySelector('.app-instrument')?.textContent ?? '') === want,
+  { arg: 'Wooden Strings' }
+);
+
 // ---------------------------------------------------------------- 4. 書き出し
 await page.locator('.tab-btn[data-tab="rec"]').click();
 await page.waitForTimeout(120);

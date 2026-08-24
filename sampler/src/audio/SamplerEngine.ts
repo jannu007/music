@@ -414,10 +414,40 @@ export class SamplerEngine {
     if (this.instrument.mono) this.lastNote = null;
   }
 
-  /** 全部止める */
+  /** 押している音を離す。余韻は残る */
   allNotesOff(when?: number): void {
     const time = when ?? this.ctx.currentTime;
     for (const v of this.voices) if (v.released === null) this.stopVoice(v, time, 0.05);
+    this.lastNote = null;
+  }
+
+  /**
+   * 予約したものまで含めて、すべて即座に止める。
+   *
+   * 記録した演奏を再生するとき、音は先の時刻まで一気に予約してしまう。
+   * これを途中で止めるには allNotesOff では足りない。
+   *
+   *   1. 同時発音数の制限に引っかかった音は、その時点で「離した」印が付く。
+   *      allNotesOff は離した音を飛ばすので、そこで取りこぼす
+   *   2. 印が付いていても、止まるのは予約された未来の時刻なので、
+   *      放っておけばそのまま鳴り続ける
+   *
+   * ここでは印を見ずに、全部のボイスの音量を今すぐ落として止める。
+   * （エフェクトの残響だけは、そのまま自然に消えるに任せる）
+   */
+  panic(when?: number): void {
+    const time = when ?? this.ctx.currentTime;
+    for (const voice of [...this.voices]) {
+      try {
+        voice.amp.gain.cancelScheduledValues(time);
+        voice.amp.gain.setValueAtTime(MIN_GAIN, time);
+        voice.source.stop(time);
+        voice.lfo?.stop(time);
+      } catch {
+        /* すでに止まっていれば、何もしなくてよい */
+      }
+      voice.released = time;
+    }
     this.lastNote = null;
   }
 
