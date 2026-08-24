@@ -121,6 +121,14 @@ const ja: Record<string, string> = {
   'map.autoMap.hint': '選んだ素材を、鍵盤いっぱいに割り当て直します',
   'map.listen': '試し弾き',
 
+  'wave.mode.hint': '波形の見せ方を変える',
+  'wave.mode.echo': '返り',
+  'wave.mode.mirror': '対称',
+  'wave.mode.bars': '棒',
+  'wave.mode.line': '輪郭',
+  'wave.mode.heat': '熱',
+  'wave.mode.radial': '放射',
+
   'wave.title': '鳴らし方',
   'wave.hint': '波形は画面の下に出ています。ドラッグで範囲を変えられます',
   'wave.start': '始め',
@@ -354,6 +362,14 @@ const en: Record<string, string> = {
   'map.autoMap': 'Spread across the keyboard',
   'map.autoMap.hint': 'Re-maps the chosen samples over the whole keyboard',
   'map.listen': 'Audition',
+
+  'wave.mode.hint': 'Change how the waveform is drawn',
+  'wave.mode.echo': 'Echo',
+  'wave.mode.mirror': 'Mirror',
+  'wave.mode.bars': 'Bars',
+  'wave.mode.line': 'Outline',
+  'wave.mode.heat': 'Heat',
+  'wave.mode.radial': 'Radial',
 
   'wave.title': 'Playback',
   'wave.hint': 'The waveform sits below. Drag it to change the range.',

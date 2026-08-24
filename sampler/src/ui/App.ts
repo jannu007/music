@@ -16,7 +16,7 @@ import './strings';
 import { onLocaleChange, t, toggleLocale } from './i18n';
 import { button, el, grid, section, segmented, slider, stepper, switchRow } from './controls';
 import { Keyboard } from './Keyboard';
-import { Waveform, type WaveformValues } from './Waveform';
+import { WAVE_MODES, Waveform, type WaveMode, type WaveformValues } from './Waveform';
 import { SamplerEngine, type EngineSample } from '../audio/SamplerEngine';
 import { buildFactory, FACTORY_IDS } from '../audio/factory';
 import { DEMO_SONGS, buildDemo, type DemoSong } from '../data/demos';
@@ -107,6 +107,7 @@ export class SamplerApp {
   private readonly waveform: Waveform;
   private readonly waveStrip: HTMLElement;
   private readonly waveLabel: HTMLElement;
+  private readonly waveModeButton: HTMLButtonElement;
 
   private ctx: AudioContext | null = null;
   private engine: SamplerEngine | null = null;
@@ -132,6 +133,7 @@ export class SamplerApp {
   private loadedDemo: string | null = null;
   private selectedZone = 0;
   private masterVolume = 0.85;
+  private waveMode: WaveMode = 'echo';
   private exporting = false;
   private busy = false;
   private includeSamples = true;
@@ -194,7 +196,16 @@ export class SamplerApp {
     this.waveform = new Waveform((values) => this.updateZone(values));
     this.waveStrip = el('div', 'wave-strip');
     this.waveLabel = el('div', 'wave-strip-label');
-    this.waveStrip.append(this.waveLabel, this.waveform.root);
+
+    // 見せ方を選ぶ札。波形のすぐ上に置く。
+    // 一覧を並べるほどの幅は無いので、押すたびに次へ回す形にしている
+    this.waveModeButton = el('button', 'wave-mode');
+    this.waveModeButton.type = 'button';
+    this.waveModeButton.addEventListener('click', () => this.cycleWaveMode());
+
+    const waveHead = el('div', 'wave-strip-head');
+    waveHead.append(this.waveLabel, this.waveModeButton);
+    this.waveStrip.append(waveHead, this.waveform.root);
 
     this.keyboard = new Keyboard(
       {
@@ -212,6 +223,8 @@ export class SamplerApp {
     this.root.append(header, tabs, this.panel, this.waveStrip, this.statusLine, this.keyboard.root);
 
     this.restore();
+    this.waveform.setMode(this.waveMode);
+    this.updateWaveModeButton();
     onLocaleChange(() => this.rebuild());
     this.startMeter();
     void this.loadInitial();
@@ -244,6 +257,9 @@ export class SamplerApp {
       if (typeof saved?.factoryId === 'string' && FACTORY_IDS.includes(saved.factoryId)) {
         this.factoryId = saved.factoryId;
       }
+      if (typeof saved?.waveMode === 'string' && WAVE_MODES.includes(saved.waveMode as WaveMode)) {
+        this.waveMode = saved.waveMode as WaveMode;
+      }
     } catch {
       /* 壊れていれば初期状態で始める */
     }
@@ -257,6 +273,7 @@ export class SamplerApp {
           instrument: encodeInstrument(this.instrument),
           masterVolume: this.masterVolume,
           factoryId: this.factoryId,
+          waveMode: this.waveMode,
         })
       );
     } catch {
@@ -679,6 +696,7 @@ export class SamplerApp {
     }
 
     this.updatePlayButton();
+    this.updateWaveModeButton();
     this.refreshWaveStrip();
 
     this.panel.textContent = '';
@@ -1064,6 +1082,21 @@ export class SamplerApp {
     );
     tuneSection.append(tuneGrid);
     this.panel.append(tuneSection, this.buildAboutSection());
+  }
+
+  /** 見せ方を次へ回す */
+  private cycleWaveMode() {
+    const next = (WAVE_MODES.indexOf(this.waveMode) + 1) % WAVE_MODES.length;
+    this.waveMode = WAVE_MODES[next];
+    this.waveform.setMode(this.waveMode);
+    this.updateWaveModeButton();
+    this.setStatus(t(`wave.mode.${this.waveMode}`));
+    this.persist();
+  }
+
+  private updateWaveModeButton() {
+    this.waveModeButton.textContent = t(`wave.mode.${this.waveMode}`);
+    this.waveModeButton.title = t('wave.mode.hint');
   }
 
   /** 常設の波形帯を、いま選んでいるゾーンの中身にそろえる */

@@ -262,6 +262,54 @@ const demoSound = await page.evaluate(async () => {
 });
 check('収録デモが鳴る', demoSound > 0.002, `peak=${demoSound.toFixed(4)}`);
 
+// -------------------------------------------------- 3b2. 波形の見せ方
+//
+// 5種類あるが、切り替えても中身が同じだと意味がない。
+// 実際に描かれた画素を数えて、種類ごとに違う絵になっていることを確かめる。
+{
+  const seen = new Map();
+  let switched = 0;
+  for (let i = 0; i < 6; i++) {
+    const name = (await page.locator('.wave-mode').textContent()) ?? `?${i}`;
+    const painted = await page.evaluate(() => {
+      const canvas = document.querySelector('.wave-strip .waveform-canvas');
+      if (!canvas) return null;
+      const c = canvas.getContext('2d');
+      const { data } = c.getImageData(0, 0, canvas.width, canvas.height);
+      let filled = 0;
+      // 上半分と下半分を別々に数える。上下対称かどうかも見分けたい
+      let top = 0;
+      let bottom = 0;
+      const half = Math.floor(canvas.height / 2) * canvas.width * 4;
+      for (let k = 3; k < data.length; k += 4) {
+        if (data[k] > 8) {
+          filled++;
+          if (k < half) top++;
+          else bottom++;
+        }
+      }
+      return { ratio: filled / (data.length / 4), top, bottom };
+    });
+    if (painted) {
+      check(`波形「${name}」が描かれる`, painted.ratio > 0.01, `${(painted.ratio * 100).toFixed(1)}%`);
+      seen.set(name, `${painted.top}:${painted.bottom}`);
+    }
+    await page.locator('.wave-mode').click();
+    await page.waitForTimeout(350);
+    switched++;
+  }
+  check('6種類ある', seen.size === 6, [...seen.keys()].join(', '));
+  check('種類ごとに違う絵になる', new Set(seen.values()).size === 6, [...seen.values()].join(' / '));
+  check('ひと回りして戻る', switched === 6 && (await page.locator('.wave-mode').textContent()) !== null);
+}
+
+// 選んだ見せ方は、開き直しても残る
+await page.locator('.wave-mode').click();
+const chosenMode = await page.locator('.wave-mode').textContent();
+await page.reload({ waitUntil: 'networkidle' });
+await waitFor(page, () => document.querySelectorAll('.pick-chip').length > 0);
+check('見せ方が開き直しても残る', (await page.locator('.wave-mode').textContent()) === chosenMode, `${chosenMode}`);
+
 // ------------------------------------------------------ 3c. 再生と停止
 //
 // 記録した演奏は、音を先の時刻まで一気に予約して鳴らしている。
