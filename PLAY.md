@@ -9,7 +9,7 @@
 
 - 掲載文 … 日本語は [STORE.md](STORE.md)、英語は [STORE.en.md](STORE.en.md)
 - 画像 … Actions の **Build store assets** を回すと 7 本ぶん一式が落とせます
-- 鍵の作り方 … [ANDROID.md](ANDROID.md#署名鍵キーストアの作り方と登録)
+- 鍵の作り方 … [ANDROID.md](ANDROID.md#署名鍵キーストアとは何か)
 
 ---
 
@@ -86,8 +86,22 @@ Play Console を開いて、その6本がどうなっているかを見てくだ
 
 ## 3. 署名鍵を GitHub に登録する
 
-作り方は [ANDROID.md](ANDROID.md#署名鍵キーストアの作り方と登録) にあります。
-リポジトリ → Settings → Secrets and variables → Actions に4つ登録してください。
+署名鍵は、印鑑のようなものです。アプリを更新するとき、Play は
+「前と同じ印鑑が押してあるか」を見ます。作るのは一度きりで、
+7本すべてに同じ鍵を使えます。
+
+**Termux に、この1行を貼り付けるだけで作れます。**
+
+```bash
+bash <(curl -sL https://raw.githubusercontent.com/jannu007/music/main/scripts/make-upload-key.sh)
+```
+
+聞かれるのは組織名とパスワードの2つだけで、どちらも Enter で流せます
+（パスワードは空 Enter で強いものが自動生成されます）。
+くわしくは [ANDROID.md](ANDROID.md#署名鍵キーストアとは何か) にあります。
+
+終わったら、リポジトリ → Settings → Secrets and variables → Actions に
+4つ登録してください。
 
 | 名前 | 中身 |
 | --- | --- |
