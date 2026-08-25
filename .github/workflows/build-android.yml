@@ -4,16 +4,19 @@ name: Build Android app
 # GitHub の Actions タブから "Run workflow" を押すと、ここでビルドが走り、
 # できあがったファイルを成果物（Artifacts）としてダウンロードできる。
 # パソコンも Android Studio も要らない。
+#
+# アプリに「all」を選ぶと、7本ぶんをまとめて作ります。
 
 on:
   workflow_dispatch:
     inputs:
       app:
-        description: 'ビルドするアプリ'
+        description: 'ビルドするアプリ（all で7本まとめて）'
         required: true
-        default: drums
+        default: all
         type: choice
         options:
+          - all
           - synthesizer
           - piano
           - drums
@@ -24,17 +27,37 @@ on:
       versionCode:
         description: 'バージョンコード（Play にアップするたびに増やす整数）'
         required: true
-        default: '2'
+        default: '3'
         type: string
       versionName:
         description: 'バージョン名（利用者に見える表記）'
         required: true
-        default: '2.0.0'
+        default: '2.1.0'
         type: string
 
 jobs:
-  build:
+  # 何をビルドするかを決めるだけの、軽い前段
+  plan:
     runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.pick.outputs.apps }}
+    steps:
+      - id: pick
+        run: |
+          if [ "${{ inputs.app }}" = "all" ]; then
+            echo 'apps=["synthesizer","piano","drums","guitar","bass","vocal","sampler"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'apps=["${{ inputs.app }}"]' >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: plan
+    runs-on: ubuntu-latest
+    strategy:
+      # 1本が転んでも、残りは作りきる
+      fail-fast: false
+      matrix:
+        app: ${{ fromJson(needs.plan.outputs.apps) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,14 +86,14 @@ jobs:
         run: npm run build
 
       - name: Build offline bundle
-        run: node scripts/build-native.mjs "${{ inputs.app }}"
+        run: node scripts/build-native.mjs "${{ matrix.app }}"
 
       # 検証はブラウザで実際に鳴らして確かめるので、Chromium が要る
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
       - name: Verify the bundle is self-contained
-        run: node scripts/verify-native.mjs "${{ inputs.app }}"
+        run: node scripts/verify-native.mjs "${{ matrix.app }}"
 
       # Capacitor は Android のビルドにしか使わないので、ここでだけ入れる
       # （web 側の依存を増やさないため package.json には載せていない）
@@ -79,10 +102,13 @@ jobs:
       # package.json の dependencies から探すため。--no-save だと node_modules に
       # 在っても「プラグインが無い」と判断され、ファイル保存が動かない APK ができる。
       # 変更はランナー上の作業コピーだけで、リポジトリには入らない。
+      #
+      # 版を固定しているのは、売り物だから。同じ入力からは同じものが出てほしい。
+      # 上げるときは、ここの数字を変えて 1本で試してから all にする。
       - name: Install Capacitor
         run: |
-          npm install @capacitor/cli@^8 @capacitor/core@^8 @capacitor/android@^8 \
-            @capacitor/filesystem@^8 @capacitor/share@^8
+          npm install @capacitor/cli@8.5.0 @capacitor/core@8.5.0 @capacitor/android@8.5.0 \
+            @capacitor/filesystem@8.1.3 @capacitor/share@8.0.1
 
       - name: Create Android project
         run: npx cap add android
@@ -103,20 +129,11 @@ jobs:
           done
           echo "ファイル保存のプラグインは組み込まれています"
 
-      - name: Set version
-        run: |
-          node - <<'EOF'
-          const fs = require('fs');
-          const f = 'android/app/build.gradle';
-          let s = fs.readFileSync(f, 'utf8');
-          s = s.replace(/versionCode\s+\d+/, 'versionCode ${{ inputs.versionCode }}');
-          s = s.replace(/versionName\s+"[^"]*"/, 'versionName "${{ inputs.versionName }}"');
-          fs.writeFileSync(f, s);
-          console.log(s.match(/versionCode.*|versionName.*/g).join('\n'));
-          EOF
-
       # 署名鍵が登録されていれば署名する。無ければ未署名のまま作る
       # （未署名でもビルドが通るかは確認できる。Play へ出すには署名が必要）
+      #
+      # 鍵を先に置くのは、次の整備で「鍵があるかどうか」を見て
+      # 署名の設定を書き込むため
       - name: Decode keystore
         id: keystore
         env:
@@ -131,30 +148,64 @@ jobs:
             echo "署名鍵が未登録のため、未署名でビルドします"
           fi
 
-      - name: Add signing config
-        if: ${{ steps.keystore.outputs.present == 'true' }}
+      # アイコン・起動画面・権限・版番号・署名設定を、雛形へまとめて当てる
+      - name: Prepare the Android project
         run: |
-          node - <<'EOF'
-          const fs = require('fs');
-          const f = 'android/app/build.gradle';
-          let s = fs.readFileSync(f, 'utf8');
-          const signing = `
-              signingConfigs {
-                  release {
-                      storeFile file('upload.jks')
-                      storePassword System.getenv('KEYSTORE_PASSWORD')
-                      keyAlias System.getenv('KEY_ALIAS')
-                      keyPassword System.getenv('KEY_PASSWORD')
-                  }
-              }
-          `;
-          s = s.replace(/(android\s*\{)/, `$1\n${signing}`);
-          s = s.replace(
-              /(buildTypes\s*\{\s*release\s*\{)/,
-              `$1\n            signingConfig signingConfigs.release`
-          );
-          fs.writeFileSync(f, s);
-          EOF
+          node scripts/prepare-android.mjs "${{ matrix.app }}" \
+            --dir android \
+            --version-code "${{ inputs.versionCode }}" \
+            --version-name "${{ inputs.versionName }}"
+
+      # 整備が本当に効いたかを、雛形の実物に対して確かめる。
+      # 手元の試験は雛形を模した木でしか試せないので、ここが最後の関所になる
+      - name: Check the project is ready for the store
+        run: |
+          fail=0
+          res=android/app/src/main/res
+
+          # Capacitor のロゴが残っていないか（残っていると7本とも同じ顔で並ぶ）
+          for f in "$res/drawable/ic_launcher_background.xml" "$res/drawable-v24/ic_launcher_foreground.xml"; do
+            if [ -f "$f" ]; then echo "::error::Capacitor のロゴが残っています: $f"; fail=1; fi
+          done
+
+          # アイコンが差し替わっているか。
+          # 大きさだけ見ても雛形と同じなので通ってしまう。
+          # 「いま作ったらこうなるはず」の中身と一枚ずつ突き合わせる
+          node --input-type=module -e "
+            import { readFileSync } from 'node:fs';
+            import { buildIcons } from './scripts/prepare-android.mjs';
+            const { files } = await buildIcons('${{ matrix.app }}');
+            const wrong = files.filter(([name, data]) => {
+              try { return !readFileSync('$res/' + name).equals(data); } catch { return true; }
+            });
+            if (wrong.length) {
+              console.log('::error::アイコンが差し替わっていません: ' + wrong.map((w) => w[0]).join(' '));
+              process.exit(1);
+            }
+            console.log('アイコン ' + files.length + ' 枚は、このアプリのものです');
+          " || fail=1
+
+          # マイクを使うアプリに録音の権限があるか
+          case "${{ matrix.app }}" in
+            vocal|sampler)
+              if ! grep -q "android.permission.RECORD_AUDIO" android/app/src/main/AndroidManifest.xml; then
+                echo "::error::RECORD_AUDIO がありません。録音が動かない APK になります"
+                fail=1
+              fi
+              ;;
+            *)
+              if grep -q "android.permission.RECORD_AUDIO" android/app/src/main/AndroidManifest.xml; then
+                echo "::error::使わないはずの RECORD_AUDIO が入っています"
+                fail=1
+              fi
+              ;;
+          esac
+
+          # 版番号
+          grep -q "versionCode ${{ inputs.versionCode }}" android/app/build.gradle || {
+            echo "::error::バージョンコードが当たっていません"; fail=1; }
+
+          exit $fail
 
       - name: Build .aab
         env:
@@ -180,6 +231,7 @@ jobs:
 
       - name: Show what was produced
         run: |
+          echo "アプリ: ${{ matrix.app }}"
           echo "署名: ${{ steps.keystore.outputs.present == 'true' && 'あり' || 'なし（Play へ出すには鍵の登録が必要）' }}"
           find android/app/build/outputs \( -name '*.aab' -o -name '*.apk' \) | while read -r f; do
             echo "$(du -h "$f" | cut -f1)  $f"
@@ -191,7 +243,7 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.app }}-${{ inputs.versionName }}
+          name: ${{ matrix.app }}-${{ inputs.versionName }}
           path: |
             android/app/build/outputs/bundle/release/*.aab
             android/app/build/outputs/apk/debug/*.apk
