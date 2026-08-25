@@ -148,7 +148,21 @@ export class DrumApp {
   // ------------------------------------------------------------------ 音声
 
   private async ensureAudio(): Promise<void> {
-    if (this.audioReady) return;
+    if (this.audioReady) {
+      // 画面ロックや、ほかのアプリへ切り替えたときに、ブラウザ側が AudioContext を
+      // 止めていることがある。止まったままだと、以降どこを押しても音が出ない
+      // （画面は動くので、壊れていることに気づきにくい）。
+      // 演奏のたびに再開を試みる。すでに動いていれば resume() はすぐ返る
+      if (this.engine.ctx?.state === 'suspended') void this.engine.ctx.resume();
+      // 長く背面に置かれるなどして AudioContext ごと閉じられていた場合は、
+      // resume() では戻らないので、作り直しからやり直す
+      if (this.engine.ctx?.state === 'closed') {
+        this.audioReady = false;
+        this.initPromise = null;
+      } else {
+        return;
+      }
+    }
     if (!this.initPromise) {
       this.initPromise = this.engine
         .init(this.project)

@@ -100,7 +100,7 @@ const APPS = [
     id: 'vocal',
     lang: 'hoshizora-vocal-lang',
     panel: '.workspace',
-    sound: [{ click: 'button:has-text("▶")' }],
+    sound: [{ click: '.transport .primary' }],
     // 歌をマイクで拾って、音量が読めているところまで
     mic: {
       tab: /Record|録音/i,
@@ -267,6 +267,18 @@ function measure(buf) {
 function instrument() {
   const connect = AudioNode.prototype.connect;
   window.__probes = [];
+  // 中断からの復帰を見るために、作られた context を控えておく
+  window.__ctxs = [];
+  for (const name of ['AudioContext', 'webkitAudioContext']) {
+    const Original = window[name];
+    if (!Original) continue;
+    window[name] = class extends Original {
+      constructor(...args) {
+        super(...args);
+        window.__ctxs.push(this);
+      }
+    };
+  }
   AudioNode.prototype.connect = function (dest, ...rest) {
     try {
       if (dest && dest.context && dest === dest.context.destination) {
@@ -466,6 +478,39 @@ for (const app of TARGETS) {
     }
     check(`${where}: 演奏の操作が押せる`, pressed, lastPressError);
     check(`${where}: 触ると音が出る`, peak > 0.002, `peak=${peak.toFixed(4)}`);
+
+    // ---------------------------------------------------- 中断からの復帰
+    //
+    // 画面をロックしたり、ほかのアプリに切り替えたりすると、ブラウザや OS が
+    // AudioContext を止める。止まったままだと、以降どこを押しても音が出ない。
+    // 画面はふつうに動くので、壊れていることに気づきにくい——
+    // 実際、ピアノ・ドラム・ボーカルの3本がこれで無音になっていた。
+    //
+    // 止まったあとの音は、解析器では測れない（止まった context でも
+    // 最後の中身を返してくるため）。context の状態そのもので見る。
+    if (peak > 0.002) {
+      await page.evaluate(async () => {
+        for (const c of window.__ctxs ?? []) await c.suspend();
+      });
+      await page.waitForTimeout(400);
+      for (const step of app.sound) {
+        const target = page.locator(step.click).first();
+        if ((await target.count()) === 0) continue;
+        // 再生ボタンは「押す＝止める」に変わっているものがあるので、二度まで試す
+        for (let i = 0; i < 2; i++) {
+          const running = await page.evaluate(() =>
+            (window.__ctxs ?? []).some((c) => c.state === 'running')
+          );
+          if (running) break;
+          await press(page, target, step.at);
+          await page.waitForTimeout(600);
+        }
+      }
+      const state = await page.evaluate(() =>
+        (window.__ctxs ?? []).map((c) => c.state).join(',')
+      );
+      check(`${where}: 音を止められても、弾けば戻る`, state.includes('running'), state || '(context 無し)');
+    }
 
     // ---------------------------------------------------------- 書き出し
     //
