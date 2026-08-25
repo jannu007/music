@@ -87,6 +87,35 @@ export function stepSequence(project: Project, loops: number): StepPosition[] {
   return out;
 }
 
+/**
+ * 書き出したときに、音がひとつでも入るか。
+ *
+ * このアプリは空のパターンから始まる。そのまま書き出すと、
+ * **無音のファイルが黙って出来上がる**（1〜2MB あるので、成功したように見える）。
+ * 保存して再生してはじめて気づく、いちばん困る形なので、
+ * 押した時点で伝えられるようにする。
+ *
+ * 並びは stepSequence と同じものを使う（ソングか、いま開いているパターンか）。
+ * ミュートとソロも、鳴らすときと同じ規則で見る。
+ */
+export function hasAudibleSteps(project: Project, loops = 1): boolean {
+  const anySolo = project.tracks.some((t) => t.solo);
+  for (const pos of stepSequence(project, loops)) {
+    const pattern = project.patterns[pos.pattern];
+    if (!pattern) continue;
+    for (const track of project.tracks) {
+      if (track.mute) continue;
+      if (anySolo && !track.solo) continue;
+      const tp = pattern.tracks[track.id];
+      if (!tp) continue;
+      const own = tp.length | 0;
+      const index = own > 0 ? pos.abs % own : pos.step;
+      if (tp.steps[index]) return true;
+    }
+  }
+  return false;
+}
+
 // -------------------------------------------------------------------- MIDI
 
 function variableLength(value: number): number[] {
