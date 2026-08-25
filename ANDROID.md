@@ -161,72 +161,109 @@ Capacitor はプラグインを **`package.json` の dependencies から探し�
 
 ---
 
-## 署名鍵（キーストア）の作り方と登録
+## 署名鍵（キーストア）とは何か
 
-Play にアップロードする `.aab` には署名が必要です。
-署名鍵はあなただけが持つファイルで、**紛失すると同じアプリを更新できなくなります**。
+Play にアップロードする `.aab` には、**署名**が要ります。
 
-### 鍵が見つからない場合
+署名鍵は、印鑑のようなものです。アプリを更新するとき、Play は
+「前と同じ印鑑が押してあるか」を見ます。同じでなければ、
+別人が成りすまして更新しようとしている、と見なして拒否します。
 
-アプリが Play から削除されている場合は、**新しい鍵を作って新規登録**で問題ありません。
-古い鍵が要るのは「生きている既存アプリを更新する」ときだけです。
+だから鍵は
 
-なお、Play App Signing を使っていた場合は、Google 側にアップロード鍵の
-リセットを申請する道もあります（Play Console のヘルプから）。
+- **自分で作って、自分で持つ**もの（Google も、私も、代わりに持てません）
+- **失うと、そのアプリは二度と更新できなくなる**もの
 
-### スマホだけで鍵を作る（Termux）
+です。作るのは一度きりで、7本すべてに同じ鍵を使えます。
 
-パソコンが無い場合は、Android の端末で作れます。
+> 鍵ファイルとパスワードを、このやりとりに貼らないでください。
+> 登録は、あなたの手元から GitHub へ直接お願いします。
+
+---
+
+## 鍵をつくる（スマホだけで完結します）
+
+### いちばん簡単な方法
 
 1. **Termux** をインストールします（F-Droid 版を推奨。Play 版は更新が止まっています）
-2. 次を順に実行します
+2. Termux を開き、次の1行を貼り付けて実行します
 
 ```bash
-pkg update
+bash <(curl -sL https://raw.githubusercontent.com/jannu007/music/main/scripts/make-upload-key.sh)
+```
+
+聞かれるのは2つだけです。
+
+| 聞かれること | 答え方 |
+| --- | --- |
+| 組織名 | そのまま Enter で `Youkoku` になります |
+| パスワード | 決めて入れるか、**空 Enter で自動生成**（強いものが出ます） |
+
+終わると、GitHub に登録する4つの値が表示されます。
+`ANDROID_KEYSTORE_BASE64` は、そのままクリップボードにも入ります。
+
+> **パスワードに日本語は使えません。** Java が受け付けず、途中で止まります。
+> スクリプトは入れた時点で教えてくれますが、覚えておくと安心です。
+
+### 自分で打つ場合
+
+```bash
 pkg install openjdk-17
 
-# 鍵を作る（有効期限は約27年）
-keytool -genkeypair -v -keystore upload.jks -alias upload \
-  -keyalg RSA -keysize 2048 -validity 10000
+keytool -genkeypair -v \
+  -keystore upload.jks -alias upload \
+  -keyalg RSA -keysize 2048 -validity 10000 \
+  -storetype PKCS12
+
+# 登録用の文字列にする
+base64 -w0 upload.jks
 ```
 
-途中で聞かれるもの
+パソコン（Windows / Mac）でも、Java が入っていれば同じコマンドで作れます。
 
-| 質問 | 入れるもの |
-| --- | --- |
-| Enter keystore password | 好きなパスワード（**必ず控える**） |
-| 姓名 / 組織 / 都市 / 国 | 適当で構いませんが、正確な方が無難です |
-| Enter key password for `<upload>` | 空 Enter でキーストアと同じにできます |
+---
 
-3. GitHub に貼るための文字列にします
-
-```bash
-base64 -w0 upload.jks > upload.txt
-cat upload.txt
-```
-
-表示された文字列をすべてコピーします。
-
-### GitHub に登録する
+## GitHub に登録する
 
 リポジトリ → **Settings** → **Secrets and variables** → **Actions**
-→ **New repository secret** で4つ登録します。
+→ **New repository secret** を4回。
 
 | 名前 | 中身 |
 | --- | --- |
-| `ANDROID_KEYSTORE_BASE64` | 上でコピーした文字列 |
-| `ANDROID_KEYSTORE_PASSWORD` | キーストアのパスワード |
-| `ANDROID_KEY_ALIAS` | `upload`（上のコマンドどおりなら） |
-| `ANDROID_KEY_PASSWORD` | 鍵のパスワード（同じにしたならキーストアと同じ） |
+| `ANDROID_KEYSTORE_BASE64` | `base64 -w0 upload.jks` の出力（3,000字ほどの長い文字列） |
+| `ANDROID_KEYSTORE_PASSWORD` | 決めたパスワード |
+| `ANDROID_KEY_ALIAS` | `upload` |
+| `ANDROID_KEY_PASSWORD` | 決めたパスワード（上と同じ） |
 
-登録すると、次回のビルドから**自動で署名済みの `.aab`** ができます。
+登録できたかは、ビルドを回すと分かります。ログの最後に
 
-### 必ずバックアップしてください
+```
+署名: あり
+```
+
+と出れば成功です。「なし」なら、どれかが入っていません。
+
+---
+
+## 必ず控えを取ってください
 
 `upload.jks` とパスワードを失うと、**そのアプリは二度と更新できません**。
+Google にも復元してもらえません。
 
-- クラウド（Google ドライブなど）にファイルを保存
-- パスワードはパスワード管理アプリに保存
+- 鍵ファイルを、Google ドライブなど**別の場所**に保存する
+- パスワードを、パスワード管理アプリに保存する
 
-GitHub の Secrets は**登録後に中身を読み出せません**。GitHub に入れたことは
-バックアップになりませんので、必ず別途保管してください。
+**GitHub の Secrets は控えになりません。** 登録したあとは中身を読み出せない
+仕組みだからです。必ず別に保管してください。
+
+---
+
+## よくある行き止まり
+
+| 症状 | 原因と直し方 |
+| --- | --- |
+| `Password is not ASCII` で止まる | パスワードに日本語が入っています。英数字だけで作り直してください |
+| ビルドのログに「署名: なし」と出る | 4つのうちどれかが未登録です。名前の綴りも確かめてください |
+| `keytool: command not found` | `pkg install openjdk-17` がまだです |
+| 長い文字列をうまく貼れない | スクリプトを使うとクリップボードに入ります。または `cat ~/upload-base64.txt` |
+| すでに鍵を持っているか分からない | 過去に Play へ出したアプリが**いま生きている**なら、その鍵が要ります。消えているなら新しく作って構いません |
