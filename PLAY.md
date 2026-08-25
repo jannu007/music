@@ -100,8 +100,8 @@ GitHub の **Actions** タブ → **Build Android app** → **Run workflow**
 | 入力 | 入れるもの |
 | --- | --- |
 | ビルドするアプリ | `all`（7本まとめて） |
-| バージョンコード | `3`（アップするたびに +1） |
-| バージョン名 | `2.1.0` |
+| バージョンコード | `4`（アップするたびに +1） |
+| バージョン名 | `2.2.0` |
 
 30〜40分ほどで、アプリごとに成果物（Artifacts）が並びます。
 中身は次の3つです。
@@ -275,15 +275,28 @@ Play では、個人のデベロッパーアカウントの場合、
 | 欄 | 入れるもの |
 | --- | --- |
 | App Bundle | `app-release.aab` |
-| リリース名 | `2.1.0` |
-| リリースノート | 下の例をどうぞ（言語ごとに要ります） |
+| リリース名 | `2.2.0` |
+| リリースノート | 下をそのまま貼れます（言語ごとに要ります） |
+
+リリースノートは、**7本とも同じで構いません**（掲載文と違い、
+使い回してもスパム判定の材料にはなりません）。
 
 ```
 <ja-JP>
-はじめてのリリースです。すべての機能が端末の中だけで動きます。
+はじめてのリリースです。
+
+・音はすべて端末の中で計算しています。録音素材は入っていません
+・インターネットに一切つながりません。機内モードのままで全機能が使えます
+・広告なし、アプリ内課金なし
+・作った音源は、商用利用を含めて自由にお使いいただけます
 </ja-JP>
 <en-US>
-First release. Everything runs on your device, with no network access.
+First release.
+
+- Every sound is computed on your device. There are no recordings inside
+- The app never touches the network. Everything works in airplane mode
+- No ads, no in-app purchases
+- What you make is yours to use, commercial use included
 </en-US>
 ```
 
@@ -299,7 +312,7 @@ First release. Everything runs on your device, with no network access.
 
 | 日付 | バージョン名 | コード | 何を直したか |
 | --- | --- | --- | --- |
-| 2026-08 | 2.1.0 | 3 | 初回（同梱版・アイコン差し替え・マイク権限） |
+| 2026-08 | 2.2.0 | 4 | 初回。同梱版・アイコン差し替え・マイク権限・音の復帰 |
 |  |  |  |  |
 
 ---

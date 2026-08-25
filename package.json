@@ -1,6 +1,6 @@
 {
   "name": "dtm-synth",
-  "version": "2.0.0",
+  "version": "2.2.0",
   "private": true,
   "description": "完全無料のDTM/音楽制作アプリ集 — シンセ・グランドピアノ・ドラムマシン・ギター（Web / Windows対応）",
   "type": "module",
