@@ -175,7 +175,7 @@ export class SamplerApp {
     this.playButton.title = t('rec.play');
 
     this.voiceMeter = el('div', 'voice-meter');
-    const lang = button(t('lang.toggle'), 'ghost', () => toggleLocale());
+    const lang = button(t('lang.toggle'), 'ghost lang-btn', () => toggleLocale());
     lang.classList.add('lang-btn');
     lang.title = t('lang.toggle.hint');
     header.append(title, this.playButton, this.voiceMeter, lang);

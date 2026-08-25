@@ -9,3 +9,7 @@ native/*/android/
 native/*/node_modules/
 /android/
 /capacitor.config.json
+
+# ストア掲載用の画像。作り直せるので置かない
+# （撮り直しのたびに数十MBが履歴に積み上がるため）
+store-assets/

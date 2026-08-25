@@ -11,6 +11,7 @@
     "preview": "vite preview --port 4173",
     "electron:dev": "vite build && electron electron/main.cjs",
     "electron:build": "vite build && electron-builder --win portable",
+    "synth:icons": "node scripts/gen-synth-icons.mjs",
     "piano:dev": "vite --open /piano/",
     "piano:icons": "node scripts/gen-piano-icons.mjs",
     "piano:electron": "vite build && electron electron/piano-main.cjs",
@@ -37,11 +38,13 @@
     "sampler:icons": "node scripts/gen-sampler-icons.mjs",
     "sampler:test": "node scripts/test-sampler.mjs && node scripts/test-sampler-project.mjs && node scripts/test-sampler-demos.mjs",
     "test:audio": "node scripts/audio-smoke.mjs",
-    "test": "tsc --noEmit && vite build && node scripts/test-bass-dsp.mjs && node scripts/test-vocal-transcribe.mjs && node scripts/audio-smoke.mjs && node scripts/test-download.mjs && node scripts/test-sampler.mjs && node scripts/test-sampler-project.mjs && node scripts/test-sampler-demos.mjs && node scripts/test-landscape.mjs",
+    "test": "tsc --noEmit && vite build && node scripts/test-bass-dsp.mjs && node scripts/test-vocal-transcribe.mjs && node scripts/audio-smoke.mjs && node scripts/test-download.mjs && node scripts/test-sampler.mjs && node scripts/test-sampler-project.mjs && node scripts/test-sampler-demos.mjs && node scripts/test-landscape.mjs && node scripts/test-android-prep.mjs",
     "native:build": "npm run build && node scripts/build-native.mjs",
     "native:verify": "node scripts/verify-native.mjs",
     "test:download": "node scripts/test-download.mjs",
-    "test:landscape": "node scripts/test-landscape.mjs"
+    "test:landscape": "node scripts/test-landscape.mjs",
+    "test:android": "node scripts/test-android-prep.mjs",
+    "store:assets": "node scripts/store-assets.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.21.5",

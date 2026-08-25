@@ -207,6 +207,17 @@ scripts/audio-smoke.mjs     音声の自動検証（Playwright）
 electron/                   Windows デスクトップアプリ用エントリーポイント
 ```
 
+### Android で売るまでの資料
+
+| 文書 | 中身 |
+| --- | --- |
+| [PLAY.md](PLAY.md) | **Google Play で販売するまでの手順**（アカウント・掲載・審査・テスト・価格） |
+| [ANDROID.md](ANDROID.md) | 同梱アプリの作り方、署名鍵、書き出しの仕組み |
+| [STORE.md](STORE.md) / [STORE.en.md](STORE.en.md) | 7本ぶんの掲載文（日本語 / 英語） |
+
+ストア用の画像は `node scripts/store-assets.mjs`、または Actions の
+**Build store assets** で作れます。
+
 姉妹アプリのソースは `piano/src/`（[PIANO.md](PIANO.md)）・`drums/src/`（[DRUMS.md](DRUMS.md)）・
 `guitar/src/`（[GUITAR.md](GUITAR.md)）・`bass/src/`（[BASS.md](BASS.md)）・
 `vocal/src/`（[VOCAL.md](VOCAL.md)）・`sampler/src/`（[SAMPLER.md](SAMPLER.md)）にあります。
