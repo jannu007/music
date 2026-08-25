@@ -141,7 +141,7 @@ for (const app of targets) {
   // やみくもに何度も叩くと、いちど点けたものを消してしまうアプリがある
   // （ドラムのステップなど）。そこで「1回だけ叩く」に留め、鍵盤があるアプリでは
   // 押しっぱなしにして鳴らす。短く叩くだけだと、離した後の余韻しか測れない。
-  const key = await page.$('.key.white, .key');
+  const key = await page.$('.key.white, .key, .pkey.white, .pkey, .chord-pad, .fb-cell');
   if (key) {
     const box = await key.boundingBox();
     if (box) {
