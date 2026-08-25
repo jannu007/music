@@ -27,12 +27,12 @@ on:
       versionCode:
         description: 'バージョンコード（Play にアップするたびに増やす整数）'
         required: true
-        default: '3'
+        default: '4'
         type: string
       versionName:
         description: 'バージョン名（利用者に見える表記）'
         required: true
-        default: '2.1.0'
+        default: '2.2.0'
         type: string
 
 jobs:
