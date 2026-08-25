@@ -4,6 +4,7 @@ import {
   downloadBlob,
   encodeMidi,
   encodeWav,
+  hasAudibleSteps,
   safeName,
   timestampName,
   type ZipEntry,
@@ -1325,6 +1326,7 @@ export class DrumApp {
 
   private async exportWav() {
     if (this.exporting) return;
+    if (!this.checkNotEmpty()) return;
     this.exporting = true;
     this.updateExportStatus(t('export.exporting'));
     try {
@@ -1346,6 +1348,7 @@ export class DrumApp {
 
   private async exportStems() {
     if (this.exporting) return;
+    if (!this.checkNotEmpty()) return;
     this.exporting = true;
     try {
       await this.ensureAudio();
@@ -1377,6 +1380,7 @@ export class DrumApp {
   }
 
   private async exportMidi() {
+    if (!this.checkNotEmpty()) return;
     const midi = encodeMidi(this.project, this.ui.exportLoops);
     try {
       await this.saveFile(
@@ -1388,6 +1392,19 @@ export class DrumApp {
       console.error(err);
       this.updateExportStatus(t('export.failed'));
     }
+  }
+
+  /**
+   * 打ち込みが空のまま書き出そうとしていないか。
+   *
+   * このアプリは空のパターンから始まる。そのまま書き出すと、
+   * 無音のファイルが「書き出しました（1.2 MB）」と一緒に出来上がる。
+   * 保存して再生してはじめて気づくことになるので、押した時点で止める。
+   */
+  private checkNotEmpty(): boolean {
+    if (hasAudibleSteps(this.project, this.ui.exportLoops)) return true;
+    this.updateExportStatus(t('export.empty'));
+    return false;
   }
 
   private async exportProject() {
