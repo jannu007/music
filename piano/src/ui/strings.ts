@@ -27,6 +27,7 @@ const ja: Record<string, string> = {
   'status.pressKey': '鍵盤を押すと開始',
   'status.midi': 'MIDI: {devices}',
   'status.audioError': 'オーディオを開始できません: {err}',
+  'status.audioBlocked': '音が止まっています。画面をもう一度タップすると戻ります',
 
   'tone.presetsTitle': '音色プリセット',
   'tone.soundTitle': '音づくり',
@@ -217,6 +218,7 @@ const en: Record<string, string> = {
   'status.pressKey': 'Press a key to start',
   'status.midi': 'MIDI: {devices}',
   'status.audioError': 'Could not start audio: {err}',
+  'status.audioBlocked': 'Sound is paused. Tap the screen once to bring it back.',
 
   'tone.presetsTitle': 'Tone presets',
   'tone.soundTitle': 'Sound design',
