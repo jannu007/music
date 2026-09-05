@@ -71,6 +71,8 @@ export class PianoApp {
   private exporting = false;
 
   private statusEl!: HTMLElement;
+  /** 音が止まっていないかを見に行くための待ち。二重に張らない */
+  private silenceTimer: number | null = null;
   private transportEl!: HTMLElement;
   private nowPlayingEl!: HTMLElement;
   private meterFill!: HTMLElement;
@@ -176,6 +178,7 @@ export class PianoApp {
     void this.ensureAudio().then(() => {
       this.engine.noteOn(note, velocity);
       this.recorder.capture({ type: 'note', note, vel: velocity }, this.engine.now);
+      this.watchForSilence();
     });
     this.view.noteOn(note, velocity);
     if (!fromKeybed) this.keyboard.highlight(note, true, velocity);
@@ -401,6 +404,25 @@ export class PianoApp {
         : max / 2;
       scroll.scrollLeft = Math.max(0, Math.min(max, target));
     });
+  }
+
+  /**
+   * 音が止まったままになっていないかを見て、そのときだけ知らせる。
+   *
+   * 止まっているとき、画面からは何も分からない。鍵盤は沈むし、エラーも出ない。
+   * 音だけが出ないので、壊れていると思われてしまう。
+   *
+   * ensureAudio() が resume() を頼んだ直後は、まだ suspended のことがある。
+   * すこし待ってから見て、それでも動いていないときだけ出す。
+   */
+  private watchForSilence() {
+    if (this.silenceTimer !== null) return;
+    this.silenceTimer = window.setTimeout(() => {
+      this.silenceTimer = null;
+      const state = this.engine.ctx?.state;
+      if (state && state !== 'running') this.setStatus(t('status.audioBlocked'));
+      else if (this.statusEl.textContent === t('status.audioBlocked')) this.setStatus();
+    }, 500);
   }
 
   private setStatus(message?: string) {

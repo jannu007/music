@@ -58,6 +58,8 @@ const APPS = [
     id: 'piano',
     lang: 'aozora-piano-lang',
     panel: '.main-area',
+    // 音が止まったままのとき、その旨が画面に出ること
+    silentHint: { selector: '.status', text: /音が止まっています|Sound is paused/ },
     sound: [{ click: '.pkey.white' }],
     record: { tab: /Record|録音/i, play: '.pkey.white' },
     export: { tab: /Record|録音/i, button: /WAV/i },
@@ -510,6 +512,41 @@ for (const app of TARGETS) {
         (window.__ctxs ?? []).map((c) => c.state).join(',')
       );
       check(`${where}: 音を止められても、弾けば戻る`, state.includes('running'), state || '(context 無し)');
+
+      // 戻せない状況では、黙って鳴らないのではなく理由を出すこと。
+      // resume を効かない形にして、止まったままを作る
+      if (app.silentHint) {
+        await page.evaluate(async () => {
+          for (const c of window.__ctxs ?? []) {
+            await c.suspend();
+            c.resume = () => Promise.resolve();
+          }
+        });
+        for (const step of app.sound) {
+          const target = page.locator(step.click).first();
+          if ((await target.count()) === 0) continue;
+          await press(page, target, step.at);
+        }
+        await page.waitForTimeout(1200);
+        const said = await page.locator(app.silentHint.selector).innerText();
+        check(`${where}: 鳴らない理由が画面に出る`, app.silentHint.text.test(said), said.slice(0, 40));
+
+        // 戻せるようにすると、断りも消えること
+        await page.evaluate(async () => {
+          for (const c of window.__ctxs ?? []) {
+            delete c.resume;
+            await c.resume();
+          }
+        });
+        for (const step of app.sound) {
+          const target = page.locator(step.click).first();
+          if ((await target.count()) === 0) continue;
+          await press(page, target, step.at);
+        }
+        await page.waitForTimeout(1200);
+        const after = await page.locator(app.silentHint.selector).innerText();
+        check(`${where}: 戻ったら断りが消える`, !app.silentHint.text.test(after), after.slice(0, 40));
+      }
     }
 
     // ---------------------------------------------------------- 書き出し
