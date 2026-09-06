@@ -60,6 +60,13 @@ jobs:
             node scripts/store-assets.mjs "${{ inputs.app }}"
           fi
 
+      # 撮れた画像が Play の規格（アイコン512角・帯1024x500・
+      # スクショは320〜3840pxで16:9か9:16）に合っているかを、
+      # 掲載文や掲載ポリシーとまとめて確かめる。
+      # 手元では画像が無いと飛ばされる検査なので、実物があるここが本番
+      - name: Check the listing is ready for the store
+        run: node scripts/test-store-ready.mjs
+
       # 中身が空だったり、豆腐だらけだったりしないかを最低限だけ確かめる
       - name: Check what came out
         run: |
