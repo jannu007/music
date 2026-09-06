@@ -1501,6 +1501,10 @@ export class DrumApp {
   }
 
   private setStatus(text: string) {
+    // 音が出ない理由は、狭い画面でも隠さない（.alert で必ず出す）
+    const alert = text === t('status.muted') || text === t('status.audioBlocked');
+    this.statusEl.classList.toggle('alert', alert);
+
     this.statusEl.textContent = text;
   }
 

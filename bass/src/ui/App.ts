@@ -454,6 +454,9 @@ export class BassApp {
   }
 
   private setStatus(message?: string) {
+    // 音が出ない理由は、狭い画面でも隠さない（.status.alert で必ず出す）
+    const alert = message === t('status.muted') || message === t('status.audioBlocked');
+    this.statusEl.classList.toggle('alert', alert);
     if (message) {
       this.statusEl.textContent = message;
       return;

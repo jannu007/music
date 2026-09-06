@@ -770,3 +770,34 @@ html, body {
   .fb-row { height: 24px; }
   .strum-bar { height: 32px; }
 }
+
+/*
+ * 音が出ない理由だけは、狭い画面でも必ず見せる。
+ *
+ * 状態表示はふだん、幅の狭い画面では隠している（.status { display: none }）。
+ * ただし「音量が 0 です」のような、そのままでは気づけないことまで
+ * 隠してしまうと、出している意味がない。
+ *
+ * ヘッダーの中に置いたままだと、他の項目に押し潰されて数十ピクセルに
+ * なってしまう（実測で 22x84 まで細くなった）。そこで、伝えることが
+ * あるときだけ、上に貼り付く帯として出す。用が済めば消える。
+ */
+.status.alert {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: block;
+  padding: 0.5rem 0.75rem;
+  background: rgba(22, 14, 9, 0.96);
+  border-bottom: 1px solid #e09a5a;
+  color: #e09a5a;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
