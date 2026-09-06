@@ -1,7 +1,11 @@
 /*
  * Google Play へ出す前の、最後の見直し。
  *
- *   node scripts/test-store-ready.mjs
+ *   node scripts/test-store-ready.mjs            # 7本ぶん
+ *   node scripts/test-store-ready.mjs sampler    # 1本だけ
+ *
+ * 画像は1本ずつ撮り直せるので、見る対象も絞れないと困る。
+ * 絞ったときは、何を見たかを最後に書く。
  *
  * 動くかどうか（機能）は test-apps.mjs が、
  * 端末に入る形になっているかは test-android-prep.mjs が見ている。
@@ -26,6 +30,17 @@ const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const ASSETS = join(ROOT, 'store-assets');
 
 const LIMITS = { title: 30, short: 80, full: 4000 };
+
+/** 引数でアプリを絞れる。指定が無ければ7本ぶん */
+const wanted = process.argv.slice(2).filter((a) => !a.startsWith('-'));
+for (const id of wanted) {
+  if (!NATIVE_APPS.some((a) => a.id === id)) {
+    console.error(`そんなアプリはありません: ${id}`);
+    process.exit(1);
+  }
+}
+const APPS = wanted.length ? NATIVE_APPS.filter((a) => wanted.includes(a.id)) : NATIVE_APPS;
+const NAMES = new Set(APPS.map((a) => a.name));
 
 let failures = 0;
 function check(label, ok, detail = '') {
@@ -104,7 +119,7 @@ for (const [lang, file] of [['ja', 'STORE.md'], ['en', 'STORE.en.md']]) {
   const parsed = parseListing(md);
   listings[lang] = parsed;
   check(`${file} に7本ぶん載っている`, parsed.length === NATIVE_APPS.length, `${parsed.length}本`);
-  for (const item of parsed) {
+  for (const item of parsed.filter((i) => NAMES.has(i.name))) {
     const t = item.title ? len(item.title) : 0;
     const s = item.short ? len(item.short) : 0;
     const f = item.full ? len(item.full) : 0;
@@ -119,6 +134,8 @@ for (const [lang, file] of [['ja', 'STORE.md'], ['en', 'STORE.en.md']]) {
 }
 
 // 使い回しの検査。同じ言語の中で、詳しい説明どうしを突き合わせる
+// 重なりの検査だけは、絞っても7本すべてで見る。
+// 1本だけ見ても「似ているかどうか」は分からないため
 console.log('\n掲載文の重なり（使い回しに見えないか）');
 for (const lang of ['ja', 'en']) {
   const items = listings[lang].filter((i) => i.full);
@@ -148,7 +165,7 @@ if (assetsThere) {
   console.log('  `node scripts/store-assets.mjs` か store-assets ワークフローで作られます。');
 }
 
-for (const app of assetsThere ? NATIVE_APPS : []) {
+for (const app of assetsThere ? APPS : []) {
   const dir = join(ASSETS, app.id);
   if (!existsSync(dir)) {
     check(`${app.id}: 掲載画像がある`, false, `${dir} がありません`);
@@ -203,7 +220,7 @@ for (const app of assetsThere ? NATIVE_APPS : []) {
 
 console.log('\nプライバシーポリシー');
 const play = await readFile(join(ROOT, 'PLAY.md'), 'utf8');
-for (const app of NATIVE_APPS) {
+for (const app of APPS) {
   const page = join(ROOT, 'public', app.id, 'privacy.html');
   const there = existsSync(page);
   check(`${app.id}: 頁がある`, there, there ? `public/${app.id}/privacy.html` : '');
@@ -218,7 +235,7 @@ for (const app of NATIVE_APPS) {
 console.log('\nパッケージ名');
 const ids = NATIVE_APPS.map((a) => a.appId);
 check('7本とも違う名前になっている', new Set(ids).size === ids.length, ids.join(' '));
-for (const app of NATIVE_APPS) {
+for (const app of APPS) {
   check(`${app.id}: 逆ドメイン形式`, /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(app.appId), app.appId);
 }
 
@@ -227,9 +244,10 @@ if (failures) {
   console.log(`${failures} 件、このままでは出せません`);
   process.exit(1);
 }
+const what = wanted.length ? APPS.map((a) => a.id).join('・') : '7本とも';
 if (assetsThere) {
-  console.log('Google Play に出せる状態です（掲載文・画像・ポリシー・パッケージ名）');
+  console.log(`${what} Google Play に出せる状態です（掲載文・画像・ポリシー・パッケージ名）`);
 } else {
-  console.log('掲載文・ポリシー・パッケージ名は出せる状態です');
+  console.log(`${what} 掲載文・ポリシー・パッケージ名は出せる状態です`);
   console.log('※ 掲載画像だけは、まだ確認していません');
 }
