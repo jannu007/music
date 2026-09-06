@@ -125,7 +125,7 @@ export const PRESETS: GuitarPreset[] = [
     description: 'コンプの効いた歯切れの良いカッティング。',
     pattern: 'sixteen',
     settings: {
-      outputTrim: 0.95,
+      outputTrim: 0.6,
       pickPos: 0.07, pickHard: 0.9, brightness: 0.82, sustain: 1.0, stiffness: 0.32,
       coupling: 0.3, pickNoise: 0.5, fretNoise: 0.35, buzz: 0.2, spread: 0.3,
       bodyType: 'none', bodyMix: 0,
@@ -140,7 +140,7 @@ export const PRESETS: GuitarPreset[] = [
     description: 'フロントピックアップの太く丸いトーン。',
     pattern: 'bossa',
     settings: {
-      outputTrim: 1.5,
+      outputTrim: 0.95,
       pickPos: 0.34, pickHard: 0.3, brightness: 0.32, sustain: 1.2, stiffness: 0.25,
       coupling: 0.45, pickNoise: 0.25, fretNoise: 0.25, buzz: 0.05, spread: 0.3,
       bodyType: 'archtop', bodyMix: 0.55,
@@ -155,7 +155,7 @@ export const PRESETS: GuitarPreset[] = [
     description: '軽く歪んだチューブアンプ。ピッキングの強弱で表情が出る。',
     pattern: 'shuffle',
     settings: {
-      outputTrim: 0.8,
+      outputTrim: 0.51,
       pickPos: 0.12, pickHard: 0.65, brightness: 0.72, sustain: 1.4, stiffness: 0.32,
       coupling: 0.35, pickNoise: 0.4, fretNoise: 0.35, buzz: 0.2, spread: 0.3,
       bodyType: 'none', bodyMix: 0,
@@ -171,7 +171,7 @@ export const PRESETS: GuitarPreset[] = [
     description: '中域の張り出したロックンロールの歪み。',
     pattern: 'eighth',
     settings: {
-      outputTrim: 0.7,
+      outputTrim: 0.44,
       pickPos: 0.1, pickHard: 0.8, brightness: 0.75, sustain: 1.5, stiffness: 0.35,
       coupling: 0.3, pickNoise: 0.45, fretNoise: 0.3, buzz: 0.3, spread: 0.25,
       bodyType: 'none', bodyMix: 0,
@@ -186,7 +186,7 @@ export const PRESETS: GuitarPreset[] = [
     description: 'ミッドを削った重い歪み。ブリッジミュートの刻みに。',
     pattern: 'chug',
     settings: {
-      outputTrim: 0.55,
+      outputTrim: 0.35,
       pickPos: 0.06, pickHard: 0.95, brightness: 0.7, sustain: 1.6, stiffness: 0.4,
       coupling: 0.25, pickNoise: 0.5, fretNoise: 0.25, buzz: 0.35, spread: 0.2,
       bodyType: 'none', bodyMix: 0,
@@ -201,7 +201,7 @@ export const PRESETS: GuitarPreset[] = [
     description: '荒々しいファズ。単音リードで真価を発揮。',
     pattern: 'whole',
     settings: {
-      outputTrim: 0.6,
+      outputTrim: 0.38,
       pickPos: 0.19, pickHard: 0.6, brightness: 0.68, sustain: 1.8, stiffness: 0.3,
       coupling: 0.3, pickNoise: 0.35, fretNoise: 0.3, buzz: 0.25, spread: 0.25,
       bodyType: 'none', bodyMix: 0,

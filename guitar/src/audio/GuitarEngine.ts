@@ -525,7 +525,10 @@ export class GuitarChain {
     this.fxWidth.update(s.fxWidth);
 
     const trim = Math.max(0.2, Math.min(3, s.outputTrim));
-    this.master.gain.value = Math.pow(clamp01(s.volume), 1.4) * 1.9 * trim;
+    // 1.9 から 3.0 へ（+4dB）。他の6本と比べたとき、ギターだけ山が
+    // 3〜8dB 低かった。歪み系のプリセットは既にリミッターの手前まで来ていたので、
+    // そちらは presets.ts の outputTrim を同じ比で下げ、据え置きにしてある
+    this.master.gain.value = Math.pow(clamp01(s.volume), 1.4) * 3.0 * trim;
   }
 
   private bodyImpulse(type: GuitarSettings['bodyType']): AudioBuffer | null {
