@@ -290,6 +290,8 @@ const ja = {
   'demo.bossa.note': 'ルートと5度だけで作る、ゆったりしたラテンの土台',
 
   'status.ready': '準備完了',
+  'status.muted': 'マスター音量が 0 になっています',
+  'status.audioBlocked': '音が止まっています。画面をもう一度タップすると戻ります',
   'status.tapToStart': '指板をタップすると開始',
   'status.midi': 'MIDI: {devices}',
   'status.audioError': 'オーディオを開始できません: {err}',
@@ -628,6 +630,8 @@ const en: typeof ja = {
   'demo.bossa.note': 'A relaxed Latin foundation built from just the root and the fifth.',
 
   'status.ready': 'Ready',
+  'status.muted': 'Master volume is set to zero.',
+  'status.audioBlocked': 'Sound is paused. Tap the screen once to bring it back.',
   'status.tapToStart': 'Tap the fretboard to start',
   'status.midi': 'MIDI: {devices}',
   'status.audioError': 'Could not start audio: {err}',

@@ -111,6 +111,8 @@ export class GuitarApp {
   private exporting = false;
 
   private statusEl!: HTMLElement;
+  /** 無音の理由を見に行くための待ち。二重に張らない */
+  private silenceTimer: number | null = null;
   private transportEl!: HTMLElement;
   private chordReadout!: HTMLElement;
   private meterFill!: HTMLElement;
@@ -207,6 +209,7 @@ export class GuitarApp {
   /** 単発の演奏イベントを即座に鳴らす（録音にも記録する） */
   private fire(ev: PerformanceEventInput) {
     void this.ensureAudio().then(() => {
+      this.watchForSilence();
       switch (ev.type) {
         case 'pluck':
           this.engine.pluck(ev.string, ev.fret, ev.vel, ev.mute);
@@ -453,6 +456,27 @@ export class GuitarApp {
         this.fireAt({ type: 'pluck', string: s, fret: 0, vel: 0.8 }, at);
       });
     });
+  }
+
+  /**
+   * 鳴らない理由を、そのときだけ知らせる。
+   *
+   * 音量つまみは 0 まで下がり、その値は保存される。いちど 0 にすると
+   * 次に開いても無音のままで、画面には何も出ない。壊れたと思われてしまう。
+   * 止められている場合も同じなので、まとめてここで見る。
+   *
+   * resume() を頼んだ直後は、まだ suspended のことがある。
+   * すこし待ってから見て、それでも駄目なときだけ出す。
+   */
+  private watchForSilence() {
+    if (this.silenceTimer !== null) return;
+    this.silenceTimer = window.setTimeout(() => {
+      this.silenceTimer = null;
+      const state = this.engine.ctx?.state;
+      if (this.settings.volume <= 0) this.setStatus(t('status.muted'));
+      else if (state && state !== 'running') this.setStatus(t('status.audioBlocked'));
+      else this.setStatus();
+    }, 500);
   }
 
   private setStatus(message?: string) {

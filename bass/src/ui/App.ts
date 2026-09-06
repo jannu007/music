@@ -105,6 +105,8 @@ export class BassApp {
   private exporting = false;
 
   private statusEl!: HTMLElement;
+  /** 無音の理由を見に行くための待ち。二重に張らない */
+  private silenceTimer: number | null = null;
   private transportEl!: HTMLElement;
   private nowPlayingEl!: HTMLElement;
   private meterFill!: HTMLElement;
@@ -222,6 +224,7 @@ export class BassApp {
     this.fretboard.showPluck(str, clampedFret, vel);
 
     void this.ensureAudio().then(() => {
+      this.watchForSilence();
       this.engine.pluck(str, freq, vel, tech, clampedFret);
       this.recorder.capture(
         { type: 'pluck', str, fret: clampedFret, note, freq, vel, tech },
@@ -427,6 +430,27 @@ export class BassApp {
     this.fretboard.setFretless(this.settings.fretless);
     this.fretboard.resize();
     this.settings.stringCount = tuning.length;
+  }
+
+  /**
+   * 鳴らない理由を、そのときだけ知らせる。
+   *
+   * 音量つまみは 0 まで下がり、その値は保存される。いちど 0 にすると
+   * 次に開いても無音のままで、画面には何も出ない。壊れたと思われてしまう。
+   * 止められている場合も同じなので、まとめてここで見る。
+   *
+   * resume() を頼んだ直後は、まだ suspended のことがある。
+   * すこし待ってから見て、それでも駄目なときだけ出す。
+   */
+  private watchForSilence() {
+    if (this.silenceTimer !== null) return;
+    this.silenceTimer = window.setTimeout(() => {
+      this.silenceTimer = null;
+      const state = this.engine.ctx?.state;
+      if (this.settings.volume <= 0) this.setStatus(t('status.muted'));
+      else if (state && state !== 'running') this.setStatus(t('status.audioBlocked'));
+      else this.setStatus();
+    }, 500);
   }
 
   private setStatus(message?: string) {

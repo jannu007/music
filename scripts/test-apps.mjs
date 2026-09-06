@@ -56,6 +56,9 @@ const APPS = [
   },
   {
     id: 'piano',
+    // 音量つまみは 0 まで下がり、その値は保存される。
+    // 無音になったとき、理由が出ること
+    muteHint: { tab: /Space|響き/i, text: /マスター音量が 0|Master volume is set to zero/ },
     lang: 'aozora-piano-lang',
     panel: '.main-area',
     // 音が止まったままのとき、その旨が画面に出ること
@@ -80,6 +83,9 @@ const APPS = [
   },
   {
     id: 'guitar',
+    // 音量つまみは 0 まで下がり、その値は保存される。
+    // 無音になったとき、理由が出ること
+    muteHint: { tab: /Effects|エフェクト/i, text: /マスター音量が 0|Master volume is set to zero/ },
     lang: 'takibi-guitar-lang',
     panel: '.main-area',
     sound: [{ click: '.chord-pad' }],
@@ -90,6 +96,9 @@ const APPS = [
   },
   {
     id: 'bass',
+    // 音量つまみは 0 まで下がり、その値は保存される。
+    // 無音になったとき、理由が出ること
+    muteHint: { tab: /Amp|アンプ/i, text: /マスター音量が 0|Master volume is set to zero/ },
     lang: 'kurogane-bass-lang',
     panel: '.main-area',
     // 指板は canvas なので、押す場所を座標で指す
@@ -643,6 +652,62 @@ for (const app of TARGETS) {
         );
       } else {
         check(`${where}: マイクのボタンがある`, false, String(app.mic.start));
+      }
+    }
+
+    // ------------------------------------------------- 音量つまみが 0 のとき
+    //
+    // つまみは 0 まで下がり、その値は保存される。いちど 0 にすると、
+    // 次に開いても無音のまま。画面には何も出ないので「壊れた」と思われる。
+    // 実際そう言われた。理由が出ること、戻せることを見る。
+    if (app.muteHint) {
+      await openTab(page, app.muteHint.tab);
+      const found = await page.evaluate((panelSelector) => {
+        for (const r of document.querySelectorAll(`${panelSelector} input[type=range]`)) {
+          const label = r.closest('.ctl')?.querySelector('.ctl-label')?.textContent ?? '';
+          if (!/Master [Vv]olume|マスター音量/.test(label)) continue;
+          r.value = '0';
+          r.dispatchEvent(new Event('input', { bubbles: true }));
+          r.dispatchEvent(new Event('change', { bubbles: true }));
+          return true;
+        }
+        return false;
+      }, app.panel);
+      check(`${where}: 音量つまみが見つかる`, found);
+
+      if (found) {
+        await page.waitForTimeout(400);
+        // どの面を開いていても触れるもの（指板・鍵盤）を弾く。
+        // コードパッドのように別の面にしか無いものだと、押せずに終わる
+        const playable = app.record?.play ?? app.sound[0].click;
+        const playAt = app.record?.at ?? app.sound[0].at;
+        const playOnce = async () => {
+          const target = page.locator(playable).first();
+          if ((await target.count()) === 0) return false;
+          return press(page, target, playAt);
+        };
+        await playOnce();
+        await page.waitForTimeout(1200);
+        const said = await page.locator('.status').innerText().catch(() => '');
+        check(`${where}: 音量 0 の理由が画面に出る`, app.muteHint.text.test(said), said.slice(0, 40));
+
+        // 戻せば、断りも消えること
+        await openTab(page, app.muteHint.tab);
+        await page.evaluate((panelSelector) => {
+          for (const r of document.querySelectorAll(`${panelSelector} input[type=range]`)) {
+            const label = r.closest('.ctl')?.querySelector('.ctl-label')?.textContent ?? '';
+            if (!/Master [Vv]olume|マスター音量/.test(label)) continue;
+            r.value = '0.8';
+            r.dispatchEvent(new Event('input', { bubbles: true }));
+            r.dispatchEvent(new Event('change', { bubbles: true }));
+            return;
+          }
+        }, app.panel);
+        await page.waitForTimeout(400);
+        await playOnce();
+        await page.waitForTimeout(1200);
+        const after = await page.locator('.status').innerText().catch(() => '');
+        check(`${where}: 戻したら断りが消える`, !app.muteHint.text.test(after), after.slice(0, 40));
       }
     }
 

@@ -420,8 +420,11 @@ export class PianoApp {
     this.silenceTimer = window.setTimeout(() => {
       this.silenceTimer = null;
       const state = this.engine.ctx?.state;
-      if (state && state !== 'running') this.setStatus(t('status.audioBlocked'));
-      else if (this.statusEl.textContent === t('status.audioBlocked')) this.setStatus();
+      // 音量つまみは 0 まで下がり、その値は保存される。
+      // いちど 0 にすると次に開いても無音のままなので、それも見る
+      if (this.settings.volume <= 0) this.setStatus(t('status.muted'));
+      else if (state && state !== 'running') this.setStatus(t('status.audioBlocked'));
+      else this.setStatus();
     }, 500);
   }
 
