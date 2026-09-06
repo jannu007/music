@@ -29,18 +29,28 @@ const OUT = join(ROOT, 'dist-native');
 /**
  * アプリID → ストア表示名とパッケージ名。
  *
+ * パッケージ名は、いちど Play に登録すると二度と使い回せない。
+ * 消しても解放されないので、ここは履歴がそのまま形に出ている。
+ *
+ *   ・5本（akatsuki/hibiki/takibi/kurogane/hoshizora）… 前の名前は
+ *     自分で消した登録が使ってしまったので、アプリ名にそろえた新しい名前。
+ *   ・piano … 停止された登録がこの名前を持ったまま。再審査が通れば
+ *     同じ名前で更新できるので、変えない。別名で出し直すのは
+ *     「措置の回避」に当たるため、通るまでは出さない。
+ *   ・sampler … 一度も登録していないので、そのまま。
+ *
  * worklet: そのアプリが音源に AudioWorklet を使うか。
  * 6本は合成なので使うが、サンプラーだけは波形をなぞるだけなので
  * AudioBufferSourceNode で足りる（そちらのほうが速く、音も良い）。
  * 検証はこの印を見て、期待どおりかを確かめる。
  */
 export const NATIVE_APPS = [
-  { id: 'synthesizer', appId: 'shop.youkoku.synth', name: 'Akatsuki Synth', worklet: true },
+  { id: 'synthesizer', appId: 'shop.youkoku.akatsuki', name: 'Akatsuki Synth', worklet: true },
   { id: 'piano', appId: 'shop.youkoku.piano', name: 'Aozora Grand Piano', worklet: true },
-  { id: 'drums', appId: 'shop.youkoku.drums', name: 'Hibiki Drum Machine', worklet: true },
-  { id: 'guitar', appId: 'shop.youkoku.guitar', name: 'Takibi Guitar', worklet: true },
-  { id: 'bass', appId: 'shop.youkoku.bass', name: 'Kurogane Bass', worklet: true },
-  { id: 'vocal', appId: 'shop.youkoku.vocal', name: 'Hoshizora Vocal', worklet: true },
+  { id: 'drums', appId: 'shop.youkoku.hibiki', name: 'Hibiki Drum Machine', worklet: true },
+  { id: 'guitar', appId: 'shop.youkoku.takibi', name: 'Takibi Guitar', worklet: true },
+  { id: 'bass', appId: 'shop.youkoku.kurogane', name: 'Kurogane Bass', worklet: true },
+  { id: 'vocal', appId: 'shop.youkoku.hoshizora', name: 'Hoshizora Vocal', worklet: true },
   { id: 'sampler', appId: 'shop.youkoku.sampler', name: 'Yamabiko Sampler', worklet: false },
 ];
 

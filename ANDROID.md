@@ -40,12 +40,12 @@ npm run native:build
 
 | アプリ | パッケージ名 | 容量 |
 | --- | --- | --- |
-| synthesizer | `shop.youkoku.synth` | 約 0.97 MB |
+| synthesizer | `shop.youkoku.akatsuki` | 約 0.97 MB |
 | piano | `shop.youkoku.piano` | 約 1.11 MB |
-| drums | `shop.youkoku.drums` | 約 1.04 MB |
-| guitar | `shop.youkoku.guitar` | 約 1.16 MB |
-| bass | `shop.youkoku.bass` | 約 1.10 MB |
-| vocal | `shop.youkoku.vocal` | 約 1.16 MB |
+| drums | `shop.youkoku.hibiki` | 約 1.04 MB |
+| guitar | `shop.youkoku.takibi` | 約 1.16 MB |
+| bass | `shop.youkoku.kurogane` | 約 1.10 MB |
+| vocal | `shop.youkoku.hoshizora` | 約 1.16 MB |
 | sampler | `shop.youkoku.sampler` | 約 1.09 MB |
 
 Service Worker（`sw.js`）は同梱していません。ファイルが端末内にある以上

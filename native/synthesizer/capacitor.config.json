@@ -1,5 +1,5 @@
 {
-  "appId": "shop.youkoku.synth",
+  "appId": "shop.youkoku.akatsuki",
   "appName": "Akatsuki Synth",
   "webDir": "../../dist-native/synthesizer",
   "server": {
