@@ -569,7 +569,7 @@ export class PianoApp {
         label: t('space.volume'),
         min: 0, max: 1, step: 0.01, value: this.settings.volume,
         format: (v) => `${Math.round(v * 100)}`,
-        onInput: (v) => { this.settings.volume = v; this.commit(); },
+        onInput: (v) => { this.settings.volume = v; this.commit(); this.watchForSilence(); },
       })
     );
     body.append(el('h2', 'panel-title', t('space.title')), controls);
