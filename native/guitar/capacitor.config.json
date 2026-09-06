@@ -1,5 +1,5 @@
 {
-  "appId": "shop.youkoku.guitar",
+  "appId": "shop.youkoku.takibi",
   "appName": "Takibi Guitar",
   "webDir": "../../dist-native/guitar",
   "server": {

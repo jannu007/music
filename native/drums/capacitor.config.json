@@ -1,5 +1,5 @@
 {
-  "appId": "shop.youkoku.drums",
+  "appId": "shop.youkoku.hibiki",
   "appName": "Hibiki Drum Machine",
   "webDir": "../../dist-native/drums",
   "server": {
