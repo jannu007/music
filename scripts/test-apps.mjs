@@ -697,6 +697,34 @@ for (const app of TARGETS) {
         const said = await page.locator(app.muteHint.status).innerText().catch(() => '');
         check(`${where}: 音量 0 の理由が画面に出る`, app.muteHint.text.test(said), said.slice(0, 40));
 
+        // 文字を入れただけでは足りない。狭い画面では状態表示を隠しているので、
+        // 入れても 0x0 のまま誰にも見えない、ということが実際に起きていた。
+        //
+        // この検査はふだん 1280px で走らせている。その幅では状態表示は
+        // 隠れないので、スマホでだけ起きるこの問題は見つからない。
+        // ここだけ画面を狭めて確かめ、終わったら戻す
+        await page.setViewportSize({ width: 412, height: 890 });
+        await page.waitForTimeout(400);
+        const seen = await page.evaluate((sel) => {
+          const e = document.querySelector(sel);
+          if (!e) return null;
+          const r = e.getBoundingClientRect();
+          const cs = getComputedStyle(e);
+          return {
+            w: Math.round(r.width),
+            h: Math.round(r.height),
+            onScreen: r.width > 80 && r.height > 10 && r.bottom > 0 && r.top < window.innerHeight,
+            shown: cs.display !== 'none' && cs.visibility !== 'hidden' && Number(cs.opacity) > 0.1,
+          };
+        }, app.muteHint.status);
+        await page.setViewportSize({ width: 1280, height: 900 });
+        await page.waitForTimeout(300);
+        check(
+          `${where}: その断りがスマホ幅でも見えている`,
+          Boolean(seen) && seen.onScreen && seen.shown,
+          seen ? `${seen.w}x${seen.h}` : '(要素なし)'
+        );
+
         // 戻せば、断りも消えること
         await openTab(page, app.muteHint.tab);
         await page.evaluate((panelSelector) => {
