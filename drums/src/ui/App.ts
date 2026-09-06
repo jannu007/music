@@ -83,6 +83,8 @@ export class DrumApp {
   private panelBody!: HTMLElement;
   private tabButtons: HTMLButtonElement[] = [];
   private statusEl!: HTMLElement;
+  /** 無音の理由を見に行くための待ち。二重に張らない */
+  private silenceTimer: number | null = null;
   private meterFill!: HTMLElement;
   private playButton!: HTMLButtonElement;
   private recButton!: HTMLButtonElement;
@@ -639,6 +641,9 @@ export class DrumApp {
     const apply = () => {
       this.engine.syncMaster(this.project);
       this.save();
+      // つまみを動かしたその場で見直す。音量を戻したのに
+      // 断りが残ったままだと、直ったことが分からない
+      this.watchForSilence();
     };
 
     /** 数値の項目をスライダーにする */
@@ -1161,6 +1166,7 @@ export class DrumApp {
 
   private async togglePlay() {
     await this.ensureAudio();
+    this.watchForSilence();
     if (this.engine.playing) {
       this.engine.stop();
       this.playButton.classList.remove('playing');
@@ -1475,6 +1481,24 @@ export class DrumApp {
   }
 
   // ------------------------------------------------------------------ 補助
+
+  /**
+   * 音量つまみが 0 のままになっていないかを見て、そのときだけ知らせる。
+   *
+   * つまみは 0 まで下がり、その値は保存される。いちど 0 にすると次に
+   * 開いても無音のままで、画面には何も出ない。壊れたと思われてしまう。
+   *
+   * ふだんの表示（再生中のパターン名など）を消さないよう、
+   * 戻すのは自分が出した断りを消すときだけにする。
+   */
+  private watchForSilence() {
+    if (this.silenceTimer !== null) return;
+    this.silenceTimer = window.setTimeout(() => {
+      this.silenceTimer = null;
+      if (this.project.master.volume <= 0) this.setStatus(t('status.muted'));
+      else if (this.statusEl.textContent === t('status.muted')) this.setStatus(t('status.ready'));
+    }, 500);
+  }
 
   private setStatus(text: string) {
     this.statusEl.textContent = text;

@@ -223,6 +223,7 @@ const ja = {
   'action.close': '閉じる',
 
   'status.ready': '準備完了',
+  'status.muted': 'マスター音量が 0 になっています',
   'status.audioInitFailed': '音声を初期化できませんでした',
   'status.stopped': '停止',
   'status.playingSong': 'ソングを再生中',
@@ -547,6 +548,7 @@ const en: typeof ja = {
   'action.close': 'Close',
 
   'status.ready': 'Ready',
+  'status.muted': 'Master volume is set to zero.',
   'status.audioInitFailed': 'Could not initialize audio',
   'status.stopped': 'Stopped',
   'status.playingSong': 'Playing song',

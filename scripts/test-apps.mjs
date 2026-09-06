@@ -58,7 +58,7 @@ const APPS = [
     id: 'piano',
     // 音量つまみは 0 まで下がり、その値は保存される。
     // 無音になったとき、理由が出ること
-    muteHint: { tab: /Space|響き/i, text: /マスター音量が 0|Master volume is set to zero/ },
+    muteHint: { tab: /Space|響き/i, text: /マスター音量が 0|Master volume is set to zero/, status: '.status' },
     lang: 'aozora-piano-lang',
     panel: '.main-area',
     // 音が止まったままのとき、その旨が画面に出ること
@@ -70,6 +70,9 @@ const APPS = [
   },
   {
     id: 'drums',
+    // 音量つまみは 0 まで下がり、その値は保存される。
+    // 無音になったとき、理由が出ること
+    muteHint: { tab: /^(Effects|エフェクト)$/i, text: /マスター音量が 0|Master volume is set to zero/, status: '.status', play: '.transport .play-btn' },
     lang: 'hibiki-drums-lang',
     panel: '.work',
     // 打ち込みは空から始まるので、まず収録デモを読み込む。
@@ -85,7 +88,7 @@ const APPS = [
     id: 'guitar',
     // 音量つまみは 0 まで下がり、その値は保存される。
     // 無音になったとき、理由が出ること
-    muteHint: { tab: /Effects|エフェクト/i, text: /マスター音量が 0|Master volume is set to zero/ },
+    muteHint: { tab: /^(Effects|エフェクト)$/i, text: /マスター音量が 0|Master volume is set to zero/, status: '.status' },
     lang: 'takibi-guitar-lang',
     panel: '.main-area',
     sound: [{ click: '.chord-pad' }],
@@ -98,7 +101,7 @@ const APPS = [
     id: 'bass',
     // 音量つまみは 0 まで下がり、その値は保存される。
     // 無音になったとき、理由が出ること
-    muteHint: { tab: /Amp|アンプ/i, text: /マスター音量が 0|Master volume is set to zero/ },
+    muteHint: { tab: /^(Amp|アンプ)$/i, text: /マスター音量が 0|Master volume is set to zero/, status: '.status' },
     lang: 'kurogane-bass-lang',
     panel: '.main-area',
     // 指板は canvas なので、押す場所を座標で指す
@@ -109,6 +112,9 @@ const APPS = [
   },
   {
     id: 'vocal',
+    // 音量つまみは 0 まで下がり、その値は保存される。
+    // 無音になったとき、理由が出ること
+    muteHint: { tab: /^(Mix|ミックス)$/i, text: /マスター音量が 0|Master volume is set to zero/, status: '.status-text', play: '.transport .primary' },
     lang: 'hoshizora-vocal-lang',
     panel: '.workspace',
     sound: [{ click: '.transport .primary' }],
@@ -679,8 +685,8 @@ for (const app of TARGETS) {
         await page.waitForTimeout(400);
         // どの面を開いていても触れるもの（指板・鍵盤）を弾く。
         // コードパッドのように別の面にしか無いものだと、押せずに終わる
-        const playable = app.record?.play ?? app.sound[0].click;
-        const playAt = app.record?.at ?? app.sound[0].at;
+        const playable = app.muteHint.play ?? app.record?.play ?? app.sound[0].click;
+        const playAt = app.muteHint.play ? undefined : (app.record?.at ?? app.sound[0].at);
         const playOnce = async () => {
           const target = page.locator(playable).first();
           if ((await target.count()) === 0) return false;
@@ -688,7 +694,7 @@ for (const app of TARGETS) {
         };
         await playOnce();
         await page.waitForTimeout(1200);
-        const said = await page.locator('.status').innerText().catch(() => '');
+        const said = await page.locator(app.muteHint.status).innerText().catch(() => '');
         check(`${where}: 音量 0 の理由が画面に出る`, app.muteHint.text.test(said), said.slice(0, 40));
 
         // 戻せば、断りも消えること
@@ -706,7 +712,7 @@ for (const app of TARGETS) {
         await page.waitForTimeout(400);
         await playOnce();
         await page.waitForTimeout(1200);
-        const after = await page.locator('.status').innerText().catch(() => '');
+        const after = await page.locator(app.muteHint.status).innerText().catch(() => '');
         check(`${where}: 戻したら断りが消える`, !app.muteHint.text.test(after), after.slice(0, 40));
       }
     }

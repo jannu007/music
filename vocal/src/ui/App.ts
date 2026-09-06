@@ -117,6 +117,8 @@ export class VocalApp {
   private baseline = '';
 
   private statusEl!: HTMLElement;
+  /** 無音の理由を見に行くための待ち。二重に張らない */
+  private silenceTimer: number | null = null;
   private positionEl!: HTMLElement;
   private meterFill!: HTMLElement;
   private playButton!: HTMLButtonElement;
@@ -281,6 +283,7 @@ export class VocalApp {
 
   private async play(fromBeat = 0) {
     await this.ensureAudio();
+    this.watchForSilence();
     if (this.song.notes.length === 0 && this.song.chords.length === 0) {
       this.setStatus(t('status.noNotes'));
       return;
@@ -758,7 +761,9 @@ export class VocalApp {
       slider({
         label: t('ctl.masterVolume.label'), min: 0, max: 1, step: 0.01, value: m.volume,
         format: (v) => `${Math.round(v * 100)}%`,
-        onInput: (v) => { m.volume = v; this.commitSettings(); },
+        // つまみを動かしたその場で見直す。音量を戻したのに
+        // 断りが残ったままだと、直ったことが分からない
+        onInput: (v) => { m.volume = v; this.commitSettings(); this.watchForSilence(); },
       }),
       slider({
         label: t('ctl.vocalLevel.label'), min: 0, max: 1, step: 0.01, value: m.vocalLevel,
@@ -1691,6 +1696,24 @@ export class VocalApp {
         this.roll.nudge(this.roll.snap || 0.25, 0);
       }
     });
+  }
+
+  /**
+   * 音量つまみが 0 のままになっていないかを見て、そのときだけ知らせる。
+   *
+   * つまみは 0 まで下がり、その値は保存される。いちど 0 にすると次に
+   * 開いても無音のままで、画面には何も出ない。壊れたと思われてしまう。
+   *
+   * ふだんの表示（再生中のパターン名など）を消さないよう、
+   * 戻すのは自分が出した断りを消すときだけにする。
+   */
+  private watchForSilence() {
+    if (this.silenceTimer !== null) return;
+    this.silenceTimer = window.setTimeout(() => {
+      this.silenceTimer = null;
+      if (this.song.settings.mix.volume <= 0) this.setStatus(t('status.muted'));
+      else if (this.statusEl.textContent === t('status.muted')) this.setStatus(t('status.playing'));
+    }, 500);
   }
 
   private setStatus(text: string) {

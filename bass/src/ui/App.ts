@@ -681,7 +681,9 @@ export class BassApp {
         label: t('ctl.volume.label'),
         min: 0, max: 1, step: 0.01, value: this.settings.volume,
         format: (v) => `${Math.round(v * 100)}`,
-        onInput: (v) => { this.settings.volume = v; this.commit(); },
+        // つまみを動かしたその場で見直す。音量を戻したのに
+        // 断りが残ったままだと、直ったことが分からない
+        onInput: (v) => { this.settings.volume = v; this.commit(); this.watchForSilence(); },
       })
     );
     body.append(el('h2', 'panel-title', t('panel.output')), out);

@@ -1037,7 +1037,9 @@ export class GuitarApp {
         label: t('ctl.masterVolume.label'),
         min: 0, max: 1, step: 0.01, value: s.volume,
         format: (v) => `${(v * 100).toFixed(0)}%`,
-        onInput: (v) => set('volume', v),
+// つまみを動かしたその場で見直す。音量を戻したのに
+        // 断りが残ったままだと、直ったことが分からない
+        onInput: (v) => { set('volume', v); this.watchForSilence(); },
       }),
       slider({
         label: t('ctl.outputTrim.label'),
