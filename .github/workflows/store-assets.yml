@@ -64,8 +64,15 @@ jobs:
       # スクショは320〜3840pxで16:9か9:16）に合っているかを、
       # 掲載文や掲載ポリシーとまとめて確かめる。
       # 手元では画像が無いと飛ばされる検査なので、実物があるここが本番
+      # 1本だけ撮ったときに、撮っていない6本で落ちないよう、
+      # 撮った対象と同じものを見る
       - name: Check the listing is ready for the store
-        run: node scripts/test-store-ready.mjs
+        run: |
+          if [ "${{ inputs.app }}" = "all" ]; then
+            node scripts/test-store-ready.mjs
+          else
+            node scripts/test-store-ready.mjs "${{ inputs.app }}"
+          fi
 
       # 中身が空だったり、豆腐だらけだったりしないかを最低限だけ確かめる
       - name: Check what came out
