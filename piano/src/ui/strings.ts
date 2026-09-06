@@ -24,6 +24,7 @@ const ja: Record<string, string> = {
   'octave.label': 'PCキー: C{n}',
 
   'status.ready': '準備完了',
+  'status.muted': 'マスター音量が 0 になっています',
   'status.pressKey': '鍵盤を押すと開始',
   'status.midi': 'MIDI: {devices}',
   'status.audioError': 'オーディオを開始できません: {err}',
@@ -215,6 +216,7 @@ const en: Record<string, string> = {
   'octave.label': 'PC key: C{n}',
 
   'status.ready': 'Ready',
+  'status.muted': 'Master volume is set to zero.',
   'status.pressKey': 'Press a key to start',
   'status.midi': 'MIDI: {devices}',
   'status.audioError': 'Could not start audio: {err}',

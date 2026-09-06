@@ -25,6 +25,8 @@ const ja = {
   'mute.label': 'ミュート',
 
   'status.ready': '準備完了',
+  'status.muted': 'マスター音量が 0 になっています',
+  'status.audioBlocked': '音が止まっています。画面をもう一度タップすると戻ります',
   'status.tapToStart': '指板に触れると開始',
   'status.capo': 'カポ {n}',
   'status.midi': 'MIDI: {devices}',
@@ -440,6 +442,8 @@ const en: typeof ja = {
   'mute.label': 'Mute',
 
   'status.ready': 'Ready',
+  'status.muted': 'Master volume is set to zero.',
+  'status.audioBlocked': 'Sound is paused. Tap the screen once to bring it back.',
   'status.tapToStart': 'Touch the fretboard to start',
   'status.capo': 'Capo {n}',
   'status.midi': 'MIDI: {devices}',
