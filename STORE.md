@@ -260,7 +260,7 @@ Hoshizora Vocal 日本語歌声シンセ
 
 **アプリ名**
 ```
-Yamabiko Sampler 自作音源サンプラー
+Yamabiko Sampler
 ```
 
 **簡単な説明**（80字以内）
