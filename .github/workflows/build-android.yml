@@ -27,12 +27,12 @@ on:
       versionCode:
         description: 'バージョンコード（Play にアップするたびに増やす整数）'
         required: true
-        default: '5'
+        default: '6'
         type: string
       versionName:
         description: 'バージョン名（利用者に見える表記）'
         required: true
-        default: '2.2.1'
+        default: '2.2.2'
         type: string
 
 jobs:
@@ -42,6 +42,20 @@ jobs:
     outputs:
       apps: ${{ steps.pick.outputs.apps }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # 掲載文の字数・プライバシーポリシー・パッケージ名を、ビルド前に見る。
+      # ここで転べば、7本ぶんを回しきってから撥ねられずに済む。
+      # 掲載画像は別のワークフローで作るので、ここには無く、検査も飛ばされる
+      - name: Check the listing is ready for the store
+        run: node scripts/test-store-ready.mjs
+
       - id: pick
         run: |
           if [ "${{ inputs.app }}" = "all" ]; then
