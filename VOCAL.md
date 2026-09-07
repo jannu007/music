@@ -5,7 +5,7 @@
 その場で計算**して歌わせています。ピアノロールに音符を置き、かなで歌詞を書くだけで
 日本語で歌い、伴奏付きのミックスを **WAV / MIDI** に書き出せます。
 
-このリポジトリのシンセ（Micro Sakura Studio）・ピアノ（Aozora Grand Piano）とは
+このリポジトリのシンセ（Akatsuki Synth）・ピアノ（Aozora Grand Piano）とは
 独立したアプリで、`/vocal/` で公開されます。
 
 - 開発サーバー … `npm run vocal:dev` → <http://localhost:5174/vocal/>

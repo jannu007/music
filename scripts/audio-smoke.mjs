@@ -1,5 +1,5 @@
 /**
- * Micro Sakura Studio — 音声出力の自動検証スクリプト
+ * Youkoku Japan Studio — 音声出力の自動検証スクリプト
  *
  * ヘッドレス Chromium で実際にアプリを起動し、WAV 書き出しを実行して
  * 生成された音声を解析します（無音・クリップ・NaN・DC オフセットを検出）。

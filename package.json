@@ -61,7 +61,7 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.microsakurastudio.app",
+    "appId": "shop.youkoku.akatsuki",
     "productName": "Akatsuki Synth",
     "files": [
       "dist/**/*",
