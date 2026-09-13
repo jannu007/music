@@ -42,7 +42,7 @@ import { button, el, section, segmented, select, slider, switchRow } from './con
 import { getLocale, onLocaleChange, t, toggleLocale } from './i18n';
 import './strings';
 
-const STORAGE_KEY = 'takibi-guitar-v1';
+const STORAGE_KEY = 'kagari-guitar-v1';
 
 interface StoredChord {
   root: number;
@@ -319,7 +319,7 @@ export class GuitarApp {
     brand.innerHTML = `
       <span class="brand-mark" aria-hidden="true"></span>
       <span class="brand-text">
-        <strong>Takibi Guitar</strong>
+        <strong>Kagari Guitar</strong>
         <small>${t('brand.subtitle')}</small>
       </span>`;
 
@@ -1509,7 +1509,7 @@ export class GuitarApp {
       strumSpread: this.ui.strumSpread,
       humanize: this.ui.humanize,
     });
-    await this.renderAndDownload(events, arrangeDuration(all, pattern, this.ui.bpm) + 3, 'takibi-backing');
+    await this.renderAndDownload(events, arrangeDuration(all, pattern, this.ui.bpm) + 3, 'kagari-backing');
   }
 
   private async exportWav() {
@@ -1521,7 +1521,7 @@ export class GuitarApp {
       this.setStatus(t('status.nothingToExportLong'));
       return;
     }
-    await this.renderAndDownload(events, duration, 'takibi-guitar');
+    await this.renderAndDownload(events, duration, 'kagari-guitar');
   }
 
   private async renderAndDownload(events: PerformanceEvent[], duration: number, prefix: string) {
@@ -1556,7 +1556,7 @@ export class GuitarApp {
     const program = preset.tuningId === 'bass' ? 33 : preset.ampType === 'off' ? 25 : 27;
     const blob = encodeMidi(events, this.tuning().notes, this.settings.capo, this.ui.bpm, program);
     try {
-      await this.saveFile(blob, timestampName('takibi-guitar', 'mid'), t('status.midiExported'));
+      await this.saveFile(blob, timestampName('kagari-guitar', 'mid'), t('status.midiExported'));
     } catch (err) {
       this.setStatus(t('status.exportFailed', { err: String(err) }));
     }

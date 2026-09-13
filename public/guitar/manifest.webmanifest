@@ -1,6 +1,6 @@
 {
-  "name": "Takibi Guitar",
-  "short_name": "Takibi Guitar",
+  "name": "Kagari Guitar",
+  "short_name": "Kagari Guitar",
   "description": "サンプル音源を使わない物理モデリングのギター。コード伴奏・録音まで対応。広告なし・オフライン動作。",
   "id": "/guitar/",
   "start_url": "./",

@@ -59,11 +59,11 @@ release and sell.
 
 ---
 
-## 2. Aozora Grand Piano
+## 2. Youkoku Grand Piano
 
 **Title**
 ```
-Aozora Grand Piano: Modelled
+Youkoku Grand Piano: Modelled
 ```
 
 **Short description**
@@ -143,11 +143,11 @@ and sell.
 
 ---
 
-## 4. Takibi Guitar
+## 4. Kagari Guitar
 
 **Title**
 ```
-Takibi Guitar: String Physics
+Kagari Guitar: String Physics
 ```
 
 **Short description**

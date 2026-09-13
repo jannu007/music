@@ -9,12 +9,12 @@
 > このリポジトリには、同じ思想（サンプル音源を使わず、その場で音を計算する）で作られた
 > **姉妹アプリ**を収録しています。
 >
-> - 🎹 **[Aozora Grand Piano](PIANO.md)** … 物理モデリング方式のグランドピアノ。
+> - 🎹 **[Youkoku Grand Piano](PIANO.md)** … 物理モデリング方式のグランドピアノ。
 >   `/piano/` で公開、開発時は `npm run piano:dev`
 > - 🥁 **[Hibiki Drum Machine](DRUMS.md)** … 14種類の打楽器をその場で合成するドラムマシン。
 >   8パターン / ソングモード / ポリメーター / ステム書き出しに対応。
 >   `/drums/` で公開、開発時は `npm run drums:dev`
-> - 🎸 **[Takibi Guitar](GUITAR.md)** … 物理モデリング方式のギター。指板演奏・コード自動運指・
+> - 🎸 **[Kagari Guitar](GUITAR.md)** … 物理モデリング方式のギター。指板演奏・コード自動運指・
 >   自動伴奏・アンプ／エフェクトまで搭載。`/guitar/` で公開、開発時は `npm run guitar:dev`
 > - 🎸 **[Kurogane Bass](BASS.md)** … デジタル導波管方式のエレキベース。指板をタップして演奏でき、
 >   スライド・チョーキング・スラップ・フレットレスに対応。

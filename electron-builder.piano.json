@@ -1,6 +1,6 @@
 {
   "appId": "com.aozoragrandpiano.app",
-  "productName": "Aozora Grand Piano",
+  "productName": "Youkoku Grand Piano",
   "extraMetadata": {
     "main": "electron/piano-main.cjs"
   },

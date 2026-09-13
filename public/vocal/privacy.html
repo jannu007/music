@@ -46,19 +46,23 @@
       ありません。録音を使わない場合、マイクにはまったくアクセスしません。
     </p>
     <p>
-      ただし、歌詞の付け方で「言葉を聞き取る」を選んだ場合に限り、ブラウザに内蔵された
-      音声認識機能（Web Speech API）を利用します。多くのブラウザでは、この機能は
-      <strong>ブラウザ提供元のサーバーへ音声を送って認識します</strong>。送信先や取り扱いは
-      ブラウザ提供元のプライバシーポリシーに従います。これを避けたい場合は、歌詞の付け方を
-      「母音を推定」または「ら」に切り替えてください。どちらも端末内だけで処理し、
-      音声は外部へ送信されません。
+      <strong>Android版には、音声認識の機能はありません。</strong>
+      歌詞は端末内だけで処理する「母音を推定」または「ら」で付けます。
+      音声が外部へ送信されることはありません。
+    </p>
+    <p>
+      Web版（ブラウザ）でのみ、歌詞の付け方に「言葉を聞き取る」を選べます。
+      これはブラウザに内蔵された音声認識機能（Web Speech API）を使うもので、
+      多くのブラウザでは<strong>ブラウザ提供元のサーバーへ音声を送って認識します</strong>。
+      送信先や取り扱いはブラウザ提供元のプライバシーポリシーに従います。
+      避けたい場合は「母音を推定」または「ら」に切り替えてください。
     </p>
 
     <h2>端末内への保存</h2>
     <p>
       編集中の曲を次回も開けるように、ブラウザの localStorage へ曲データと設定を
       保存します。これは端末内のみに保存され、外部へ送信されることはありません。
-      ブラウザの設定から削除できます。
+      Web版はブラウザの設定から、Android版はアプリを削除することで消去できます。
     </p>
 
     <h2>オフライン動作</h2>
@@ -129,8 +133,8 @@
 
       <h2>Storage on your device</h2>
       <p>
-        Songs, lyrics, voice settings and the state of the screen are kept in the browser's localStorage. Nothing is uploaded. You can remove it from your browser
-        settings, or by uninstalling the app.
+        Songs, lyrics, voice settings and the state of the screen are kept in localStorage on the web, and in the app's own storage on Android. Nothing is uploaded. You can clear it from your browser
+        settings on the web, or by uninstalling the app on Android.
       </p>
 
       <h2>What you make is yours</h2>

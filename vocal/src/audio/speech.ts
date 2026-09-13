@@ -4,6 +4,10 @@
  * ブラウザ内蔵の Web Speech API を使う。追加の課金・アカウント・ライブラリは要らないが、
  * 多くのブラウザでは認識サーバーへ音声を送るため、インターネット接続が必要になる。
  * 使えない環境では静かにあきらめ、母音の推定（transcribe 側）に任せる。
+ *
+ * 同梱アプリ（Android）では、この機能を使わない。外へ音声が出る経路が
+ * あると「ネットワークへ一切つながらない」という申告が偽りになるため。
+ * くわしくは constructor() の注記。
  */
 
 type SpeechRecognitionLike = {
@@ -19,7 +23,32 @@ type SpeechRecognitionLike = {
   onend: (() => void) | null;
 };
 
+/**
+ * 同梱アプリ（Android）で動いているか。
+ *
+ * Capacitor が WebView に橋渡しの層を差し込むので、その有無で見分ける。
+ * protocol も見ているのは、橋渡しの読み込みが間に合わない場合の保険。
+ */
+function isPackagedApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  const cap = (window as any).Capacitor;
+  if (cap?.isNativePlatform?.() === true) return true;
+  if (typeof cap?.platform === 'string' && cap.platform !== 'web') return true;
+  return location.protocol === 'capacitor:';
+}
+
 function constructor(): (new () => SpeechRecognitionLike) | null {
+  // 同梱アプリでは、この機能を使わない。
+  //
+  // 認識は端末内で完結せず、ブラウザ提供元のサーバーへ音声を送る。
+  // 7本とも「ネットワークへ一切つながらない」ことを売りにしており、
+  // Play のデータセーフティでも「収集も共有もしていない」と申告している。
+  // 条件付きでも外へ音声が出る経路があると、その申告が偽りになる。
+  //
+  // Android の WebView はそもそも Web Speech API を実装していないことが
+  // 多く、実際には動かない見込みだが、「動かないはず」に頼らず塞ぐ。
+  // 使えないときは母音の推定に切り替わるので、歌詞は付けられる。
+  if (isPackagedApp()) return null;
   const w = window as any;
   return w.SpeechRecognition || w.webkitSpeechRecognition || null;
 }

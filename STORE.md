@@ -55,11 +55,11 @@ Akatsuki Synth バーチャルアナログ
 
 ---
 
-## 2. Aozora Grand Piano
+## 2. Youkoku Grand Piano
 
 **アプリ名**
 ```
-Aozora Grand Piano 物理モデリング
+Youkoku Grand Piano 物理モデリング
 ```
 
 **簡単な説明**（80字以内）
@@ -134,11 +134,11 @@ Hibiki Drum Machine ドラムマシン
 
 ---
 
-## 4. Takibi Guitar
+## 4. Kagari Guitar
 
 **アプリ名**
 ```
-Takibi Guitar 物理モデリング・ギター
+Kagari Guitar 物理モデリング・ギター
 ```
 
 **簡単な説明**（80字以内）
@@ -314,9 +314,9 @@ Yamabiko Sampler
 | アプリ | おすすめの画面 |
 | --- | --- |
 | Akatsuki Synth | ツマミの並んだ音づくり画面、ピアノロール |
-| Aozora Grand Piano | 鍵盤、音色プリセット一覧 |
+| Youkoku Grand Piano | 鍵盤、音色プリセット一覧 |
 | Hibiki Drum Machine | 色分けされたステップグリッド、パッド |
-| Takibi Guitar | 指板、コード画面、アンプ設定 |
+| Kagari Guitar | 指板、コード画面、アンプ設定 |
 | Kurogane Bass | 指板と奏法ボタン、アンプ／エフェクト |
 | Hoshizora Vocal | 歌詞入りのピアノロール、声質の設定 |
 | Yamabiko Sampler | 割り当て画面（波形とゾーン）、音源一覧 |

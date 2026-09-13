@@ -4,8 +4,8 @@
 録音済みのベース音源（サンプル）を一切使わず、**弦の振動そのものをその場で計算**して
 音を作っています。アプリ本体は約 25 KB（gzip 圧縮時）で、追加ダウンロードは一切ありません。
 
-同一リポジトリの [Akatsuki Synth](README.md) / [Aozora Grand Piano](PIANO.md) /
-[Hibiki Drum Machine](DRUMS.md) / [Takibi Guitar](GUITAR.md) の姉妹アプリで、`/bass/` で公開されます。
+同一リポジトリの [Akatsuki Synth](README.md) / [Youkoku Grand Piano](PIANO.md) /
+[Hibiki Drum Machine](DRUMS.md) / [Kagari Guitar](GUITAR.md) の姉妹アプリで、`/bass/` で公開されます。
 
 - 開発サーバー … `npm run bass:dev` → <http://localhost:5174/bass/>
 - 本番ビルド … `npm run build` → `dist/bass/`

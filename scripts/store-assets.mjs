@@ -54,7 +54,7 @@ const APPS = [
   {
     id: 'piano',
     langKey: 'aozora-piano-lang',
-    name: 'Aozora Grand Piano',
+    name: 'Youkoku Grand Piano',
     accent: '#e8c98a',
     tabs: [0, 2, 4],
     ja: { tagline: '弦の振動から鳴らすピアノ', chips: ['88鍵', '3本ペダル', 'オフライン'] },
@@ -71,8 +71,8 @@ const APPS = [
   },
   {
     id: 'guitar',
-    langKey: 'takibi-guitar-lang',
-    name: 'Takibi Guitar',
+    langKey: 'kagari-guitar-lang',
+    name: 'Kagari Guitar',
     accent: '#e09a5a',
     tabs: [0, 3, 4, 5],
     ja: { tagline: '弦をはじく物理を計算する', chips: ['コード', 'アンプ', 'オフライン'] },

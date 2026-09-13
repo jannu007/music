@@ -237,7 +237,7 @@ export class PianoApp {
     brand.innerHTML = `
       <span class="brand-mark" aria-hidden="true"></span>
       <span class="brand-text">
-        <strong>Aozora Grand Piano</strong>
+        <strong>Youkoku Grand Piano</strong>
         <small>${t('brand.subtitle')}</small>
       </span>`;
 

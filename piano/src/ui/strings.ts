@@ -1,4 +1,4 @@
-/* Aozora Grand Piano の全UI文字列（日本語 / 英語） */
+/* Youkoku Grand Piano の全UI文字列（日本語 / 英語） */
 import { registerStrings } from './i18n';
 
 const ja: Record<string, string> = {
