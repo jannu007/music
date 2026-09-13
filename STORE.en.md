@@ -143,11 +143,11 @@ and sell.
 
 ---
 
-## 4. Takibi Guitar
+## 4. Kagari Guitar
 
 **Title**
 ```
-Takibi Guitar: String Physics
+Kagari Guitar: String Physics
 ```
 
 **Short description**

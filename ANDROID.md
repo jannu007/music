@@ -43,7 +43,7 @@ npm run native:build
 | synthesizer | `shop.youkoku.akatsuki` | 約 0.97 MB |
 | piano | `shop.youkoku.piano` | 約 1.11 MB |
 | drums | `shop.youkoku.hibiki` | 約 1.04 MB |
-| guitar | `shop.youkoku.takibi` | 約 1.16 MB |
+| guitar | `shop.youkoku.kagari` | 約 1.16 MB |
 | bass | `shop.youkoku.kurogane` | 約 1.10 MB |
 | vocal | `shop.youkoku.hoshizora` | 約 1.16 MB |
 | sampler | `shop.youkoku.sampler` | 約 1.09 MB |

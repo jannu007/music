@@ -113,7 +113,7 @@ Play では **1本 = 1つのアプリ登録**です。いま出せるのは **6�
 | --- | --- | --- | --- |
 | synthesizer | `shop.youkoku.akatsuki` | 前の名前の登録は自分で削除 | **出せる** |
 | drums | `shop.youkoku.hibiki` | 同上 | **出せる** |
-| guitar | `shop.youkoku.takibi` | 同上 | **出せる** |
+| guitar | `shop.youkoku.kagari` | 同上 | **出せる** |
 | bass | `shop.youkoku.kurogane` | 同上 | **出せる** |
 | vocal | `shop.youkoku.hoshizora` | 同上 | **出せる** |
 | sampler | `shop.youkoku.sampler` | **2026-09-13 公開中**（2.2.2 / コード6 / 172か国 / 500円） | ✅ 販売中 |

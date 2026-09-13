@@ -247,7 +247,7 @@ const ja = {
   'status.playing': '再生中: {label}',
   'status.pcOctave': 'PCキー: C{n}',
 
-  'help.title': 'Takibi Guitar の使い方',
+  'help.title': 'Kagari Guitar の使い方',
   'help.play.heading': '弾く',
   'help.play.tap': '<b>指板をタップ</b> … その弦・フレットを弾きます。',
   'help.play.bendSlide': '<b>押したまま上下</b> … チョーキング。<b>左右</b> … スライド。',
@@ -664,7 +664,7 @@ const en: typeof ja = {
   'status.playing': 'Playing: {label}',
   'status.pcOctave': 'Keyboard: C{n}',
 
-  'help.title': 'How to Play Takibi Guitar',
+  'help.title': 'How to Play Kagari Guitar',
   'help.play.heading': 'Play',
   'help.play.tap': '<b>Tap the fretboard</b> … plays that string and fret.',
   'help.play.bendSlide': '<b>Drag up/down while holding</b> … bend. <b>Left/right</b> … slide.',

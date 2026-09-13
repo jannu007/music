@@ -88,7 +88,7 @@ export class StringView {
 
     ctx.clearRect(0, 0, w, h);
 
-    // 背景（焚火のような暖色のにじみ）
+    // 背景（篝火のような暖色のにじみ）
     const grad = ctx.createLinearGradient(0, 0, 0, h);
     grad.addColorStop(0, 'rgba(60, 26, 10, 0.55)');
     grad.addColorStop(1, 'rgba(14, 10, 9, 0.2)');

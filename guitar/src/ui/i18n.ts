@@ -7,7 +7,7 @@
 
 export type Locale = 'ja' | 'en';
 
-const STORAGE_KEY = 'takibi-guitar-lang';
+const STORAGE_KEY = 'kagari-guitar-lang';
 
 type Dict = Record<string, string>;
 const strings: Record<Locale, Dict> = { ja: {}, en: {} };

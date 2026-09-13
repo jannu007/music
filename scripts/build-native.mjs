@@ -32,7 +32,7 @@ const OUT = join(ROOT, 'dist-native');
  * パッケージ名は、いちど Play に登録すると二度と使い回せない。
  * 消しても解放されないので、ここは履歴がそのまま形に出ている。
  *
- *   ・5本（akatsuki/hibiki/takibi/kurogane/hoshizora）… 前の名前は
+ *   ・5本（akatsuki/hibiki/kagari/kurogane/hoshizora）… 前の名前は
  *     自分で消した登録が使ってしまったので、アプリ名にそろえた新しい名前。
  *   ・piano … 旧名 shop.youkoku.piano は停止された登録が持ったままで、
  *     二度と使えない。異議申し立ては却下されたが、その回答で Google 自身が
@@ -49,7 +49,7 @@ export const NATIVE_APPS = [
   { id: 'synthesizer', appId: 'shop.youkoku.akatsuki', name: 'Akatsuki Synth', worklet: true },
   { id: 'piano', appId: 'shop.youkoku.grandpiano', name: 'Youkoku Grand Piano', worklet: true },
   { id: 'drums', appId: 'shop.youkoku.hibiki', name: 'Hibiki Drum Machine', worklet: true },
-  { id: 'guitar', appId: 'shop.youkoku.takibi', name: 'Takibi Guitar', worklet: true },
+  { id: 'guitar', appId: 'shop.youkoku.kagari', name: 'Kagari Guitar', worklet: true },
   { id: 'bass', appId: 'shop.youkoku.kurogane', name: 'Kurogane Bass', worklet: true },
   { id: 'vocal', appId: 'shop.youkoku.hoshizora', name: 'Hoshizora Vocal', worklet: true },
   { id: 'sampler', appId: 'shop.youkoku.sampler', name: 'Yamabiko Sampler', worklet: false },

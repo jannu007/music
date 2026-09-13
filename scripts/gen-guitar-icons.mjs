@@ -1,5 +1,5 @@
 /*
- * Takibi Guitar のアイコンを生成する（外部ライブラリ不要）。
+ * Kagari Guitar のアイコンを生成する（外部ライブラリ不要）。
  *   node scripts/gen-guitar-icons.mjs
  * サウンドホールと張られた弦を正面から見た、というモチーフ。
  */
@@ -30,7 +30,7 @@ function shade(x, y, opts) {
     if (Math.hypot(dx, dy) > r) return [0, 0, 0, 0];
   }
 
-  // 背景：焚火に照らされた木の面
+  // 背景：篝火に照らされた木の面
   const grain = Math.sin(x * 46 + Math.sin(y * 7) * 2.2) * 0.5 + 0.5;
   const base = mix([64, 38, 22], [24, 14, 9], Math.min(1, y * 1.15));
   const glow = Math.max(0, 1 - Math.hypot(x - 0.3, y - 0.2) * 1.5) * 0.4;

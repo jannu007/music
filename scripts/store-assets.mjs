@@ -71,8 +71,8 @@ const APPS = [
   },
   {
     id: 'guitar',
-    langKey: 'takibi-guitar-lang',
-    name: 'Takibi Guitar',
+    langKey: 'kagari-guitar-lang',
+    name: 'Kagari Guitar',
     accent: '#e09a5a',
     tabs: [0, 3, 4, 5],
     ja: { tagline: '弦をはじく物理を計算する', chips: ['コード', 'アンプ', 'オフライン'] },

@@ -89,7 +89,7 @@ const APPS = [
     // 音量つまみは 0 まで下がり、その値は保存される。
     // 無音になったとき、理由が出ること
     muteHint: { tab: /^(Effects|エフェクト)$/i, text: /マスター音量が 0|Master volume is set to zero/, status: '.status' },
-    lang: 'takibi-guitar-lang',
+    lang: 'kagari-guitar-lang',
     panel: '.main-area',
     sound: [{ click: '.chord-pad' }],
     // 録音の面でも指板は下に出たままなので、そこを弾いて記録する

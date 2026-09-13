@@ -1,6 +1,6 @@
 {
-  "appId": "com.takibiguitar.app",
-  "productName": "Takibi Guitar",
+  "appId": "com.kagariguitar.app",
+  "productName": "Kagari Guitar",
   "extraMetadata": {
     "main": "electron/guitar-main.cjs"
   },
