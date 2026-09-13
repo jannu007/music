@@ -4,7 +4,7 @@
 録音済みのドラム音源（サンプル）を一切使わず、**14種類の打楽器すべてをその場で計算**して
 鳴らしています。アプリ本体は約 22 KB（gzip 圧縮時）で、追加ダウンロードはありません。
 
-このリポジトリのシンセ（Akatsuki Synth）・ピアノ（Aozora Grand Piano）とは
+このリポジトリのシンセ（Akatsuki Synth）・ピアノ（Youkoku Grand Piano）とは
 独立したアプリで、`/drums/` で公開されます。
 
 - 開発サーバー … `npm run drums:dev` → <http://localhost:5174/drums/>

@@ -1,6 +1,6 @@
 {
-  "name": "Aozora Grand Piano",
-  "short_name": "Aozora Piano",
+  "name": "Youkoku Grand Piano",
+  "short_name": "Youkoku Piano",
   "description": "サンプル音源を使わない物理モデリングのグランドピアノ。広告なし・オフライン動作。",
   "id": "/piano/",
   "start_url": "./",

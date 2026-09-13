@@ -1,4 +1,4 @@
-/* Aozora Grand Piano — オフライン用サービスワーカー（スコープ: /piano/） */
+/* Youkoku Grand Piano — オフライン用サービスワーカー（スコープ: /piano/） */
 const CACHE = 'aozora-piano-v3';
 
 self.addEventListener('install', () => {

@@ -34,9 +34,10 @@ const OUT = join(ROOT, 'dist-native');
  *
  *   ・5本（akatsuki/hibiki/takibi/kurogane/hoshizora）… 前の名前は
  *     自分で消した登録が使ってしまったので、アプリ名にそろえた新しい名前。
- *   ・piano … 停止された登録がこの名前を持ったまま。再審査が通れば
- *     同じ名前で更新できるので、変えない。別名で出し直すのは
- *     「措置の回避」に当たるため、通るまでは出さない。
+ *   ・piano … 旧名 shop.youkoku.piano は停止された登録が持ったままで、
+ *     二度と使えない。異議申し立ては却下されたが、その回答で Google 自身が
+ *     「新しいパッケージ名とアプリ名を指定して、新しいアプリをアップロード」
+ *     するよう案内してきたので、それに従った（アプリ名も Aozora から変更）。
  *   ・sampler … 一度も登録していないので、そのまま。
  *
  * worklet: そのアプリが音源に AudioWorklet を使うか。
@@ -46,7 +47,7 @@ const OUT = join(ROOT, 'dist-native');
  */
 export const NATIVE_APPS = [
   { id: 'synthesizer', appId: 'shop.youkoku.akatsuki', name: 'Akatsuki Synth', worklet: true },
-  { id: 'piano', appId: 'shop.youkoku.piano', name: 'Aozora Grand Piano', worklet: true },
+  { id: 'piano', appId: 'shop.youkoku.grandpiano', name: 'Youkoku Grand Piano', worklet: true },
   { id: 'drums', appId: 'shop.youkoku.hibiki', name: 'Hibiki Drum Machine', worklet: true },
   { id: 'guitar', appId: 'shop.youkoku.takibi', name: 'Takibi Guitar', worklet: true },
   { id: 'bass', appId: 'shop.youkoku.kurogane', name: 'Kurogane Bass', worklet: true },

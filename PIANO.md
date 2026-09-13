@@ -1,4 +1,4 @@
-# Aozora Grand Piano 🎹
+# Youkoku Grand Piano 🎹
 
 広告なし・アカウント不要の、物理モデリング方式グランドピアノ・アプリです（Web版は無料、Android版はGoogle Playで買い切り配布）。
 録音済みのピアノ音源（サンプル）を一切使わず、**88鍵それぞれの弦の振動をその場で計算**して

@@ -1,5 +1,5 @@
 /*
- * Aozora Grand Piano のアイコンを生成する（外部ライブラリ不要）。
+ * Youkoku Grand Piano のアイコンを生成する（外部ライブラリ不要）。
  *   node scripts/gen-piano-icons.mjs
  * グランドピアノを真上から見たシルエット + 鍵盤、というモチーフ。
  */

@@ -13,7 +13,7 @@ export default defineConfig({
       input: {
         // Akatsuki Synth（シンセ・/synthesizer/ で公開）
         main: resolve(__dirname, 'synthesizer/index.html'),
-        // Aozora Grand Piano（グランドピアノ・/piano/ で公開）
+        // Youkoku Grand Piano（グランドピアノ・/piano/ で公開）
         piano: resolve(__dirname, 'piano/index.html'),
         // Hibiki Drum Machine（ドラムマシン・/drums/ で公開）
         drums: resolve(__dirname, 'drums/index.html'),

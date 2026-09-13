@@ -54,7 +54,7 @@ const APPS = [
   {
     id: 'piano',
     langKey: 'aozora-piano-lang',
-    name: 'Aozora Grand Piano',
+    name: 'Youkoku Grand Piano',
     accent: '#e8c98a',
     tabs: [0, 2, 4],
     ja: { tagline: '弦の振動から鳴らすピアノ', chips: ['88鍵', '3本ペダル', 'オフライン'] },

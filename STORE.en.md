@@ -59,11 +59,11 @@ release and sell.
 
 ---
 
-## 2. Aozora Grand Piano
+## 2. Youkoku Grand Piano
 
 **Title**
 ```
-Aozora Grand Piano: Modelled
+Youkoku Grand Piano: Modelled
 ```
 
 **Short description**
