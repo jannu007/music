@@ -109,6 +109,13 @@ jobs:
       - name: Verify the bundle is self-contained
         run: node scripts/verify-native.mjs "${{ matrix.app }}"
 
+      # vocal だけは、音声認識が同梱版で塞がれているかも見る。
+      # 塞げていないと、条件付きで音声が外へ出る経路が残り、
+      # データセーフティの「収集も共有もしていない」が偽りになる
+      - name: Check speech recognition is off in the packaged app
+        if: ${{ matrix.app == 'vocal' }}
+        run: node scripts/test-native-speech.mjs
+
       # Capacitor は Android のビルドにしか使わないので、ここでだけ入れる
       # （web 側の依存を増やさないため package.json には載せていない）
       #
