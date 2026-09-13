@@ -38,7 +38,7 @@
       録音した演奏・書き出した WAV / MIDI ファイルは端末内にのみ保存されます。
     </p>
     <p>
-      MIDI キーボードを接続する場合のみ、ブラウザの Web MIDI 機能へのアクセス許可を
+      MIDI キーボードを接続する場合のみ、Web MIDI へのアクセス許可を
       求めます。許可した場合も、受け取った演奏情報は端末内での発音にのみ使用され、
       外部へ送信されることはありません。許可は任意で、拒否しても画面上の鍵盤や
       PC キーボードで通常どおり演奏できます。
@@ -46,10 +46,10 @@
 
     <h2>端末内に保存されるデータ</h2>
     <p>
-      音色設定・鍵盤の表示設定などを、ブラウザの localStorage に保存します。これらは
-      端末内にのみ保存され、外部へ送信されません。ブラウザの設定から削除できます。
-      オフライン動作のため、アプリ本体のファイルは Service Worker のキャッシュにも
-      保存されます。
+      音色設定・鍵盤の表示設定などを、Web版ではブラウザの localStorage に、Android版ではアプリ内の保存領域に保存します。これらは
+      端末内にのみ保存され、外部へ送信されません。Web版はブラウザの設定から、Android版はアプリを削除することで消去できます。
+      Android版は、動作に必要なファイルをすべてアプリ内に同梱しており、
+      ネットワークへの要求を一切行いません。
     </p>
 
     <h2>作成した音源の権利</h2>
@@ -104,8 +104,8 @@
 
       <h2>Storage on your device</h2>
       <p>
-        Voicing settings and the state of the screen are kept in the browser's localStorage. Nothing is uploaded. You can remove it from your browser
-        settings, or by uninstalling the app.
+        Voicing settings and the state of the screen are kept in localStorage on the web, and in the app's own storage on Android. Nothing is uploaded. You can clear it from your browser
+        settings on the web, or by uninstalling the app on Android.
       </p>
 
       <h2>What you make is yours</h2>

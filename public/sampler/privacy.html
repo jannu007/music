@@ -52,12 +52,11 @@
 
     <h2>端末内に保存されるデータ</h2>
     <p>
-      楽器の設定・画面の状態を、ブラウザの localStorage に保存します。取り込んだ音・
+      楽器の設定・画面の状態を、Web版ではブラウザの localStorage に、Android版ではアプリ内の保存領域に保存します。取り込んだ音・
       録音した音の波形は IndexedDB に保存します。これらは端末内にのみ保存され、外部へ
       送信されません。アプリ内の「取り込んだ素材をすべて消す」からいつでも削除でき、
-      ブラウザの設定からも削除できます。オフライン動作のため、アプリ本体のファイルは
-      Service Worker のキャッシュにも保存されます（Android アプリ版では、本体が端末内に
-      同梱されているためキャッシュは使いません）。
+      Web版はブラウザの設定からも削除できます。Android版は、動作に必要なファイルを
+      すべてアプリ内に同梱しており、ネットワークへの要求を一切行いません。
     </p>
 
     <h2>付属音源と、作成した音源の権利</h2>
@@ -130,8 +129,8 @@
 
       <h2>Storage on your device</h2>
       <p>
-        Instrument settings and the state of the screen are kept in localStorage; the audio you import or record is kept in IndexedDB. Nothing is uploaded. You can remove it from your browser
-        settings, or by uninstalling the app.
+        Instrument settings and the state of the screen are kept in localStorage; the audio you import or record is kept in IndexedDB. Nothing is uploaded. You can clear it from your browser
+        settings on the web, or by uninstalling the app on Android.
       </p>
 
       <h2>What you make is yours</h2>
