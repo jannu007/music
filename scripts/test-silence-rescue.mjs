@@ -100,6 +100,44 @@ async function play(app, { silent }) {
   return { before, after };
 }
 
+// ヘッダーの音量つまみ。Amp タブの奥にしか無かったので、
+// 0 になっていても気づけなかった。いつでも見えて掴めることを確かめる
+async function masterKnob(app, width) {
+  const ctx = await browser.newContext({ viewport: { width, height: 890 } });
+  const page = await ctx.newPage();
+  await page.goto(`http://localhost:${PORT}/${app.id}/`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(900);
+  const seen = await page.evaluate(() => {
+    const wrap = document.querySelector('.master-vol');
+    const range = document.querySelector('.master-vol-range');
+    if (!wrap || !range) return { missing: true };
+    const bw = wrap.getBoundingClientRect();
+    const br = range.getBoundingClientRect();
+    const bar = document.querySelector('.topbar')?.getBoundingClientRect();
+    return {
+      shown: bw.width > 0 && bw.height > 0,
+      grabbable: br.height >= 20,
+      inBar: !bar || bw.right <= bar.right + 1,
+      size: `${Math.round(bw.width)}x${Math.round(br.height)}`,
+    };
+  });
+  // 0 にすると、目で分かるか
+  let zero = null;
+  if (!seen.missing) {
+    await page.$eval('.master-vol-range', (el) => {
+      el.value = '0';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForTimeout(900);
+    zero = await page.evaluate(() => ({
+      red: !!document.querySelector('.master-vol-range')?.classList.contains('is-zero'),
+      status: (document.querySelector('.status')?.textContent || '').trim(),
+    }));
+  }
+  await ctx.close();
+  return { seen, zero };
+}
+
 console.log('音が出ていないことに、アプリが気づけるか\n');
 
 for (const app of APPS) {
@@ -114,6 +152,21 @@ for (const app of APPS) {
     !!ng.after && ng.after.length > 0 && ng.after !== ng.before.text,
     ng.after ? `「${ng.after.slice(0, 30)}」` : '押せなかった'
   );
+}
+
+console.log('');
+for (const app of APPS) {
+  for (const w of [360, 412, 1280]) {
+    const { seen, zero } = await masterKnob(app, w);
+    if (seen.missing) {
+      check(`${app.id} ${w}px: ヘッダーに音量つまみがある`, false, '見つからない');
+      continue;
+    }
+    check(`${app.id} ${w}px: 音量つまみが見えて、指で掴める`,
+      seen.shown && seen.grabbable && seen.inBar, seen.size);
+    check(`${app.id} ${w}px: 0 にすると目で分かる`,
+      !!zero?.red && zero.status.length > 0, zero ? `赤=${zero.red}` : '');
+  }
 }
 
 await browser.close();

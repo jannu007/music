@@ -805,8 +805,11 @@ html, body {
 /* 狭い画面では、アプリ名を出さない。
    途中で切れて読めないくらいなら、いっそ出さないほうがよい
    （幅ごとの実測は scripts/test-brand-fit.mjs）。
-   絵柄（.brand-mark）は残るので、どのアプリかは分かる。 */
-@media (max-width: 559px) {
+   絵柄（.brand-mark）は残るので、どのアプリかは分かる。
+
+   ヘッダーに音量つまみを足したぶん、隠す幅を 559 から 767 へ広げた。
+   名前より音量のほうが、無いと困る。 */
+@media (max-width: 767px) {
   .brand-text { display: none; }
 }
 
@@ -815,4 +818,73 @@ html, body {
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* ヘッダーの音量つまみ。
+   Amp タブの奥にしか無かったので、0 になっていても気づけなかった。
+   いつでも見えて届くところに置く。0 のときは赤くして、目で分かるようにする。 */
+.master-vol {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: none;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+}
+
+.master-vol-icon svg { width: 17px; height: 17px; display: block; color: var(--ember-soft); }
+
+.master-vol-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 86px;
+  height: 20px;
+  background: transparent;
+  margin: 0;
+}
+
+.master-vol-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--ember) 0%, var(--ember-deep) 100%);
+}
+.master-vol-range::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--ember) 0%, var(--ember-deep) 100%);
+}
+
+/* 指で掴める大きさにする（実機で 20px 未満は掴みにくい） */
+.master-vol-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: -8px;
+  border-radius: 50%;
+  background: var(--ember-soft);
+  border: 1px solid var(--ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.master-vol-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ember-soft);
+  border: 1px solid var(--ink);
+}
+
+/* 0 のときは、つまみと枠を赤くする。音が出ない理由がここにあると分かる */
+.master-vol:has(.is-zero) { border-color: #e4674f; }
+.master-vol-range.is-zero::-webkit-slider-thumb { background: #e4674f; }
+.master-vol-range.is-zero::-moz-range-thumb { background: #e4674f; }
+.master-vol:has(.is-zero) .master-vol-icon svg { color: #e4674f; }
+
+/* 狭い画面では、つまみを短くしてでも残す。
+   ここを隠すと、また「音量が 0 だと気づけない」状態に戻ってしまう */
+@media (max-width: 559px) {
+  .master-vol { padding: 0.15rem 0.35rem; gap: 0.25rem; }
+  .master-vol-range { width: 64px; }
 }

@@ -114,6 +114,7 @@ export class GuitarApp {
   /** 無音の理由を見に行くための待ち。二重に張らない */
   private silenceTimer: number | null = null;
   private silenceProbe: number | null = null;
+  private masterRange!: HTMLInputElement;
   private transportEl!: HTMLElement;
   private chordReadout!: HTMLElement;
   private meterFill!: HTMLElement;
@@ -352,9 +353,40 @@ export class GuitarApp {
     panicButton.title = t('panic.title');
     panicButton.setAttribute('aria-label', t('panic.ariaLabel'));
 
+    // 音量は、いつでも見えて届くところに置く。
+    //
+    // Amp タブの奥にしか無かったので、0 になっていても気づけず、
+    // 「壊れた」と思われてしまった。上に出しておけば、0 なら一目で分かり、
+    // その場で戻せる。
+    const masterWrap = el('div', 'master-vol');
+    masterWrap.title = t('ctl.masterVolume.label');
+    const masterIcon = el('span', 'master-vol-icon');
+    masterIcon.setAttribute('aria-hidden', 'true');
+    masterIcon.innerHTML =
+      '<svg viewBox="0 0 24 24" focusable="false">'
+      + '<path d="M4 9.5h3.2L12 5.4v13.2L7.2 14.5H4z" fill="currentColor" />'
+      + '<path d="M15.4 9.2a4 4 0 0 1 0 5.6M17.9 6.7a7.5 7.5 0 0 1 0 10.6"'
+      + ' fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />'
+      + '</svg>';
+    this.masterRange = el('input', 'master-vol-range') as HTMLInputElement;
+    this.masterRange.type = 'range';
+    this.masterRange.min = '0';
+    this.masterRange.max = '1';
+    this.masterRange.step = '0.01';
+    this.masterRange.value = String(this.settings.volume);
+    this.masterRange.setAttribute('aria-label', t('ctl.masterVolume.label'));
+    this.masterRange.addEventListener('input', () => {
+      this.settings.volume = Number(this.masterRange.value);
+      this.commit();
+      this.syncMasterVolume();
+      this.watchForSilence();
+    });
+    masterWrap.append(masterIcon, this.masterRange);
+
     const headerActions = el('div', 'header-actions');
     headerActions.append(langButton, panicButton, button(t('help.button'), 'ghost round', () => this.toggleHelp()));
-    header.append(brand, presetWrap, this.statusEl, headerActions);
+    header.append(brand, presetWrap, this.statusEl, masterWrap, headerActions);
+    this.syncMasterVolume();
 
     // ---------- ステージ ----------
     const stage = el('section', 'stage');
@@ -512,10 +544,19 @@ export class GuitarApp {
     }, 100);
   }
 
+  /** ヘッダーのつまみを、いまの音量に合わせる（0 のときは色を変える） */
+  private syncMasterVolume() {
+    if (!this.masterRange) return;
+    const v = this.settings.volume;
+    if (this.masterRange.value !== String(v)) this.masterRange.value = String(v);
+    this.masterRange.classList.toggle('is-zero', v <= 0);
+  }
+
   /** 音の設定だけを初期値へ戻す（曲や録音は消さない） */
   private resetSoundSettings() {
     this.settings = { ...DEFAULT_SETTINGS };
     this.commit();
+    this.syncMasterVolume();
     this.showTab(this.activeTab);
     this.setStatus(t('status.resetDone'));
     window.setTimeout(() => this.setStatus(), 2500);
@@ -1091,7 +1132,7 @@ export class GuitarApp {
         format: (v) => `${(v * 100).toFixed(0)}%`,
 // つまみを動かしたその場で見直す。音量を戻したのに
         // 断りが残ったままだと、直ったことが分からない
-        onInput: (v) => { set('volume', v); this.watchForSilence(); },
+        onInput: (v) => { set('volume', v); this.syncMasterVolume(); this.watchForSilence(); },
       }),
       slider({
         label: t('ctl.outputTrim.label'),
