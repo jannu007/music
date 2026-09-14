@@ -1324,3 +1324,11 @@ html, body {
   overflow: visible;
   text-overflow: clip;
 }
+
+/* 狭い画面では、アプリ名を出さない。
+   途中で切れて読めないくらいなら、いっそ出さないほうがよい
+   （幅ごとの実測は scripts/test-brand-fit.mjs）。
+   絵柄（.brand-mark）は残るので、どのアプリかは分かる。 */
+@media (max-width: 767px) {
+  .brand-text { display: none; }
+}

@@ -105,7 +105,7 @@ html, body {
 }
 
 .brand-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; overflow: hidden; }
-.brand-text strong { font-size: 0.98rem; letter-spacing: 0.05em; }
+.brand-text strong { font-size: 0.98rem; letter-spacing: 0.05em; white-space: nowrap; }
 .brand-text small { font-size: 0.68rem; color: var(--text-dim); white-space: nowrap; }
 
 .preset-select, .ctl-select {
@@ -656,4 +656,12 @@ html, body {
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
+}
+
+/* 狭い画面では、アプリ名を出さない。
+   途中で切れて読めないくらいなら、いっそ出さないほうがよい
+   （幅ごとの実測は scripts/test-brand-fit.mjs）。
+   絵柄（.brand-mark）は残るので、どのアプリかは分かる。 */
+@media (max-width: 559px) {
+  .brand-text { display: none; }
 }
