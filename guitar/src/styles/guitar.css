@@ -809,3 +809,10 @@ html, body {
 @media (max-width: 559px) {
   .brand-text { display: none; }
 }
+
+/* 「音が出ていません」の帯は押せる。押すと音の設定が初期値へ戻る */
+.status.alert.fixable {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
