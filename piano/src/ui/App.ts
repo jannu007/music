@@ -1,3 +1,4 @@
+import { masterVolumeControl, type MasterVolumeControl } from '../../../shared/masterVolume';
 import { PianoEngine, renderPerformance } from '../audio/PianoEngine';
 import { COMPUTER_KEY_MAP, MidiInput } from '../audio/midi';
 import { PRESETS, applyPreset } from '../audio/presets';
@@ -73,6 +74,7 @@ export class PianoApp {
   private statusEl!: HTMLElement;
   /** 音が止まっていないかを見に行くための待ち。二重に張らない */
   private silenceTimer: number | null = null;
+  private master!: MasterVolumeControl;
   private transportEl!: HTMLElement;
   private nowPlayingEl!: HTMLElement;
   private meterFill!: HTMLElement;
@@ -271,7 +273,15 @@ export class PianoApp {
     const headerActions = el('div', 'header-actions');
     headerActions.append(langButton, panicButton, button(t('help.button'), 'ghost round', () => this.toggleHelp()));
 
-    header.append(brand, presetWrap, this.statusEl, headerActions);
+    // 音量は「空間」タブの奥にしか無かった。0 にすると値は保存されるので、
+    // 次に開いても無音のまま。気づけるように、いつでも見える場所へ出す。
+    this.master = masterVolumeControl({
+      label: t('space.volume'),
+      get: () => this.settings.volume,
+      set: (v) => { this.settings.volume = v; this.commit(); this.watchForSilence(); },
+    });
+
+    header.append(brand, presetWrap, this.statusEl, this.master.root, headerActions);
 
     // ---------- ステージ ----------
     const stage = el('section', 'stage');
@@ -572,7 +582,7 @@ export class PianoApp {
         label: t('space.volume'),
         min: 0, max: 1, step: 0.01, value: this.settings.volume,
         format: (v) => `${Math.round(v * 100)}`,
-        onInput: (v) => { this.settings.volume = v; this.commit(); this.watchForSilence(); },
+        onInput: (v) => { this.settings.volume = v; this.commit(); this.master?.sync(); this.watchForSilence(); },
       })
     );
     body.append(el('h2', 'panel-title', t('space.title')), controls);

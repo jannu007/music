@@ -805,8 +805,11 @@ html, body {
 /* 狭い画面では、アプリ名を出さない。
    途中で切れて読めないくらいなら、いっそ出さないほうがよい
    （幅ごとの実測は scripts/test-brand-fit.mjs）。
-   絵柄（.brand-mark）は残るので、どのアプリかは分かる。 */
-@media (max-width: 559px) {
+   絵柄（.brand-mark）は残るので、どのアプリかは分かる。
+
+   ヘッダーに音量つまみを足したぶん、隠す幅を 559 から 767 へ広げた。
+   名前より音量のほうが、無いと困る。 */
+@media (max-width: 767px) {
   .brand-text { display: none; }
 }
 
@@ -815,4 +818,12 @@ html, body {
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* ヘッダーの音量つまみ（骨組みは shared/masterVolume.ts）。色だけ渡す */
+:root {
+  --mv-panel: var(--panel-2);
+  --mv-line: var(--line);
+  --mv-accent: var(--ember-soft);
+  --mv-zero: #e4674f;
 }

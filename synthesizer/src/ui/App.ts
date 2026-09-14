@@ -1,3 +1,4 @@
+import { masterVolumeControl, type MasterVolumeControl } from '../../../shared/masterVolume';
 /**
  * Akatsuki Synth — アプリケーション本体（画面構成とすべての配線）
  */
@@ -45,6 +46,7 @@ export class App {
   private keyboard: KeyboardHandle | null = null;
   private analyzerBar: AnalyzerBarHandle | null = null;
   private bpmKnob: KnobHandle | null = null;
+  private master: MasterVolumeControl | null = null;
 
   private tab: CenterTab = 'synth';
   private tapTimes: number[] = [];
@@ -269,6 +271,19 @@ export class App {
     brand.innerHTML = '<span class="brand-mark"></span><span class="brand-name">AKATSUKI<br><small>SYNTH</small></span>';
     bar.appendChild(brand);
 
+    // 音量つまみ。狭い画面ではヘッダーが横に流れるので、
+    // 右端ではなくロゴのすぐ隣に置いて、開いた時点で必ず見えるようにする
+    this.master = masterVolumeControl({
+      label: t('ctl.masterVolume.label'),
+      max: 1.2,
+      get: () => this.engine.settings.volume,
+      set: (v) => {
+        this.engine.settings.volume = v;
+        this.engine.applySettings(this.engine.settings);
+      },
+    });
+    bar.appendChild(this.master.root);
+
     // --- トランスポート ---
     const transport = document.createElement('div');
     transport.className = 'transport';
@@ -365,6 +380,7 @@ export class App {
         onChange: (v) => {
           this.engine.settings.volume = v;
           this.engine.applySettings(this.engine.settings);
+          this.master?.sync();
         },
       })
     );

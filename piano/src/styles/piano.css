@@ -666,7 +666,6 @@ html, body {
 
 @media (max-width: 560px) {
   .topbar { padding: 0.45rem 0.6rem; gap: 0.5rem; }
-  .brand-text { display: none; }
   .octave-btn { display: none; }
   .panic-btn { padding: 0.45rem 0.55rem; }
   .panic-btn .btn-text { display: none; }
@@ -746,4 +745,21 @@ html, body {
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
+}
+
+/* ヘッダーの音量つまみ（骨組みは shared/masterVolume.ts）。色だけ渡す */
+:root {
+  --mv-panel: var(--panel-2);
+  --mv-line: var(--line-strong);
+  --mv-accent: var(--amber-soft);
+  --mv-zero: #e4674f;
+}
+
+/* 狭い画面では、アプリ名を出さない。
+   途中で切れて読めないくらいなら、いっそ出さないほうがよい
+   （幅ごとの実測は scripts/test-brand-fit.mjs）。
+   絵柄（.brand-mark）は残るので、どのアプリかは分かる。
+   音量つまみを足したぶん、隠す幅を広げた。名前より音量のほうが要る。 */
+@media (max-width: 719px) {
+  .brand-text { display: none; }
 }

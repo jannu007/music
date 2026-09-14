@@ -1,3 +1,4 @@
+import { masterVolumeControl, type MasterVolumeControl } from '../../../shared/masterVolume';
 import { AMPS, GuitarEngine, renderPerformance } from '../audio/GuitarEngine';
 import { COMPUTER_KEY_MAP, MidiInput } from '../audio/midi';
 import { PRESETS, applyPreset, findPreset } from '../audio/presets';
@@ -114,6 +115,7 @@ export class GuitarApp {
   /** 無音の理由を見に行くための待ち。二重に張らない */
   private silenceTimer: number | null = null;
   private silenceProbe: number | null = null;
+  private master!: MasterVolumeControl;
   private transportEl!: HTMLElement;
   private chordReadout!: HTMLElement;
   private meterFill!: HTMLElement;
@@ -352,9 +354,24 @@ export class GuitarApp {
     panicButton.title = t('panic.title');
     panicButton.setAttribute('aria-label', t('panic.ariaLabel'));
 
+    // 音量は、いつでも見えて届くところに置く。
+    //
+    // Amp タブの奥にしか無かったので、0 になっていても気づけず、
+    // 「壊れた」と思われてしまった。作りは7本で揃えたいので、
+    // 部品は shared/masterVolume.ts に置いてある。
+    this.master = masterVolumeControl({
+      label: t('ctl.masterVolume.label'),
+      get: () => this.settings.volume,
+      set: (v) => {
+        this.settings.volume = v;
+        this.commit();
+        this.watchForSilence();
+      },
+    });
+
     const headerActions = el('div', 'header-actions');
     headerActions.append(langButton, panicButton, button(t('help.button'), 'ghost round', () => this.toggleHelp()));
-    header.append(brand, presetWrap, this.statusEl, headerActions);
+    header.append(brand, presetWrap, this.statusEl, this.master.root, headerActions);
 
     // ---------- ステージ ----------
     const stage = el('section', 'stage');
@@ -516,6 +533,7 @@ export class GuitarApp {
   private resetSoundSettings() {
     this.settings = { ...DEFAULT_SETTINGS };
     this.commit();
+    this.master?.sync();
     this.showTab(this.activeTab);
     this.setStatus(t('status.resetDone'));
     window.setTimeout(() => this.setStatus(), 2500);
@@ -1091,7 +1109,7 @@ export class GuitarApp {
         format: (v) => `${(v * 100).toFixed(0)}%`,
 // つまみを動かしたその場で見直す。音量を戻したのに
         // 断りが残ったままだと、直ったことが分からない
-        onInput: (v) => { set('volume', v); this.watchForSilence(); },
+        onInput: (v) => { set('volume', v); this.master?.sync(); this.watchForSilence(); },
       }),
       slider({
         label: t('ctl.outputTrim.label'),

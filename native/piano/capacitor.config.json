@@ -1,5 +1,5 @@
 {
-  "appId": "shop.youkoku.piano",
+  "appId": "shop.youkoku.grandpiano",
   "appName": "Youkoku Grand Piano",
   "webDir": "../../dist-native/piano",
   "server": {

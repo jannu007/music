@@ -1230,3 +1230,19 @@ body {
     grid-column: 1 / -1;
   }
 }
+
+/* ヘッダーの音量つまみ（骨組みは shared/masterVolume.ts）。色だけ渡す */
+:root {
+  --mv-panel: var(--surface-high);
+  --mv-line: var(--line);
+  --mv-accent: var(--accent);
+  --mv-zero: var(--danger);
+}
+
+/* 狭い画面では、アプリ名を出さない。
+   途中で切れて読めないくらいなら、いっそ出さないほうがよい
+   （幅ごとの実測は scripts/test-brand-fit.mjs）。
+   楽器名（.app-instrument）は残るので、何を鳴らすかは分かる。 */
+@media (max-width: 411px) {
+  .app-title h1 { display: none; }
+}

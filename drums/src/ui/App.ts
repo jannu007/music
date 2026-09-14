@@ -1,3 +1,4 @@
+import { masterVolumeControl, type MasterVolumeControl } from '../../../shared/masterVolume';
 import { DrumEngine, projectSeconds, renderProject, type StepInfo } from '../audio/DrumEngine';
 import {
   createZip,
@@ -83,6 +84,7 @@ export class DrumApp {
   private panelBody!: HTMLElement;
   private tabButtons: HTMLButtonElement[] = [];
   private statusEl!: HTMLElement;
+  private master!: MasterVolumeControl;
   /** 無音の理由を見に行くための待ち。二重に張らない */
   private silenceTimer: number | null = null;
   private meterFill!: HTMLElement;
@@ -267,7 +269,20 @@ export class DrumApp {
     panic.append(el('span', 'stop-icon'), el('span', 'icon-label', t('panic.label')));
     panic.addEventListener('click', () => this.panic());
 
-    bar.append(brand, kitSelect, this.statusEl, meter, langButton, panic);
+    // 音量は FX パネルの奥にしか無かった。0 にすると値は保存されるので、
+    // 次に開いても無音のまま。気づけるように、いつでも見える場所へ出す。
+    this.master = masterVolumeControl({
+      label: t('ctl.masterVolume.label'),
+      get: () => this.project.master.volume,
+      set: (v) => {
+        this.project.master.volume = v;
+        this.engine.syncMaster(this.project);
+        this.save();
+        this.watchForSilence();
+      },
+    });
+
+    bar.append(brand, kitSelect, this.statusEl, this.master.root, meter, langButton, panic);
     return bar;
   }
 
@@ -641,6 +656,7 @@ export class DrumApp {
     const apply = () => {
       this.engine.syncMaster(this.project);
       this.save();
+      this.master?.sync();
       // つまみを動かしたその場で見直す。音量を戻したのに
       // 断りが残ったままだと、直ったことが分からない
       this.watchForSilence();
