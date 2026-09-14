@@ -91,7 +91,7 @@ html, body {
 }
 
 .brand-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; overflow: hidden; }
-.brand-text strong { font-size: 0.98rem; letter-spacing: 0.04em; }
+.brand-text strong { font-size: 0.98rem; letter-spacing: 0.04em; white-space: nowrap; }
 .brand-text small { font-size: 0.68rem; color: var(--text-dim); white-space: nowrap; }
 
 .preset-wrap { flex: none; }
