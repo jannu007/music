@@ -1,6 +1,6 @@
 {
   "name": "dtm-synth",
-  "version": "2.2.5",
+  "version": "2.2.6",
   "private": true,
   "description": "完全無料のDTM/音楽制作アプリ集 — シンセ・グランドピアノ・ドラムマシン・ギター（Web / Windows対応）",
   "type": "module",
@@ -38,7 +38,7 @@
     "sampler:icons": "node scripts/gen-sampler-icons.mjs",
     "sampler:test": "node scripts/test-sampler.mjs && node scripts/test-sampler-project.mjs && node scripts/test-sampler-demos.mjs",
     "test:audio": "node scripts/audio-smoke.mjs",
-    "test": "tsc --noEmit && vite build && node scripts/test-bass-dsp.mjs && node scripts/test-vocal-transcribe.mjs && node scripts/audio-smoke.mjs && node scripts/test-download.mjs && node scripts/test-sampler.mjs && node scripts/test-sampler-project.mjs && node scripts/test-sampler-demos.mjs && node scripts/test-landscape.mjs && node scripts/test-brand-fit.mjs && node scripts/test-android-prep.mjs && node scripts/test-strings.mjs && node scripts/test-apps.mjs && node scripts/test-levels.mjs && node scripts/build-native.mjs vocal && node scripts/test-native-speech.mjs && node scripts/test-store-ready.mjs",
+    "test": "tsc --noEmit && vite build && node scripts/test-bass-dsp.mjs && node scripts/test-vocal-transcribe.mjs && node scripts/audio-smoke.mjs && node scripts/test-download.mjs && node scripts/test-sampler.mjs && node scripts/test-sampler-project.mjs && node scripts/test-sampler-demos.mjs && node scripts/test-landscape.mjs && node scripts/test-brand-fit.mjs && node scripts/test-silence-rescue.mjs && node scripts/test-android-prep.mjs && node scripts/test-strings.mjs && node scripts/test-apps.mjs && node scripts/test-levels.mjs && node scripts/build-native.mjs vocal && node scripts/test-native-speech.mjs && node scripts/test-store-ready.mjs",
     "native:build": "npm run build && node scripts/build-native.mjs",
     "native:verify": "node scripts/verify-native.mjs",
     "test:download": "node scripts/test-download.mjs",
@@ -50,7 +50,8 @@
     "store:assets": "node scripts/store-assets.mjs",
     "test:store": "node scripts/test-store-ready.mjs",
     "test:speech": "node scripts/test-native-speech.mjs",
-    "test:brand": "node scripts/test-brand-fit.mjs"
+    "test:brand": "node scripts/test-brand-fit.mjs",
+    "test:silence": "node scripts/test-silence-rescue.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.21.5",

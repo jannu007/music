@@ -113,6 +113,7 @@ export class GuitarApp {
   private statusEl!: HTMLElement;
   /** 無音の理由を見に行くための待ち。二重に張らない */
   private silenceTimer: number | null = null;
+  private silenceProbe: number | null = null;
   private transportEl!: HTMLElement;
   private chordReadout!: HTMLElement;
   private meterFill!: HTMLElement;
@@ -174,6 +175,10 @@ export class GuitarApp {
   // ------------------------------------------------------------------ 音声
 
   private async ensureAudio(): Promise<void> {
+    // 鳴らす入口は fire() だけではない（strum、伴奏、MIDI）。
+    // 音を出そうとする経路はすべてここを通るので、見張りはここに置く。
+    // 初回は初期化の途中を測ってしまうので、用意ができてからにする
+    if (this.audioReady) this.watchForSilence();
     if (this.audioReady) {
       // 画面ロックやタブの背面化でブラウザ側が AudioContext を止めていることがあるため、
       // 演奏操作のたびに念のため再開を試みる（すでに動作中なら resume() は即座に解決する）
@@ -209,7 +214,6 @@ export class GuitarApp {
   /** 単発の演奏イベントを即座に鳴らす（録音にも記録する） */
   private fire(ev: PerformanceEventInput) {
     void this.ensureAudio().then(() => {
-      this.watchForSilence();
       switch (ev.type) {
         case 'pluck':
           this.engine.pluck(ev.string, ev.fret, ev.vel, ev.mute);
@@ -476,13 +480,58 @@ export class GuitarApp {
       if (this.settings.volume <= 0) this.setStatus(t('status.muted'));
       else if (state && state !== 'running') this.setStatus(t('status.audioBlocked'));
       else this.setStatus();
+      this.watchForRealSilence();
     }, 500);
+  }
+
+  /**
+   * 「理由は分からないが、とにかく音が出ていない」を拾う。
+   *
+   * 上の watchForSilence が見ているのは音量つまみと停止の2つだけ。
+   * 保存された設定のどれかが原因で無音になっている場合、何も出ない。
+   * 実際にそうなり、利用者は消し方を知らないまま詰みかけた。
+   *
+   * そこで理由を数えるのをやめ、出力そのものを測る。弾いたのに
+   * 出ていなければ、初期値へ戻す道を出す。原因が何であれ戻せる。
+   */
+  private watchForRealSilence() {
+    if (this.silenceProbe !== null) return;
+    // 弾いた直後は立ち上がり前のことがある。少し待ってから測り始める
+    let peak = 0;
+    let ticks = 0;
+    this.silenceProbe = window.setInterval(() => {
+      peak = Math.max(peak, this.engine.level());
+      ticks += 1;
+      if (ticks < 12) return;                 // 約 1.2 秒ぶん見る
+      window.clearInterval(this.silenceProbe!);
+      this.silenceProbe = null;
+      if (peak > 0.002) return;               // 出ている
+      if (this.settings.volume <= 0) return;  // 音量 0 は上で伝えている
+      if (this.engine.ctx?.state !== 'running') return;
+      this.setStatus(t('status.noSound'));
+    }, 100);
+  }
+
+  /** 音の設定だけを初期値へ戻す（曲や録音は消さない） */
+  private resetSoundSettings() {
+    this.settings = { ...DEFAULT_SETTINGS };
+    this.commit();
+    this.showTab(this.activeTab);
+    this.setStatus(t('status.resetDone'));
+    window.setTimeout(() => this.setStatus(), 2500);
   }
 
   private setStatus(message?: string) {
     // 音が出ない理由は、狭い画面でも隠さない（.status.alert で必ず出す）
-    const alert = message === t('status.muted') || message === t('status.audioBlocked');
+    const alert =
+      message === t('status.muted') ||
+      message === t('status.audioBlocked') ||
+      message === t('status.noSound');
     this.statusEl.classList.toggle('alert', alert);
+    // 「音が出ていません」のときだけ、押すと初期値へ戻せる
+    const fixable = message === t('status.noSound');
+    this.statusEl.classList.toggle('fixable', fixable);
+    this.statusEl.onclick = fixable ? () => this.resetSoundSettings() : null;
     if (message) {
       this.statusEl.textContent = message;
       return;
