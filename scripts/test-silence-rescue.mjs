@@ -35,6 +35,9 @@ const MIME = {
 /** 仕掛けのあるアプリと、音を出すために押すもの */
 const APPS = [{ id: 'guitar', hit: '.chord-pad, .fb-cell' }];
 
+/* 音量つまみは 7 本すべてに付けた。奥に隠れていると、0 のまま詰む */
+const KNOB_APPS = ['synthesizer', 'piano', 'drums', 'guitar', 'bass', 'vocal', 'sampler'];
+
 if (!existsSync(DIST)) {
   console.error('dist がありません。先に npm run build を実行してください');
   process.exit(1);
@@ -108,29 +111,35 @@ async function masterKnob(app, width) {
   await page.goto(`http://localhost:${PORT}/${app.id}/`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(900);
   const seen = await page.evaluate(() => {
-    const wrap = document.querySelector('.master-vol');
-    const range = document.querySelector('.master-vol-range');
+    const wrap = document.querySelector('.mv-wrap');
+    const range = document.querySelector('.mv-range');
     if (!wrap || !range) return { missing: true };
     const bw = wrap.getBoundingClientRect();
     const br = range.getBoundingClientRect();
-    const bar = document.querySelector('.topbar')?.getBoundingClientRect();
+    const bar = document.querySelector('.topbar, .app-header, header')?.getBoundingClientRect();
     return {
       shown: bw.width > 0 && bw.height > 0,
       grabbable: br.height >= 20,
       inBar: !bar || bw.right <= bar.right + 1,
+      // 狭い画面では見出しが横に流れるものがある。開いた時点で
+      // 画面の中にいなければ、探さないと届かないのと同じ
+      inView: bw.left >= -1 && bw.right <= window.innerWidth + 1,
+      // 見出しの一行目にあること。二行目三行目に積まれると、
+      // 画面には入っていても、他の部品に埋もれて目に入らない
+      firstRow: !bar || bw.top <= bar.top + bw.height + 8,
       size: `${Math.round(bw.width)}x${Math.round(br.height)}`,
     };
   });
   // 0 にすると、目で分かるか
   let zero = null;
   if (!seen.missing) {
-    await page.$eval('.master-vol-range', (el) => {
+    await page.$eval('.mv-range', (el) => {
       el.value = '0';
       el.dispatchEvent(new Event('input', { bubbles: true }));
     });
     await page.waitForTimeout(900);
     zero = await page.evaluate(() => ({
-      red: !!document.querySelector('.master-vol-range')?.classList.contains('is-zero'),
+      red: !!document.querySelector('.mv-range')?.classList.contains('is-zero'),
       status: (document.querySelector('.status')?.textContent || '').trim(),
     }));
   }
@@ -155,17 +164,17 @@ for (const app of APPS) {
 }
 
 console.log('');
-for (const app of APPS) {
+for (const id of KNOB_APPS) {
   for (const w of [360, 412, 1280]) {
-    const { seen, zero } = await masterKnob(app, w);
+    const { seen, zero } = await masterKnob({ id }, w);
     if (seen.missing) {
-      check(`${app.id} ${w}px: ヘッダーに音量つまみがある`, false, '見つからない');
+      check(`${id} ${w}px: ヘッダーに音量つまみがある`, false, '見つからない');
       continue;
     }
-    check(`${app.id} ${w}px: 音量つまみが見えて、指で掴める`,
-      seen.shown && seen.grabbable && seen.inBar, seen.size);
-    check(`${app.id} ${w}px: 0 にすると目で分かる`,
-      !!zero?.red && zero.status.length > 0, zero ? `赤=${zero.red}` : '');
+    check(`${id} ${w}px: 音量つまみが見えて、指で掴める`,
+      seen.shown && seen.grabbable && seen.inBar && seen.inView && seen.firstRow,
+      `${seen.size}${seen.inView ? '' : ' / 画面の外'}${seen.firstRow ? '' : ' / 一行目にない'}`);
+    check(`${id} ${w}px: 0 にすると目で分かる`, !!zero?.red, zero ? `赤=${zero.red}` : '');
   }
 }
 

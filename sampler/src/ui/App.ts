@@ -1,3 +1,4 @@
+import { masterVolumeControl, type MasterVolumeControl } from '../../../shared/masterVolume';
 /*
  * 画面ぜんたい。
  *
@@ -158,6 +159,7 @@ export class SamplerApp {
     stream: MediaStream;
   } | null = null;
   private meterTimer: number | null = null;
+  private master!: MasterVolumeControl;
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -178,7 +180,15 @@ export class SamplerApp {
     const lang = button(t('lang.toggle'), 'ghost lang-btn', () => toggleLocale());
     lang.classList.add('lang-btn');
     lang.title = t('lang.toggle.hint');
-    header.append(title, this.playButton, this.voiceMeter, lang);
+    // 音量は音づくりタブの奥にしか無かった。0 にすると値は保存されるので、
+    // 次に開いても無音のまま。気づけるように、いつでも見える場所へ出す。
+    this.master = masterVolumeControl({
+      label: t('header.volume'),
+      get: () => this.masterVolume,
+      set: (v) => this.setMasterVolume(v),
+    });
+
+    header.append(title, this.playButton, this.master.root, this.voiceMeter, lang);
 
     const tabs = el('nav', 'tab-bar');
     const tabIds: Tab[] = ['map', 'sound', 'fx', 'rec', 'export'];
@@ -282,6 +292,15 @@ export class SamplerApp {
   }
 
   // ---------------------------------------------------------------- 音
+
+  private setMasterVolume(v: number) {
+    this.masterVolume = v;
+    if (this.masterGain && this.ctx) {
+      this.masterGain.gain.setTargetAtTime(v, this.ctx.currentTime, 0.02);
+    }
+    this.persist();
+    this.master?.sync();
+  }
 
   private async ensureAudio(): Promise<AudioContext> {
     if (this.ctx) {
@@ -1415,13 +1434,7 @@ export class SamplerApp {
         step: 0.01,
         value: this.masterVolume,
         format: fmtPct,
-        onInput: (v) => {
-          this.masterVolume = v;
-          if (this.masterGain && this.ctx) {
-            this.masterGain.gain.setTargetAtTime(v, this.ctx.currentTime, 0.02);
-          }
-          this.persist();
-        },
+        onInput: (v) => this.setMasterVolume(v),
       })
     );
     play.append(playGrid);

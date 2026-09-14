@@ -1657,3 +1657,11 @@ select {
     font-size: 10px;
   }
 }
+
+/* ヘッダーの音量つまみ（骨組みは shared/masterVolume.ts）。色だけ渡す */
+:root {
+  --mv-panel: var(--panel-2);
+  --mv-line: var(--line);
+  --mv-accent: var(--accent-2);
+  --mv-zero: #ff6b6b;
+}

@@ -662,6 +662,14 @@ html, body {
    途中で切れて読めないくらいなら、いっそ出さないほうがよい
    （幅ごとの実測は scripts/test-brand-fit.mjs）。
    絵柄（.brand-mark）は残るので、どのアプリかは分かる。 */
-@media (max-width: 559px) {
+@media (max-width: 719px) {
   .brand-text { display: none; }
+}
+
+/* ヘッダーの音量つまみ（骨組みは shared/masterVolume.ts）。色だけ渡す */
+:root {
+  --mv-panel: var(--panel-2);
+  --mv-line: var(--line-strong);
+  --mv-accent: var(--amber-soft);
+  --mv-zero: #e4674f;
 }

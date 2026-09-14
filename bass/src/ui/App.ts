@@ -1,3 +1,4 @@
+import { masterVolumeControl, type MasterVolumeControl } from '../../../shared/masterVolume';
 import { BassEngine, renderPerformance } from '../audio/BassEngine';
 import {
   MAX_FRET,
@@ -107,6 +108,7 @@ export class BassApp {
   private statusEl!: HTMLElement;
   /** 無音の理由を見に行くための待ち。二重に張らない */
   private silenceTimer: number | null = null;
+  private master!: MasterVolumeControl;
   private transportEl!: HTMLElement;
   private nowPlayingEl!: HTMLElement;
   private meterFill!: HTMLElement;
@@ -322,7 +324,15 @@ export class BassApp {
 
     const headerActions = el('div', 'header-actions');
     headerActions.append(langButton, panicButton, button(t('help.button'), 'ghost round', () => this.toggleHelp()));
-    header.append(brand, presetSelect, this.statusEl, headerActions);
+    // 音量は出力パネルの奥にしか無かった。0 にすると値は保存されるので、
+    // 次に開いても無音のまま。気づけるように、いつでも見える場所へ出す。
+    this.master = masterVolumeControl({
+      label: t('ctl.volume.label'),
+      get: () => this.settings.volume,
+      set: (v) => { this.settings.volume = v; this.commit(); this.watchForSilence(); },
+    });
+
+    header.append(brand, presetSelect, this.statusEl, this.master.root, headerActions);
 
     // ---------- 指板 ----------
     const stage = el('section', 'stage');
@@ -686,7 +696,7 @@ export class BassApp {
         format: (v) => `${Math.round(v * 100)}`,
         // つまみを動かしたその場で見直す。音量を戻したのに
         // 断りが残ったままだと、直ったことが分からない
-        onInput: (v) => { this.settings.volume = v; this.commit(); this.watchForSilence(); },
+        onInput: (v) => { this.settings.volume = v; this.commit(); this.master?.sync(); this.watchForSilence(); },
       })
     );
     body.append(el('h2', 'panel-title', t('panel.output')), out);

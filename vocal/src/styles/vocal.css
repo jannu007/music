@@ -784,3 +784,11 @@ html, body {
   overflow: visible;
   text-overflow: clip;
 }
+
+/* ヘッダーの音量つまみ（骨組みは shared/masterVolume.ts）。色だけ渡す */
+:root {
+  --mv-panel: var(--panel-2);
+  --mv-line: var(--line-strong);
+  --mv-accent: var(--star-soft);
+  --mv-zero: #ff7a6b;
+}

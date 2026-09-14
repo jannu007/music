@@ -1,3 +1,4 @@
+import { masterVolumeControl, type MasterVolumeControl } from '../../../shared/masterVolume';
 /*
  * 画面全体の組み立てと配線
  */
@@ -119,6 +120,7 @@ export class VocalApp {
   private statusEl!: HTMLElement;
   /** 無音の理由を見に行くための待ち。二重に張らない */
   private silenceTimer: number | null = null;
+  private master!: MasterVolumeControl;
   private positionEl!: HTMLElement;
   private meterFill!: HTMLElement;
   private playButton!: HTMLButtonElement;
@@ -425,7 +427,19 @@ export class VocalApp {
     actions.append(button(t('action.save'), 'ghost', () => this.saveProject()));
     actions.append(button(t('action.load'), 'ghost', () => this.openProject()));
 
-    bar.append(brand, transport, actions);
+    // 音量はミックスタブの奥にしか無かった。0 にすると値は保存されるので、
+    // 次に開いても無音のまま。気づけるように、いつでも見える場所へ出す。
+    this.master = masterVolumeControl({
+      label: t('ctl.masterVolume.label'),
+      get: () => this.song.settings.mix.volume,
+      set: (v) => {
+        this.song.settings.mix.volume = v;
+        this.commitSettings();
+        this.watchForSilence();
+      },
+    });
+
+    bar.append(brand, transport, this.master.root, actions);
     return bar;
   }
 
@@ -763,7 +777,7 @@ export class VocalApp {
         format: (v) => `${Math.round(v * 100)}%`,
         // つまみを動かしたその場で見直す。音量を戻したのに
         // 断りが残ったままだと、直ったことが分からない
-        onInput: (v) => { m.volume = v; this.commitSettings(); this.watchForSilence(); },
+        onInput: (v) => { m.volume = v; this.commitSettings(); this.master?.sync(); this.watchForSilence(); },
       }),
       slider({
         label: t('ctl.vocalLevel.label'), min: 0, max: 1, step: 0.01, value: m.vocalLevel,
@@ -850,6 +864,7 @@ export class VocalApp {
     reset.append(
       button(t('action.resetMix'), 'ghost', () => {
         this.song.settings.mix = { ...DEFAULT_MIX };
+        this.master?.sync();
         this.changed('');
         this.commitSettings(t('flash.mixReset'));
         this.renderPanel();
