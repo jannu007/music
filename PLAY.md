@@ -33,12 +33,12 @@
 | 順 | アプリ | 送信 | 公開（見込み） |
 | --- | --- | --- | --- |
 | 1 | Yamabiko Sampler | 9/6 | **9/13 公開済** |
-| 2 | Kagari Guitar | 9/14（月） | 9/18 |
-| 3 | Akatsuki Synth | 9/19（土） | 9/23 |
-| 4 | Youkoku Grand Piano | 9/24（木） | 9/28 |
-| 5 | Hibiki Drum Machine | 9/29（火） | 10/3 |
-| 6 | Kurogane Bass | 10/4（日） | 10/8 |
-| 7 | Hoshizora Vocal | 10/9（金） | 10/13 |
+| 2 | Kagari Guitar | 9/15（火） | 9/19 |
+| 3 | Akatsuki Synth | 9/20（日） | 9/24 |
+| 4 | Youkoku Grand Piano | 9/25（金） | 9/29 |
+| 5 | Hibiki Drum Machine | 9/30（水） | 10/4 |
+| 6 | Kurogane Bass | 10/5（月） | 10/9 |
+| 7 | Hoshizora Vocal | 10/10（土） | 10/14 |
 
 審査が長引いたら、その分だけ全体を後ろにずらす。
 日付を守ることより、上のルールを守ることが大事。
@@ -504,6 +504,15 @@ First release.
 | 2026-09 | 2.2.5 | 9 | ヘッダーのアプリ名が切れる幅では出さないようにした |
 | 2026-09 | 2.2.6 | 10 | 音が出ていないことにアプリ自身が気づき、1タップで戻せるようにした（guitar） |
 | 2026-09 | 2.2.7 | 11 | 画面上部に音量つまみを付けた（7本とも）。0 のときは赤くなる |
+
+**2.2.7 / コード11 は 2026-09-15 にビルド済みです。**
+[run #25](https://github.com/jannu007/music/actions/runs/34959829469) の成果物に
+7本ぶん（`guitar-2.2.7` など）が並んでいます。署名済み。
+
+なお最初の run #24 は7本とも `Setup Android SDK` で落ちました。
+`android-actions/setup-android` の既定値にある旧 SDK Tools（`tools`）を
+Google が取り下げたためで、こちらのコードの問題ではありません。
+`packages: 'platform-tools'` と明記して直してあります。
 |  |  |  |  |
 
 ---
