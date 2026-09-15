@@ -90,7 +90,9 @@ const APPS = [
     // 無音になったとき、理由が出ること
     muteHint: { tab: /^(Effects|エフェクト)$/i, text: /マスター音量が 0|Master volume is set to zero/, status: '.status' },
     lang: 'kagari-guitar-lang',
-    panel: '.main-area',
+    // 指板を主役にしたとき、パネルを .main-area の外へ出した。
+    // 画面の下からせり出すシートになっている
+    panel: '.panel',
     sound: [{ click: '.chord-pad' }],
     // 録音の面でも指板は下に出たままなので、そこを弾いて記録する
     record: { tab: /Record|録音/i, play: '.fb-cell' },
@@ -183,6 +185,21 @@ async function openTab(page, name) {
   if ((await tab.count()) === 0) return false;
   await tab.click({ timeout: 3000 }).catch(() => {});
   await page.waitForTimeout(450);
+
+  // ギターの面は、同じ見出しをもう一度押すと引っ込む作りにしてある
+  // （指板だけの状態へ 1 タップで戻れるように）。そのため、すでに開いて
+  // いる見出しをこの関数で開こうとすると、逆に閉じてしまう。実際それで
+  // 「録音はできたのに WAV が書き出せない」という落ち方をした。
+  // 押したあと中身が出ていなければ、もう一度押して開いた状態にそろえる。
+  const shut = await page.evaluate(() => {
+    const panel = document.querySelector('.panel');
+    if (!panel) return false;
+    return panel.getBoundingClientRect().height < 4;
+  });
+  if (shut) {
+    await tab.click({ timeout: 3000 }).catch(() => {});
+    await page.waitForTimeout(450);
+  }
   return true;
 }
 
