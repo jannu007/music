@@ -862,3 +862,17 @@ html, body {
   font-size: 0.9em;
   opacity: 0.7;
 }
+
+/* スマホ幅でヘッダーが入りきらなくなっていた。音量つまみを足したぶんで、
+   実測ではロゴが 0 幅に潰れて選択欄と重なり、右端のボタンは画面の外に
+   出ていた（bass は 102px、drums は 124px はみ出し）。
+   詰めるだけでは言語や楽器名の長さで足りなくなるので、折り返せるようにする。
+   ロゴは潰さない。幅ごとの実測は scripts/test-header-fit.mjs */
+@media (max-width: 767px) {
+  .topbar {
+    flex-wrap: wrap;
+    gap: 0.4rem 0.5rem;
+    padding: 0.45rem 0.6rem;
+  }
+  .brand { flex: none; }
+}

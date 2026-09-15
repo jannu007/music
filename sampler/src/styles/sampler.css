@@ -1246,3 +1246,11 @@ body {
 @media (max-width: 411px) {
   .app-title h1 { display: none; }
 }
+
+/* スマホ幅では楽器名が切れていた（実測 155px の名前が 35px の枠に）。
+   ヘッダーを折り返せるようにして、名前に一行ぶんの幅を渡す。
+   幅ごとの実測は scripts/test-header-fit.mjs */
+@media (max-width: 479px) {
+  .app-header { flex-wrap: wrap; gap: 6px 8px; }
+  .app-title { flex: 1 1 100%; min-width: 0; }
+}

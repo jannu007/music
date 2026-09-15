@@ -1665,3 +1665,10 @@ select {
   --mv-accent: var(--accent-2);
   --mv-zero: #ff6b6b;
 }
+
+/* いちばん狭い端末（360px）で、ヘッダーが 5px だけ入りきらなかった。
+   隙間と余白を詰めて収める。幅ごとの実測は scripts/test-header-fit.mjs */
+@media (max-width: 400px) {
+  .header { gap: 6px; padding: 6px 6px; }
+  .transport { gap: 4px; }
+}
