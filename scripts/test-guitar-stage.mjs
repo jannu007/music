@@ -18,6 +18,7 @@
  *   3. ふだんシートは閉じていて、弦だけが見えている
  *   4. アイコンを押すとシートが出て、もう一度押すと引っ込む
  *   5. 弦の間隔が、指で押さえられる大きさある
+ *   6. 24 フレットまで出ていて、横に送れば端まで届く
  */
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
@@ -46,6 +47,8 @@ const SCREENS = [
 const MIN_BOARD_SHARE = 0.6;
 /** 弦の間隔の下限。指の幅はおよそ 10mm なので、それより極端に狭くしない */
 const MIN_ROW = 24;
+/** いちばん狭いフレットに残す幅。ここを割ると押さえ分けられない */
+const MIN_FRET = 20;
 
 if (!existsSync(DIST)) {
   console.error('dist がありません。先に npm run build を実行してください');
@@ -106,6 +109,20 @@ async function look(screen) {
       rows,
       board: box('.board-area'),
       row: box('.fb-row'),
+      // 24 フレットまで出ていて、横に送れば届くか。
+      // かつては狭い画面で 7 フレットまで減らしていたので、
+      // 高い音にそもそも手が届かなかった
+      fret: (() => {
+        const cells = document.querySelectorAll('.fb-row[data-string="0"] .fb-cell');
+        const last = cells[cells.length - 1];
+        const scroll = document.querySelector('.board-scroll');
+        return {
+          max: last ? Number(last.dataset.fret) : -1,
+          narrowest: last ? last.getBoundingClientRect().width : 0,
+          scrollW: scroll ? scroll.scrollWidth : 0,
+          clientW: scroll ? scroll.clientWidth : 0,
+        };
+      })(),
       tabCount: document.querySelectorAll('.tabs .tab').length,
       iconCount: document.querySelectorAll('.tabs .tab .tab-icon').length,
       open: !!document.querySelector('.panel.is-open'),
@@ -131,6 +148,47 @@ async function look(screen) {
   return { ...at_rest, opened, closed };
 }
 
+/*
+ * すでに遊んだことのある端末には、こちらが勝手に押し込んだ 7 という値が
+ * 保存されている。そのまま読むと、直したのに高い音へ届かないままになる。
+ * 一度だけ引き上げること、そのあとは利用者が選んだ数を尊重することを見る。
+ */
+async function migration() {
+  const ctx = await browser.newContext({ viewport: { width: 412, height: 890 } });
+  const page = await ctx.newPage();
+  // 古い端末の状態を仕込む
+  await page.addInitScript(() => {
+    localStorage.setItem('kagari-guitar-v1', JSON.stringify({
+      ui: { fretCount: 7, presetId: 'clean', labelMode: 'note', progression: [] },
+    }));
+  });
+  await page.goto(`http://localhost:${PORT}/guitar/`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(900);
+  const raised = await page.evaluate(() => {
+    const cells = document.querySelectorAll('.fb-row[data-string="0"] .fb-cell');
+    return cells.length ? Number(cells[cells.length - 1].dataset.fret) : -1;
+  });
+
+  // 利用者が自分で 12 を選んだ状態にする。
+  // 同じページを読み直すと仕込みが入り直してしまうので、
+  // 仕込みの無い新しいページで見る（保存は文脈ごとに残る）
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('kagari-guitar-v1'));
+    d.ui.fretCount = 12;
+    localStorage.setItem('kagari-guitar-v1', JSON.stringify(d));
+  });
+  const page2 = await ctx.newPage();
+  await page2.goto(`http://localhost:${PORT}/guitar/`, { waitUntil: 'networkidle' });
+  await page2.waitForTimeout(900);
+  const kept = await page2.evaluate(() => {
+    const cells = document.querySelectorAll('.fb-row[data-string="0"] .fb-cell');
+    return cells.length ? Number(cells[cells.length - 1].dataset.fret) : -1;
+  });
+
+  await ctx.close();
+  return { raised, kept };
+}
+
 console.log('ギターが、実物のように弾ける形になっているか\n');
 
 for (const screen of SCREENS) {
@@ -148,8 +206,19 @@ for (const screen of SCREENS) {
     r.tabCount >= 8 && r.iconCount === r.tabCount, `${r.iconCount}/${r.tabCount} 個`);
   check(`${screen.label}: 押すと出て、もう一度押すと引っ込む`,
     r.opened && r.closed, `出る=${r.opened} 引っ込む=${r.closed}`);
+  check(`${screen.label}: 24 フレットまで弾ける`,
+    r.fret.max === 24, `最終フレット ${r.fret.max}`);
+  check(`${screen.label}: いちばん狭いフレットも指で押さえられる`,
+    r.fret.narrowest >= MIN_FRET, `${Math.round(r.fret.narrowest)}px`);
+  check(`${screen.label}: 横に送れば端まで届く`,
+    r.fret.scrollW > r.fret.clientW,
+    `指板 ${r.fret.scrollW}px / 画面 ${r.fret.clientW}px`);
   console.log('');
 }
+
+const mig = await migration();
+check('前から使っている端末でも 24 まで届く', mig.raised === 24, `最終フレット ${mig.raised}`);
+check('そのあと自分で選んだ数は尊重される', mig.kept === 12, `最終フレット ${mig.kept}`);
 
 await browser.close();
 server.close();

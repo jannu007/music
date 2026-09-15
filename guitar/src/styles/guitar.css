@@ -903,8 +903,9 @@ html, body {
   .board-scroll {
     flex: 1;
     min-height: 0;
+    /* 縦に積む。横並びにすると、指板とかき鳴らす帯が左右に分かれてしまう */
     display: flex;
-    align-items: stretch;
+    flex-direction: column;
     padding: 0.3rem 0.4rem 0.4rem;
   }
   .fretboard {
@@ -913,9 +914,17 @@ html, body {
     flex-direction: column;
     justify-content: center;
   }
-  /* 高さが余るので、弦の間隔を広げて押さえやすくする。
-     指の幅はおよそ 10mm ＝ 40px 前後なので、そこへ近づける */
-  .fb-row { height: clamp(30px, 8.2vh, 62px); }
+  /* 弦の高さは、余っている分を分け合って決める。
+     vh から出すと、ヘッダー・帯・アイコンの合計を勘定に入れられず、
+     横向きで画面を 115px はみ出した。ここは実際に残っている高さで割る。
+     指の幅はおよそ 10mm ＝ 40px 前後なので、上限はその辺りに置く */
+  .fb-markers { flex: none; }
+  .fb-row {
+    flex: 1 1 0;
+    height: auto;
+    min-height: 22px;
+    max-height: 62px;
+  }
 }
 
 /* ---- 下：小さなアイコンの列 ---- */
@@ -1004,5 +1013,6 @@ html, body {
   .topbar { padding: 0.25rem 0.5rem; }
   .tab { min-height: 38px; }
   .tab-label { display: none; }
-  .fb-row { height: clamp(26px, 13vh, 52px); }
+  .fb-row { min-height: 18px; }
+  .strum-bar { height: 34px; }
 }

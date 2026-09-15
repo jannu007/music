@@ -37,7 +37,7 @@ import { PATTERNS, findPattern } from '../music/strum';
 import { TUNINGS, findTuning, midiToFreq, noteName } from '../music/tunings';
 import { DEMOS } from '../data/demos';
 import { ChordPads } from './ChordPads';
-import { FRET_CHORD, Fretboard, type LabelMode } from './Fretboard';
+import { FRET_CHORD, Fretboard, MAX_FRETS, type LabelMode } from './Fretboard';
 import { Metronome, ReferenceTone } from './Metronome';
 import { StringView } from './StringView';
 import { button, el, section, segmented, select, slider, switchRow } from './controls';
@@ -55,6 +55,8 @@ interface UiState {
   presetId: string;
   labelMode: LabelMode;
   fretCount: number;
+  /** 24 フレットへ一度だけ引き上げ済みか（下の load を見よ） */
+  fretRangeRaised: boolean;
   bpm: number;
   patternId: string;
   progression: StoredChord[];
@@ -68,7 +70,8 @@ interface UiState {
 const DEFAULT_UI: UiState = {
   presetId: 'steel',
   labelMode: 'note',
-  fretCount: 15,
+  fretCount: MAX_FRETS,
+  fretRangeRaised: true,
   bpm: 100,
   patternId: 'folk',
   progression: [
@@ -177,16 +180,34 @@ export class GuitarApp {
   // ------------------------------------------------------------ 保存と復元
 
   private load() {
-    // スマホでは指板を短く表示する（フレットが細くなりすぎるため）
-    if (window.innerWidth < 620) this.ui.fretCount = 7;
-    else if (window.innerWidth < 1000) this.ui.fretCount = 12;
+    // かつては狭い画面で 7 フレットまで減らしていた。フレットが細くなり
+    // すぎるからだったが、そのぶん高い音に手が届かなくなっていた。
+    // いまは指板のほうが画面より広くなり、横に送れば 24 まで届く。
+    // 幅は Fretboard が、指で押さえられる大きさから決める
 
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
       const data = JSON.parse(raw);
       if (data.settings) this.settings = { ...DEFAULT_SETTINGS, ...data.settings };
-      if (data.ui) this.ui = { ...DEFAULT_UI, ...data.ui };
+      if (data.ui) {
+        this.ui = { ...DEFAULT_UI, ...data.ui };
+
+        // すでに遊んだことのある端末には、7 や 12 という値が保存されている。
+        // それは利用者が選んだ数ではなく、こちらが画面幅を見て勝手に
+        // 押し込んだ数だった。そのまま読むと、直したのに高い音へ届かない
+        // ままになる。一度だけ 24 へ引き上げ、印を残す。
+        //
+        // 見るのは保存データ側の印であって、読み込んだあとの値ではない。
+        // 初期値に印を持たせてあるので、あとの値を見ると古いデータでも
+        // 「引き上げ済み」に見えてしまう（実際そうなって動かなかった）。
+        // 印があるあとは、利用者が選んだ数をそのまま尊重する
+        if (data.ui.fretRangeRaised !== true) {
+          this.ui.fretCount = MAX_FRETS;
+          this.ui.fretRangeRaised = true;
+          this.save();
+        }
+      }
     } catch {
       /* 壊れた保存データは無視して初期値で起動する */
     }
@@ -1298,7 +1319,7 @@ export class GuitarApp {
     boardSection.append(
       slider({
         label: t('ctl.fretCount.label'),
-        min: 5, max: 22, step: 1, value: this.ui.fretCount,
+        min: 5, max: MAX_FRETS, step: 1, value: this.ui.fretCount,
         format: (v) => t('fretCount.value', { v: v.toFixed(0) }),
         onInput: (v) => {
           this.ui.fretCount = v;
