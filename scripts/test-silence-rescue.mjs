@@ -155,8 +155,23 @@ async function masterKnob(app, width) {
       };
     });
   }
+  // 出した断りが、押したら消えるか。消せない帯が貼り付いたままだと、
+  // 直せないうえに邪魔になる（実機でそう言われた）
+  let dismissed = null;
+  if (zero?.band) {
+    const box = await page.evaluate(() => {
+      const b = document.querySelector('.status.alert')?.getBoundingClientRect();
+      return b ? { x: b.left + b.width / 2, y: b.top + b.height / 2 } : null;
+    });
+    if (box) {
+      await page.mouse.click(box.x, box.y);
+      await page.waitForTimeout(600);
+      dismissed = await page.evaluate(() => !document.querySelector('.status.alert'));
+    }
+  }
+
   await ctx.close();
-  return { seen, zero };
+  return { seen, zero, dismissed };
 }
 
 console.log('音が出ていないことに、アプリが気づけるか\n');
@@ -178,7 +193,7 @@ for (const app of APPS) {
 console.log('');
 for (const id of KNOB_APPS) {
   for (const w of [360, 412, 1280]) {
-    const { seen, zero } = await masterKnob({ id }, w);
+    const { seen, zero, dismissed } = await masterKnob({ id }, w);
     if (seen.missing) {
       check(`${id} ${w}px: ヘッダーに音量つまみがある`, false, '見つからない');
       continue;
@@ -190,6 +205,8 @@ for (const id of KNOB_APPS) {
     // 帯を出すアプリだけ見る。出さないアプリに重なりようはない
     if (zero?.band) {
       check(`${id} ${w}px: 断りの帯が音量つまみを隠していない`, !zero.covered, zero.where);
+      check(`${id} ${w}px: 帯を押すと消える`, dismissed === true,
+        dismissed === true ? '' : '押しても消えない');
     }
   }
 }

@@ -475,6 +475,8 @@ export class BassApp {
     // 帯が出ているあいだは、ヘッダーに1行ぶんの場所を作る（CSS の .has-alert）。
     // 覆ってしまうと、音量つまみが帯の下に隠れる
     this.root.classList.toggle('has-alert', alert);
+    // 帯は押したら消える。消せない断りが貼り付いたままだと邪魔になる
+    this.statusEl.onclick = alert ? () => this.setStatus() : null;
     if (message) {
       this.statusEl.textContent = message;
       return;

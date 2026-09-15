@@ -562,7 +562,14 @@ export class GuitarApp {
     // 「音が出ていません」のときだけ、押すと初期値へ戻せる
     const fixable = message === t('status.noSound');
     this.statusEl.classList.toggle('fixable', fixable);
-    this.statusEl.onclick = fixable ? () => this.resetSoundSettings() : null;
+    // 帯は押したら消える。消せない断りが画面に貼り付いたままだと、
+    // 直せないうえに邪魔になる。「音が出ていません」だけは押すと
+    // 初期値へ戻す（戻したあと帯も消えるので、消える点は同じ）
+    this.statusEl.onclick = fixable
+      ? () => this.resetSoundSettings()
+      : alert
+        ? () => this.setStatus()
+        : null;
     if (message) {
       this.statusEl.textContent = message;
       return;
