@@ -161,7 +161,15 @@ for (const app of APPS) {
 
   for (let i = 0; i < 6; i++) {
     const index = app.pick ? app.pick(i) % count : 0;
-    const box = await items.nth(index).boundingBox().catch(() => null);
+    const item = items.nth(index);
+    // 位置を読む前に、画面の中へ送る。
+    //
+    // ギターの指板は 24 フレットぶんで 1218px あり、412px の画面には
+    // 収まらない。送らずに位置だけ読むと、画面の外の座標を叩くことに
+    // なって音が鳴らず、鳴った数がそのつど変わって測る値がばらついた
+    // （同じ検査で 0.29〜0.36 と振れた）。
+    await item.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
+    const box = await item.boundingBox().catch(() => null);
     if (box) {
       if (app.at) await page.mouse.click(box.x + box.width * app.at.x, box.y + box.height * app.at.y);
       else await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height * 0.75);
