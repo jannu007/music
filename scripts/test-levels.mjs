@@ -37,7 +37,11 @@ const MIME = {
  */
 const APPS = [
   { id: 'piano', hit: '.pkey.white', pick: (i) => i },
-  { id: 'guitar', hit: '.fb-cell', pick: (i) => 20 + i * 7 },
+  // 弦とフレットで指す。通し番号で拾っていたが、出すフレット数を
+  // 7 から 24 に増やしたとき、1弦あたりのセルが 16 から 25 になり、
+  // 同じ番号が高音側の細い弦へずれていた。
+  // 3弦を単音で上がっていく。他のアプリと同じ「1音ずつ鳴らす」形に近い
+  { id: 'guitar', hit: '.fb-row[data-string="2"] .fb-cell', pick: (i) => 2 + i * 2 },
   { id: 'bass', hit: '.fret-canvas', at: { x: 0.42, y: 0.5 } },
   { id: 'sampler', hit: '.key.white.mapped', pick: (i) => i },
 ];
