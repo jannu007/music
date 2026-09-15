@@ -110,6 +110,13 @@ async function masterKnob(app, width) {
   const page = await ctx.newPage();
   await page.goto(`http://localhost:${PORT}/${app.id}/`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(900);
+
+  // 先に音を起こしておく。起こしていないと、あとで帯を押したときに
+  // 初期化のほうが走り、その後始末が帯を消してしまう。それでは
+  // 「押したから消えた」のか「初期化のついでに消えた」のか区別できない
+  await page.mouse.click(5, 5);
+  await page.waitForTimeout(1400);
+
   const seen = await page.evaluate(() => {
     const wrap = document.querySelector('.mv-wrap');
     const range = document.querySelector('.mv-range');
