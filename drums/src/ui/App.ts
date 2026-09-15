@@ -1,3 +1,4 @@
+import { resumeAudioOnGesture } from '../../../shared/audioResume';
 import { masterVolumeControl, type MasterVolumeControl } from '../../../shared/masterVolume';
 import { DrumEngine, projectSeconds, renderProject, type StepInfo } from '../audio/DrumEngine';
 import {
@@ -113,6 +114,17 @@ export class DrumApp {
     this.build();
     this.bindKeys();
     this.startLoop();
+
+    // 止められた音を、画面を叩いて戻せるようにする。
+    // 電話・他アプリの音・画面ロックのあと、演奏用の部品を探して
+    // 押さないと戻らないのでは、詰んだように見える。
+    // 詳しい経緯は shared/audioResume.ts に書いてある
+    resumeAudioOnGesture({
+      ctx: () => this.engine.ctx,
+      start: () => void this.ensureAudio().catch(() => {}),
+      onResumed: () => this.setStatus(t('status.ready')),
+    });
+
   }
 
   // ------------------------------------------------------------ 保存と復元
@@ -1520,6 +1532,9 @@ export class DrumApp {
     // 音が出ない理由は、狭い画面でも隠さない（.alert で必ず出す）
     const alert = text === t('status.muted') || text === t('status.audioBlocked');
     this.statusEl.classList.toggle('alert', alert);
+    // 帯が出ているあいだは、ヘッダーに1行ぶんの場所を作る（CSS の .has-alert）。
+    // 覆ってしまうと、音量つまみが帯の下に隠れる
+    this.root.classList.toggle('has-alert', alert);
 
     this.statusEl.textContent = text;
   }

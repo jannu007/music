@@ -1,3 +1,4 @@
+import { resumeAudioOnGesture } from '../../../shared/audioResume';
 import { masterVolumeControl, type MasterVolumeControl } from '../../../shared/masterVolume';
 import { AMPS, GuitarEngine, renderPerformance } from '../audio/GuitarEngine';
 import { COMPUTER_KEY_MAP, MidiInput } from '../audio/midi';
@@ -452,12 +453,21 @@ export class GuitarApp {
     this.showTab(this.activeTab);
     this.setStatus();
 
-    // 最初の操作でオーディオを起動する（ブラウザの自動再生制限対策）
-    const kick = () => void this.ensureAudio().catch(() => {});
-    app.addEventListener('pointerdown', kick, { once: true });
+    // 最初の操作でオーディオを起動し、止められたら叩いて戻せるようにする。
+    // 受け手は外さない（外すと「画面をタップすると戻ります」が嘘になる）。
+    // 詳しい経緯は shared/audioResume.ts に書いてある
     if (!this.globalListenersBound) {
       this.globalListenersBound = true;
-      window.addEventListener('keydown', kick, { once: true });
+      resumeAudioOnGesture({
+        ctx: () => this.engine.ctx,
+        start: () => void this.ensureAudio().catch(() => {}),
+        rebuild: () => {
+          this.audioReady = false;
+          this.initPromise = null;
+          void this.ensureAudio().catch(() => {});
+        },
+        onResumed: () => this.setStatus(),
+      });
     }
   }
 
@@ -546,6 +556,9 @@ export class GuitarApp {
       message === t('status.audioBlocked') ||
       message === t('status.noSound');
     this.statusEl.classList.toggle('alert', alert);
+    // 帯が出ているあいだは、ヘッダーに1行ぶんの場所を作る（CSS の .has-alert）。
+    // 覆ってしまうと、音量つまみが帯の下に隠れる
+    this.root.classList.toggle('has-alert', alert);
     // 「音が出ていません」のときだけ、押すと初期値へ戻せる
     const fixable = message === t('status.noSound');
     this.statusEl.classList.toggle('fixable', fixable);

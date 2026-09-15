@@ -1,3 +1,4 @@
+import { resumeAudioOnGesture } from '../../../shared/audioResume';
 import { masterVolumeControl, type MasterVolumeControl } from '../../../shared/masterVolume';
 /*
  * 画面全体の組み立てと配線
@@ -164,6 +165,16 @@ export class VocalApp {
     this.build();
     this.bindKeys();
     this.loop();
+
+    // 止められた音を、画面を叩いて戻せるようにする。
+    // 電話・他アプリの音・画面ロックのあと、演奏用の部品を探して
+    // 押さないと戻らないのでは、詰んだように見える。
+    // 詳しい経緯は shared/audioResume.ts に書いてある
+    resumeAudioOnGesture({
+      ctx: () => this.engine.ctx,
+      start: () => void this.ensureAudio().catch(() => {}),
+    });
+
   }
 
   // ------------------------------------------------------------ 保存と復元

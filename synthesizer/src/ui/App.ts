@@ -1,3 +1,4 @@
+import { resumeAudioOnGesture } from '../../../shared/audioResume';
 import { masterVolumeControl, type MasterVolumeControl } from '../../../shared/masterVolume';
 /**
  * Akatsuki Synth — アプリケーション本体（画面構成とすべての配線）
@@ -104,14 +105,16 @@ export class App {
   }
 
   // ブラウザの自動再生制限のため、AudioContext はユーザー操作の中で resume() する必要がある。
-  // 対応イベントの種類やタイミングはブラウザ・端末によって差があるため、複数のイベントで待ち構える。
+  //
+  // 以前はここで、最初の一回を拾ったら受け手を外していた。しかし音が止まるのは
+  // 最初の一回だけではない（電話、他アプリの音、画面ロック）。外してしまうと、
+  // 二度目からは何を叩いても戻らず、黙って無音のままになる。外さない。
+  // 詳しい経緯は shared/audioResume.ts に書いてある
   private unlockAudioOnFirstGesture() {
-    const events = ['pointerdown', 'mousedown', 'touchstart', 'keydown', 'click'];
-    const unlock = () => {
-      this.engine.resume();
-      for (const ev of events) document.removeEventListener(ev, unlock, true);
-    };
-    for (const ev of events) document.addEventListener(ev, unlock, { capture: true, passive: true });
+    resumeAudioOnGesture({
+      ctx: () => this.engine.realtimeCtx,
+      start: () => this.engine.resume(),
+    });
   }
 
   // ------------------------------------------------------------------
