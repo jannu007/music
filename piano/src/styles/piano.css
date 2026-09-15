@@ -800,15 +800,17 @@ html, body {
 }
 
 /* スマホ幅でヘッダーが入りきらなくなっていた。音量つまみを足したぶんで、
-   実測ではロゴが 0 幅に潰れて選択欄と重なり、右端のボタンは画面の外に
-   出ていた（bass は 102px、drums は 124px はみ出し）。
-   詰めるだけでは言語や楽器名の長さで足りなくなるので、折り返せるようにする。
+   実測ではロゴが 0 幅に潰れ、右端のボタンは画面の外に出ていた
+   （bass は 102px、drums は 124px はみ出し）。
+
+   いちど折り返して2列にしたが、上を2列にはしたくない。並べる物のほうを
+   減らす。ボタンの文字を落として絵だけにし、隙間を詰める。文字は
+   読み上げと吹き出しに残るので、意味が分からなくなることはない。
    ロゴは潰さない。幅ごとの実測は scripts/test-header-fit.mjs */
 @media (max-width: 767px) {
-  .topbar {
-    flex-wrap: wrap;
-    gap: 0.4rem 0.5rem;
-    padding: 0.45rem 0.6rem;
-  }
+  .topbar { gap: 0.35rem; padding: 0.4rem 0.5rem; flex-wrap: nowrap; }
   .brand { flex: none; }
+  .btn-text,
+  .icon-label,
+  .panic-btn .btn-text { display: none; }
 }

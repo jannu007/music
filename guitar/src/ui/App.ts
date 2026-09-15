@@ -84,6 +84,36 @@ const DEFAULT_UI: UiState = {
   loopBacking: true,
 };
 
+
+/**
+ * 下端のアイコン。外から絵を読み込むと通信が要るので、その場で描く。
+ * 24 角の升目に揃えてあるので、大きさは CSS 側だけで決まる。
+ */
+const TAB_ICONS: Record<string, string> = {
+  // 和音＝コードダイアグラムの升目
+  chord: svg('<path d="M4 6h16M4 12h16M4 18h16M8 4v16M16 4v16" />'),
+  // 伴奏＝連桁のついた音符
+  backing: svg('<path d="M9 18V6l10-2v12" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="16.5" cy="16" r="2.5" />'),
+  // 弦＝張られた線と振動
+  string: svg('<path d="M3 8h18M3 16h18" /><path d="M7 8c2 3 8 3 10 0M7 16c2-3 8-3 10 0" />'),
+  // アンプ＝箱とスピーカー
+  amp: svg('<rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="12" cy="13" r="4" /><path d="M7 7h2" />'),
+  // 空間＝広がる波
+  space: svg('<path d="M12 5v14" /><path d="M8 8a6 6 0 0 0 0 8M16 8a6 6 0 0 1 0 8" /><path d="M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14" />'),
+  // 演奏＝再生の三角
+  play: svg('<path d="M8 5l11 7-11 7z" />'),
+  // 録音＝丸
+  rec: svg('<circle cx="12" cy="12" r="6" />'),
+  // 見本＝重なった紙
+  demo: svg('<rect x="4" y="7" width="13" height="13" rx="2" /><path d="M8 4h11v11" />'),
+};
+
+function svg(inner: string): string {
+  return '<svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+    + ' stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + inner + '</svg>';
+}
+
 export class GuitarApp {
   private root: HTMLElement;
   private engine = new GuitarEngine();
@@ -123,6 +153,10 @@ export class GuitarApp {
   private panelBody!: HTMLElement;
   private tabButtons: HTMLButtonElement[] = [];
   private activeTab = 'chord';
+  /** シートが開いているか。開いていなければ指板だけが見えている */
+  private sheetOpen = false;
+  private panel!: HTMLElement;
+  private sheetTitle!: HTMLElement;
   private palmButton!: HTMLButtonElement;
   private recordButton!: HTMLButtonElement;
   private audioReady = false;
@@ -330,17 +364,6 @@ export class GuitarApp {
         <small>${t('brand.subtitle')}</small>
       </span>`;
 
-    const presetWrap = el('div', 'preset-wrap');
-    const presetSelect = el('select', 'preset-select');
-    presetSelect.setAttribute('aria-label', t('preset.ariaLabel'));
-    for (const preset of PRESETS) {
-      const option = el('option', undefined, t(`preset.${preset.id}.name`));
-      option.value = preset.id;
-      presetSelect.append(option);
-    }
-    presetSelect.value = this.ui.presetId;
-    presetSelect.addEventListener('change', () => this.selectPreset(presetSelect.value));
-    presetWrap.append(presetSelect);
 
     this.statusEl = el('div', 'status');
 
@@ -372,7 +395,7 @@ export class GuitarApp {
 
     const headerActions = el('div', 'header-actions');
     headerActions.append(langButton, panicButton, button(t('help.button'), 'ghost round', () => this.toggleHelp()));
-    header.append(brand, presetWrap, this.statusEl, this.master.root, headerActions);
+    header.append(brand, this.statusEl, this.master.root, headerActions);
 
     // ---------- ステージ ----------
     const stage = el('section', 'stage');
@@ -389,6 +412,10 @@ export class GuitarApp {
     stage.append(overlay);
 
     // ---------- パネル ----------
+    //
+    // 主役は指板。ほかは全部、下端の小さなアイコンの中にしまう。
+    // 押したときだけシートがせり出し、もう一度押すと引っ込む。
+    // 実物のギターに近づけるため、ふだんは弦だけが見えている状態にする。
     const panel = el('section', 'panel');
     const tabs = el('nav', 'tabs');
     const tabDefs: { id: string; label: string }[] = [
@@ -403,19 +430,33 @@ export class GuitarApp {
     ];
     this.tabButtons = [];
     for (const def of tabDefs) {
-      const btn = el('button', 'tab', def.label);
+      const btn = el('button', 'tab');
       btn.type = 'button';
       btn.dataset.tab = def.id;
-      if (def.id === this.activeTab) btn.classList.add('active');
-      btn.addEventListener('click', () => this.showTab(def.id));
+      // 絵と名前の両方を入れる。名前は広い画面でだけ出す。
+      // 絵だけだと何のことか分からない項目があるので、読み上げには必ず名前を渡す
+      btn.innerHTML = TAB_ICONS[def.id] ?? '';
+      btn.append(el('span', 'tab-label', def.label));
+      btn.title = def.label;
+      btn.setAttribute('aria-label', def.label);
+      btn.addEventListener('click', () => this.toggleTab(def.id));
       this.tabButtons.push(btn);
       tabs.append(btn);
     }
+
+    const sheetHead = el('div', 'sheet-head');
+    this.sheetTitle = el('span', 'sheet-title');
+    const closeBtn = button('✕', 'ghost round sheet-close', () => this.closeSheet());
+    closeBtn.title = t('sheet.close');
+    closeBtn.setAttribute('aria-label', t('sheet.close'));
+    sheetHead.append(this.sheetTitle, closeBtn);
+
     this.panelBody = el('div', 'panel-body');
-    panel.append(tabs, this.panelBody);
+    panel.append(sheetHead, this.panelBody);
+    this.panel = panel;
 
     const main = el('main', 'main-area');
-    main.append(stage, panel);
+    main.append(stage);
 
     // ---------- 指板 ----------
     const boardArea = el('footer', 'board-area');
@@ -432,7 +473,7 @@ export class GuitarApp {
     const boardScroll = el('div', 'board-scroll');
     boardArea.append(playBar, boardScroll);
 
-    app.append(header, main, boardArea);
+    app.append(header, main, boardArea, panel, tabs);
     this.root.append(app);
 
     this.view = new StringView(canvas);
@@ -583,9 +624,43 @@ export class GuitarApp {
     this.statusEl.textContent = parts.join(' ・ ');
   }
 
+  /**
+   * アイコンを押したとき。同じものをもう一度押したら引っ込める。
+   * 指板だけが見えている状態へ、いつでも1タップで戻れるようにする。
+   */
+  private toggleTab(id: string) {
+    if (this.sheetOpen && this.activeTab === id) {
+      this.closeSheet();
+      return;
+    }
+    this.showTab(id);
+    this.openSheet();
+  }
+
+  private openSheet() {
+    this.sheetOpen = true;
+    this.root.classList.add('sheet-open');
+    this.panel?.classList.add('is-open');
+    this.syncTabButtons();
+  }
+
+  private closeSheet() {
+    this.sheetOpen = false;
+    this.root.classList.remove('sheet-open');
+    this.panel?.classList.remove('is-open');
+    this.syncTabButtons();
+  }
+
+  private syncTabButtons() {
+    for (const btn of this.tabButtons) {
+      btn.classList.toggle('active', this.sheetOpen && btn.dataset.tab === this.activeTab);
+    }
+  }
+
   private showTab(id: string) {
     this.activeTab = id;
-    for (const btn of this.tabButtons) btn.classList.toggle('active', btn.dataset.tab === id);
+    this.syncTabButtons();
+    if (this.sheetTitle) this.sheetTitle.textContent = t(`tab.${id}`);
     this.panelBody.innerHTML = '';
     this.chordPads = null;
     switch (id) {
@@ -745,6 +820,22 @@ export class GuitarApp {
   private buildStringTab() {
     const body = this.panelBody;
     const s = this.settings;
+
+    // ギターの機種。もとはヘッダーに置いていたが、狭い画面では名前が
+    // 入りきらず「azz Archtop」と頭を欠いていた。弦の話なのでここへ移す
+    const presetWrap = el('div', 'preset-wrap');
+    const presetSelect = el('select', 'preset-select');
+    presetSelect.setAttribute('aria-label', t('preset.ariaLabel'));
+    for (const preset of PRESETS) {
+      const option = el('option', '', t(`preset.${preset.id}.name`));
+      option.value = preset.id;
+      presetSelect.append(option);
+    }
+    presetSelect.value = this.ui.presetId;
+    presetSelect.addEventListener('change', () => this.selectPreset(presetSelect.value));
+    presetWrap.append(presetSelect);
+    body.append(el('h2', 'panel-title', t('preset.ariaLabel')), presetWrap);
+
     const set = <K extends keyof GuitarSettings>(key: K, value: GuitarSettings[K]) => {
       this.settings[key] = value;
       this.commit();

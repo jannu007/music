@@ -863,16 +863,146 @@ html, body {
   opacity: 0.7;
 }
 
-/* スマホ幅でヘッダーが入りきらなくなっていた。音量つまみを足したぶんで、
-   実測ではロゴが 0 幅に潰れて選択欄と重なり、右端のボタンは画面の外に
-   出ていた（bass は 102px、drums は 124px はみ出し）。
-   詰めるだけでは言語や楽器名の長さで足りなくなるので、折り返せるようにする。
-   ロゴは潰さない。幅ごとの実測は scripts/test-header-fit.mjs */
+/* ==================================================================
+   実物のギターに近づける配置
+   ------------------------------------------------------------------
+   ヘッダーに物を並べていたら、スマホ幅で入りきらなくなった。折り返して
+   2列にしたが、それは「上を2列にしないでほしい」という話と、そもそも
+   「弦を画面いっぱいに見たい」という話の、どちらにも反していた。
+
+   並べ方を変える。主役は指板ひとつだけ。ほかは全部、下端の小さな
+   アイコンにしまい、押したときだけ下からせり出す。ふだん画面に見えて
+   いるのは、弦と、かき鳴らす帯と、音量つまみだけになる。
+
+   置き場所の割り当て
+     上   … ロゴ・音量つまみ・言語・停止・ヘルプ（1列で収まる分だけ）
+     中   … 指板（残り全部）
+     下   … 8つのアイコン
+     手前 … シート（アイコンを押したときだけ）
+   ================================================================== */
+
+/* ---- 上：1列に収める。機種の選択は「弦」タブへ移した ---- */
 @media (max-width: 767px) {
-  .topbar {
-    flex-wrap: wrap;
-    gap: 0.4rem 0.5rem;
-    padding: 0.45rem 0.6rem;
-  }
+  .topbar { gap: 0.45rem; padding: 0.4rem 0.6rem; }
   .brand { flex: none; }
+  .brand-text { display: none; }
+}
+
+/* ---- 中：指板を画面いっぱいに ---- */
+@media (max-width: 900px) {
+  /* 弦の揺れる絵は、指板のぶんの高さを取ってしまうので出さない。
+     弾いた手ごたえは指板そのものが光って返す */
+  .stage { display: none; }
+  .main-area { flex: none; }
+
+  .board-area {
+    flex: 1;
+    min-height: 0;
+    border-top: none;
+  }
+  .board-scroll {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: stretch;
+    padding: 0.3rem 0.4rem 0.4rem;
+  }
+  .fretboard {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  /* 高さが余るので、弦の間隔を広げて押さえやすくする。
+     指の幅はおよそ 10mm ＝ 40px 前後なので、そこへ近づける */
+  .fb-row { height: clamp(30px, 8.2vh, 62px); }
+}
+
+/* ---- 下：小さなアイコンの列 ---- */
+.tabs {
+  flex: none;
+  display: flex;
+  gap: 0.1rem;
+  padding: 0.25rem 0.3rem;
+  border-top: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(24, 16, 12, 0.97), rgba(12, 8, 6, 0.99));
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  flex: 1 1 0;
+  min-width: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  /* 指で押せる大きさ。これより小さいと押し損なう */
+  min-height: 44px;
+  padding: 0.2rem 0.1rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.tab-icon { width: 21px; height: 21px; display: block; }
+.tab-label {
+  font-size: 0.6rem;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.tab.active { background: rgba(239, 138, 60, 0.16); color: var(--ember-soft); }
+.tab:not(.active):hover { color: var(--text); }
+
+/* いちばん狭いところでは名前を落とす。絵と読み上げは残る */
+@media (max-width: 400px) {
+  .tab-label { display: none; }
+  .tab { min-width: 34px; }
+}
+
+/* ---- アイコンを押したときだけ出るシート ----
+   浮かせて重ねるのはやめた。重ねると、開いたシートが下のアイコンを
+   覆ってしまい、閉じる手立てが無くなる（実際にそうなった）。
+   指板の下・アイコンの上に、場所を取る形で差し込む。開くと指板は
+   そのぶん縮むが、弾いている弦は見えたまま残る。 */
+.panel {
+  flex: none;
+  width: auto;
+  max-height: 0;
+  overflow: hidden;
+  border-top: 1px solid var(--line-strong);
+  transition: max-height 0.18s ease-out;
+}
+.panel.is-open {
+  max-height: min(58vh, 460px);
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel { transition: none; }
+}
+
+.sheet-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.55rem 0.8rem 0.4rem;
+  border-bottom: 1px solid var(--line);
+}
+.sheet-title { font-size: 0.95rem; font-weight: 600; color: var(--ember-soft); }
+.panel.is-open .panel-body { overflow-y: auto; }
+
+/* ---- 横向きだと指板が長く見える。そちらを勧める ---- */
+@media (max-height: 520px) and (orientation: landscape) {
+  .topbar { padding: 0.25rem 0.5rem; }
+  .tab { min-height: 38px; }
+  .tab-label { display: none; }
+  .fb-row { height: clamp(26px, 13vh, 52px); }
 }

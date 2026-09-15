@@ -181,6 +181,7 @@ const ja = {
   'reverb.off': 'なし',
   'ctl.reverbAmount.label': 'リバーブ量',
   'ctl.masterVolume.label': 'マスター音量',
+  'sheet.close': '閉じる',
   'ctl.outputTrim.label': '出力トリム',
   'ctl.outputTrim.hint': '音色ごとの音量差をならすための補正。プリセットを選ぶと自動で設定されます。',
 
@@ -600,6 +601,7 @@ const en: typeof ja = {
   'reverb.off': 'None',
   'ctl.reverbAmount.label': 'Reverb Amount',
   'ctl.masterVolume.label': 'Master Volume',
+  'sheet.close': 'Close',
   'ctl.outputTrim.label': 'Output Trim',
   'ctl.outputTrim.hint': 'Corrects for the volume differences between tones. Set automatically when you pick a preset.',
 

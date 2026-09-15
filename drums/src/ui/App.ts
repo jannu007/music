@@ -255,15 +255,6 @@ export class DrumApp {
     texts.append(el('strong', '', 'Hibiki Drum Machine'), el('small', '', t('brand.subtitle')));
     brand.append(texts);
 
-    const kitSelect = el('select', 'kit-select');
-    for (const kit of KITS) {
-      const opt = el('option', '', t(`kit.${kit.id}.name`));
-      opt.value = kit.id;
-      if (kit.id === this.project.kitId) opt.selected = true;
-      kitSelect.append(opt);
-    }
-    kitSelect.title = t('kit.selectTitle');
-    kitSelect.addEventListener('change', () => this.setKit(kitSelect.value));
 
     this.statusEl = el('div', 'status', t('status.tapToStart'));
 
@@ -294,7 +285,7 @@ export class DrumApp {
       },
     });
 
-    bar.append(brand, kitSelect, this.statusEl, this.master.root, meter, langButton, panic);
+    bar.append(brand, this.statusEl, this.master.root, meter, langButton, panic);
     return bar;
   }
 
@@ -507,6 +498,19 @@ export class DrumApp {
   }
 
   private renderPadsPanel() {
+    // 音源キット。もとはヘッダーに置いていたが、音量つまみを足したぶん
+    // スマホ幅で入りきらなくなった。パッドの音の話なのでここへ移す
+    const kitSelect = el('select', 'kit-select');
+    for (const kit of KITS) {
+      const opt = el('option', '', t(`kit.${kit.id}.name`));
+      opt.value = kit.id;
+      if (kit.id === this.project.kitId) opt.selected = true;
+      kitSelect.append(opt);
+    }
+    kitSelect.title = t('kit.selectTitle');
+    kitSelect.addEventListener('change', () => this.setKit(kitSelect.value));
+    this.panelBody.append(el('h2', 'panel-title', t('kit.selectTitle')), kitSelect);
+
     const sec = section(t('panel.pads.title'), t('panel.pads.hint'));
     this.pads = new DrumPads(this.project.tracks, {
       onHit: (trackId, vel) => this.hit(trackId, vel),

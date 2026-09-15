@@ -17,7 +17,7 @@
  *
  * 部品をひとつずつ見るのをやめ、ヘッダー全体で次の3つを見る。
  *
- *   1. ヘッダーそのものが横にはみ出していないか
+ *   1. ヘッダーそのものが横にはみ出していないか（そして1列に収まっているか）
  *   2. 部品が枠の外に出ていないか
  *   3. 部品の中身が切れていないか（潰れて 0 幅になったものを含む）
  */
@@ -38,6 +38,17 @@ const MIME = {
 };
 
 const APPS = ['synthesizer', 'piano', 'drums', 'guitar', 'bass', 'vocal', 'sampler'];
+
+/*
+ * 上を1列に収めることを求めるアプリ。
+ *
+ * synthesizer と vocal は外してある。この2本は最初から flex-wrap: wrap を
+ * 持つ多段のヘッダーで（vocal 127px/3列、synth 231px/4列）、音量つまみを
+ * 足す前からそうだった。1列にするには、ギターと同じく並べている物を
+ * パネルへ移す作り替えが要る。頼まれたのはギターの画面だったので、
+ * ここでは広げていない。やるときは、この2本をこの一覧に足すところから始める。
+ */
+const ONE_ROW = ['piano', 'drums', 'guitar', 'bass', 'sampler'];
 /** 手にする端末の幅。いちばん狭いものから、よくある大きさまで */
 const WIDTHS = [360, 390, 412, 480];
 
@@ -70,7 +81,7 @@ async function look(app, width) {
   await page.goto(`http://localhost:${PORT}/${app}/`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(800);
 
-  const found = await page.evaluate(() => {
+  const found = await page.evaluate((oneRow) => {
     const bar = document.querySelector('.topbar, .app-header, .header');
     if (!bar) return { missing: true };
     const b = bar.getBoundingClientRect();
@@ -84,6 +95,20 @@ async function look(app, width) {
     // ヘッダーそのものが横に溢れていないか
     const overflow = bar.scrollWidth - bar.clientWidth;
     if (!scrollable && overflow > 1) bad.push(`ヘッダーが ${overflow}px はみ出し`);
+
+    // 上は1列。折り返して2列にすれば収まりはするが、そのぶん
+    // 画面の縦が減る。並べる物のほうを減らして収めること
+    const boxes = [...bar.children]
+      .map((c) => c.getBoundingClientRect())
+      .filter((r) => r.height > 0)
+      .sort((a, b) => a.top - b.top);
+    let rows = 0;
+    let rowBottom = -Infinity;
+    for (const r of boxes) {
+      if (r.top >= rowBottom - 1) { rows += 1; rowBottom = r.bottom; }
+      else { rowBottom = Math.max(rowBottom, r.bottom); }
+    }
+    if (oneRow && rows > 1) bad.push(`ヘッダーが ${rows} 列になっている`);
 
     const name = (el) => (typeof el.className === 'string' && el.className) || el.tagName.toLowerCase();
 
@@ -112,7 +137,7 @@ async function look(app, width) {
       }
     }
     return { bad };
-  });
+  }, ONE_ROW.includes(app));
 
   await ctx.close();
   return found;

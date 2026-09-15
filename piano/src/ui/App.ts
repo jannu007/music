@@ -244,17 +244,6 @@ export class PianoApp {
         <small>${t('brand.subtitle')}</small>
       </span>`;
 
-    const presetWrap = el('div', 'preset-wrap');
-    const presetSelect = el('select', 'preset-select');
-    presetSelect.setAttribute('aria-label', t('preset.ariaLabel'));
-    for (const preset of PRESETS) {
-      const option = el('option', undefined, t(`preset.${preset.id}.name`));
-      option.value = preset.id;
-      presetSelect.append(option);
-    }
-    presetSelect.value = this.ui.presetId;
-    presetSelect.addEventListener('change', () => this.selectPreset(presetSelect.value));
-    presetWrap.append(presetSelect);
 
     this.statusEl = el('div', 'status');
 
@@ -282,7 +271,7 @@ export class PianoApp {
       set: (v) => { this.settings.volume = v; this.commit(); this.watchForSilence(); },
     });
 
-    header.append(brand, presetWrap, this.statusEl, this.master.root, headerActions);
+    header.append(brand, this.statusEl, this.master.root, headerActions);
 
     // ---------- ステージ ----------
     const stage = el('section', 'stage');
@@ -480,6 +469,21 @@ export class PianoApp {
   // ------------------------------------------------------------------- tabs
 
   private buildToneTab() {
+    // ピアノの機種。もとはヘッダーに置いていたが、音量つまみを足したぶん
+    // スマホ幅で入りきらなくなった。音色の話なのでここへ移す
+    const presetWrap = el('div', 'preset-wrap');
+    const presetSelect = el('select', 'preset-select');
+    presetSelect.setAttribute('aria-label', t('preset.ariaLabel'));
+    for (const preset of PRESETS) {
+      const option = el('option', undefined, t(`preset.${preset.id}.name`));
+      option.value = preset.id;
+      presetSelect.append(option);
+    }
+    presetSelect.value = this.ui.presetId;
+    presetSelect.addEventListener('change', () => this.selectPreset(presetSelect.value));
+    presetWrap.append(presetSelect);
+    this.panelBody.append(el('h2', 'panel-title', t('preset.ariaLabel')), presetWrap);
+
     const body = this.panelBody;
 
     const grid = el('div', 'preset-grid');
