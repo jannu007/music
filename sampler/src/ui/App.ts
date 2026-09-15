@@ -1,3 +1,4 @@
+import { resumeAudioOnGesture } from '../../../shared/audioResume';
 import { masterVolumeControl, type MasterVolumeControl } from '../../../shared/masterVolume';
 /*
  * 画面ぜんたい。
@@ -237,6 +238,16 @@ export class SamplerApp {
     this.updateWaveModeButton();
     onLocaleChange(() => this.rebuild());
     this.startMeter();
+
+    // 止められた音を、画面を叩いて戻せるようにする。
+    // 電話・他アプリの音・画面ロックのあと、鍵盤を探して押さないと
+    // 戻らないのでは、詰んだように見える。
+    // 詳しい経緯は shared/audioResume.ts に書いてある
+    resumeAudioOnGesture({
+      ctx: () => this.ctx,
+      start: () => void this.ensureAudio().catch(() => {}),
+    });
+
     void this.loadInitial();
   }
 

@@ -1,3 +1,4 @@
+import { resumeAudioOnGesture } from '../../../shared/audioResume';
 import { masterVolumeControl, type MasterVolumeControl } from '../../../shared/masterVolume';
 import { PianoEngine, renderPerformance } from '../audio/PianoEngine';
 import { COMPUTER_KEY_MAP, MidiInput } from '../audio/midi';
@@ -378,10 +379,14 @@ export class PianoApp {
     if (!this.globalListenersBound) {
       this.globalListenersBound = true;
       window.addEventListener('resize', () => this.fitKeyboard());
-      // 最初の操作でオーディオを起動する（ブラウザの自動再生制限対策）
-      const kick = () => void this.ensureAudio().catch(() => {});
-      window.addEventListener('pointerdown', kick, { once: true });
-      window.addEventListener('keydown', kick, { once: true });
+      // 最初の操作でオーディオを起動し、止められたら叩いて戻せるようにする。
+      // 受け手は外さない（外すと「画面をタップすると戻ります」が嘘になる）。
+      // 詳しい経緯は shared/audioResume.ts に書いてある
+      resumeAudioOnGesture({
+        ctx: () => this.engine.ctx,
+        start: () => void this.ensureAudio().catch(() => {}),
+        onResumed: () => this.setStatus(),
+      });
     }
   }
 
@@ -442,6 +447,11 @@ export class PianoApp {
     // 音が出ない理由は、狭い画面でも隠さない（.status.alert で必ず出す）
     const alert = message === t('status.muted') || message === t('status.audioBlocked');
     this.statusEl.classList.toggle('alert', alert);
+    // 帯が出ているあいだは、ヘッダーに1行ぶんの場所を作る（CSS の .has-alert）。
+    // 覆ってしまうと、音量つまみが帯の下に隠れる
+    this.root.classList.toggle('has-alert', alert);
+    // 帯は押したら消える。消せない断りが貼り付いたままだと邪魔になる
+    this.statusEl.onclick = alert ? () => this.setStatus() : null;
     if (message) {
       this.statusEl.textContent = message;
       return;

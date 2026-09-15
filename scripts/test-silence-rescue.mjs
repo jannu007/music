@@ -110,6 +110,13 @@ async function masterKnob(app, width) {
   const page = await ctx.newPage();
   await page.goto(`http://localhost:${PORT}/${app.id}/`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(900);
+
+  // 先に音を起こしておく。起こしていないと、あとで帯を押したときに
+  // 初期化のほうが走り、その後始末が帯を消してしまう。それでは
+  // 「押したから消えた」のか「初期化のついでに消えた」のか区別できない
+  await page.mouse.click(5, 5);
+  await page.waitForTimeout(1400);
+
   const seen = await page.evaluate(() => {
     const wrap = document.querySelector('.mv-wrap');
     const range = document.querySelector('.mv-range');
@@ -138,13 +145,40 @@ async function masterKnob(app, width) {
       el.dispatchEvent(new Event('input', { bubbles: true }));
     });
     await page.waitForTimeout(900);
-    zero = await page.evaluate(() => ({
-      red: !!document.querySelector('.mv-range')?.classList.contains('is-zero'),
-      status: (document.querySelector('.status')?.textContent || '').trim(),
-    }));
+    zero = await page.evaluate(() => {
+      const band = document.querySelector('.status.alert')?.getBoundingClientRect();
+      const knob = document.querySelector('.mv-wrap')?.getBoundingClientRect();
+      // 帯は画面の上に貼り付く。つまみに重なっていると、音が出ない理由に
+      // いちばん近い道具が、いちばん要るときに隠れてしまう
+      const covered = !!band && !!knob
+        && !(knob.right <= band.left || knob.left >= band.right
+             || knob.bottom <= band.top || knob.top >= band.bottom);
+      return {
+        red: !!document.querySelector('.mv-range')?.classList.contains('is-zero'),
+        status: (document.querySelector('.status')?.textContent || '').trim(),
+        band: !!band,
+        covered,
+        where: band ? `帯 ${Math.round(band.top)}-${Math.round(band.bottom)} / つまみ ${Math.round(knob.top)}-${Math.round(knob.bottom)}` : '帯なし',
+      };
+    });
   }
+  // 出した断りが、押したら消えるか。消せない帯が貼り付いたままだと、
+  // 直せないうえに邪魔になる（実機でそう言われた）
+  let dismissed = null;
+  if (zero?.band) {
+    const box = await page.evaluate(() => {
+      const b = document.querySelector('.status.alert')?.getBoundingClientRect();
+      return b ? { x: b.left + b.width / 2, y: b.top + b.height / 2 } : null;
+    });
+    if (box) {
+      await page.mouse.click(box.x, box.y);
+      await page.waitForTimeout(600);
+      dismissed = await page.evaluate(() => !document.querySelector('.status.alert'));
+    }
+  }
+
   await ctx.close();
-  return { seen, zero };
+  return { seen, zero, dismissed };
 }
 
 console.log('音が出ていないことに、アプリが気づけるか\n');
@@ -166,7 +200,7 @@ for (const app of APPS) {
 console.log('');
 for (const id of KNOB_APPS) {
   for (const w of [360, 412, 1280]) {
-    const { seen, zero } = await masterKnob({ id }, w);
+    const { seen, zero, dismissed } = await masterKnob({ id }, w);
     if (seen.missing) {
       check(`${id} ${w}px: ヘッダーに音量つまみがある`, false, '見つからない');
       continue;
@@ -175,6 +209,12 @@ for (const id of KNOB_APPS) {
       seen.shown && seen.grabbable && seen.inBar && seen.inView && seen.firstRow,
       `${seen.size}${seen.inView ? '' : ' / 画面の外'}${seen.firstRow ? '' : ' / 一行目にない'}`);
     check(`${id} ${w}px: 0 にすると目で分かる`, !!zero?.red, zero ? `赤=${zero.red}` : '');
+    // 帯を出すアプリだけ見る。出さないアプリに重なりようはない
+    if (zero?.band) {
+      check(`${id} ${w}px: 断りの帯が音量つまみを隠していない`, !zero.covered, zero.where);
+      check(`${id} ${w}px: 帯を押すと消える`, dismissed === true,
+        dismissed === true ? '' : '押しても消えない');
+    }
   }
 }
 

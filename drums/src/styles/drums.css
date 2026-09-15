@@ -1340,3 +1340,38 @@ html, body {
   --mv-accent: #4a3a24;
   --mv-zero: #b8372b;
 }
+
+/* 断りの帯が出ているあいだは、帯をヘッダーの1行目として置く。
+ *
+ * もとは position: fixed で画面の上に貼り付けていたが、.topbar には
+ * backdrop-filter が掛かっている。これが fixed の基準点になるため、
+ * 帯は画面ではなくヘッダーの上端に貼り付き、音量つまみをちょうど覆っていた
+ * （実測 帯 0-35px / つまみ 10-37px）。音が出ない理由にいちばん近い道具が、
+ * いちばん要るときに隠れる形になっていた。
+ *
+ * 覆うのをやめ、自分の行を持たせて下を押し下げる。潰されない（もとの
+ * fixed はそれを避けるためだった）うえ、何も隠さない。 */
+.has-alert .topbar { flex-wrap: wrap; }
+.has-alert .status.alert {
+  position: relative;
+  order: -1;
+  flex: 1 0 100%;
+  margin: -0.55rem -1rem 0.35rem;
+  width: auto;
+}
+
+/* 帯は押したら消える。消せることが分かるよう、右端に × を出す。
+   （「押すと初期値に戻る」帯はそもそも意味が違うので、そちらには出さない） */
+.status.alert:not(.fixable) {
+  cursor: pointer;
+  padding-right: 2.1rem;
+}
+.status.alert:not(.fixable)::after {
+  content: '✕';
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  font-size: 0.9em;
+  opacity: 0.7;
+}
