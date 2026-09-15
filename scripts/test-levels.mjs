@@ -37,7 +37,11 @@ const MIME = {
  */
 const APPS = [
   { id: 'piano', hit: '.pkey.white', pick: (i) => i },
-  { id: 'guitar', hit: '.fb-cell', pick: (i) => 20 + i * 7 },
+  // 弦とフレットで指す。通し番号で拾っていたが、出すフレット数を
+  // 7 から 24 に増やしたとき、1弦あたりのセルが 16 から 25 になり、
+  // 同じ番号が高音側の細い弦へずれていた。
+  // 3弦を単音で上がっていく。他のアプリと同じ「1音ずつ鳴らす」形に近い
+  { id: 'guitar', hit: '.fb-row[data-string="2"] .fb-cell', pick: (i) => 2 + i * 2 },
   { id: 'bass', hit: '.fret-canvas', at: { x: 0.42, y: 0.5 } },
   { id: 'sampler', hit: '.key.white.mapped', pick: (i) => i },
 ];
@@ -157,7 +161,15 @@ for (const app of APPS) {
 
   for (let i = 0; i < 6; i++) {
     const index = app.pick ? app.pick(i) % count : 0;
-    const box = await items.nth(index).boundingBox().catch(() => null);
+    const item = items.nth(index);
+    // 位置を読む前に、画面の中へ送る。
+    //
+    // ギターの指板は 24 フレットぶんで 1218px あり、412px の画面には
+    // 収まらない。送らずに位置だけ読むと、画面の外の座標を叩くことに
+    // なって音が鳴らず、鳴った数がそのつど変わって測る値がばらついた
+    // （同じ検査で 0.29〜0.36 と振れた）。
+    await item.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
+    const box = await item.boundingBox().catch(() => null);
     if (box) {
       if (app.at) await page.mouse.click(box.x + box.width * app.at.x, box.y + box.height * app.at.y);
       else await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height * 0.75);

@@ -26,6 +26,15 @@ const DOUBLE_MARKERS = [12, 24];
  *  - 押したまま左右へドラッグ → スライド
  *  - 下端のストロークバーを左右になぞる → ストローク
  */
+
+/** 出せるフレットの上限。実物の 24 フレットに合わせる */
+export const MAX_FRETS = 24;
+/**
+ * いちばん狭いフレットに残す幅。指の腹はおよそ 10mm なので、
+ * それを大きく下回ると押さえ分けられない。実測で詰めた値
+ */
+const MIN_FRET_PX = 22;
+
 export class Fretboard {
   private root: HTMLElement;
   private board: HTMLElement;
@@ -71,7 +80,7 @@ export class Fretboard {
   }
 
   setFrets(count: number) {
-    this.frets = Math.max(5, Math.min(24, count));
+    this.frets = Math.max(5, Math.min(MAX_FRETS, count));
     this.build();
   }
 
@@ -117,6 +126,17 @@ export class Fretboard {
     }
     const total = widths.reduce((a, b) => a + b, 0);
     const template = widths.map((w) => `${((w / total) * 100).toFixed(3)}fr`).join(' ');
+
+    // 指板は fr で組んであるので、放っておくと何フレットあっても画面幅に
+    // 収まってしまう。24 まで出すと1フレット 15px ほどになり、押さえられない。
+    //
+    // いちばん狭い高音側のフレットが指で押さえられる幅を保つように、
+    // 指板全体の最小幅を決める。画面からはみ出すぶんは、横に送って届かせる。
+    const narrowest = widths[widths.length - 1] / total;
+    const minWidth = Math.round(MIN_FRET_PX / narrowest);
+    this.board.style.minWidth = `${minWidth}px`;
+    // かき鳴らす帯も同じ幅にする。ずれると、弦と帯が横に食い違う
+    this.strumBar.style.minWidth = `${minWidth}px`;
 
     // 目印（ポジションマーク）の帯
     const markerRow = el('div', 'fb-markers');

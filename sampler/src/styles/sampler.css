@@ -1251,9 +1251,11 @@ body {
    ヘッダーを折り返せるようにして、名前に一行ぶんの幅を渡す。
    幅ごとの実測は scripts/test-header-fit.mjs */
 @media (max-width: 479px) {
-  .app-header { flex-wrap: wrap; gap: 6px 8px; }
-  /* 名前を下の行へ回す。上の行は音量つまみのために空けておく
-     （つまみが二行目に落ちると、開いた時点で目に入らなくなる） */
-  .app-title { order: 2; flex: 1 1 100%; min-width: 0; }
-  .app-header > :not(.app-title) { order: 1; }
+  /* 上は1列のまま。楽器名のほうを縮めて収める（…で省く）。
+     名前は吹き出しと読み上げに全文が残る */
+  .app-header { gap: 6px; }
+  .app-title { min-width: 0; flex: 1 1 auto; }
+  /* 楽器名は「…」で切るくらいなら出さない。
+     どの音源かは音づくりタブで分かるし、吹き出しにも残してある */
+  .app-instrument { display: none; }
 }

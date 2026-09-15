@@ -300,15 +300,6 @@ export class BassApp {
         <small>${t('brand.subtitle')}</small>
       </span>`;
 
-    const presetSelect = el('select', 'preset-select');
-    presetSelect.setAttribute('aria-label', t('preset.ariaLabel'));
-    for (const preset of PRESETS) {
-      const option = el('option', undefined, t(`preset.${preset.id}.name`));
-      option.value = preset.id;
-      presetSelect.append(option);
-    }
-    presetSelect.value = this.ui.presetId;
-    presetSelect.addEventListener('change', () => this.selectPreset(presetSelect.value));
 
     this.statusEl = el('div', 'status');
 
@@ -333,7 +324,7 @@ export class BassApp {
       set: (v) => { this.settings.volume = v; this.commit(); this.watchForSilence(); },
     });
 
-    header.append(brand, presetSelect, this.statusEl, this.master.root, headerActions);
+    header.append(brand, this.statusEl, this.master.root, headerActions);
 
     // ---------- 指板 ----------
     const stage = el('section', 'stage');
@@ -527,6 +518,19 @@ export class BassApp {
   // ------------------------------------------------------------------- tabs
 
   private buildToneTab() {
+    // ベースの機種。もとはヘッダーに置いていたが、音量つまみを足したぶん
+    // スマホ幅で入りきらなくなった。音色の話なのでここへ移す
+    const presetSelect = el('select', 'preset-select');
+    presetSelect.setAttribute('aria-label', t('preset.ariaLabel'));
+    for (const preset of PRESETS) {
+      const option = el('option', undefined, t(`preset.${preset.id}.name`));
+      option.value = preset.id;
+      presetSelect.append(option);
+    }
+    presetSelect.value = this.ui.presetId;
+    presetSelect.addEventListener('change', () => this.selectPreset(presetSelect.value));
+    this.panelBody.append(el('h2', 'panel-title', t('preset.ariaLabel')), presetSelect);
+
     const body = this.panelBody;
 
     const grid = el('div', 'preset-grid');

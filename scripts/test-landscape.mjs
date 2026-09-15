@@ -97,16 +97,22 @@ for (const app of APPS) {
       const overY = Math.max(de.scrollHeight, b.scrollHeight) - window.innerHeight;
       const overX = Math.max(de.scrollWidth, b.scrollWidth) - window.innerWidth;
 
-      // 操作する場所（中身を並べている本体）のうち、いちばん低いもの
-      let smallest = null;
-      for (const el of b.querySelectorAll('main, .main, .panel, .tab-body, .stage, .work')) {
+      // 操作する場所のうち、いちばん高いもの。
+      //
+      // もとは「いちばん低いもの」を見ていた。数えている要素がすべて
+      // 出ているつもりだったからだが、いまは畳んである物がある
+      // （ギターのシートは、押すまで高さ 0 でいるのが正しい姿）。
+      // 低いほうを見ると、それを「潰れている」と数えてしまう。
+      // 知りたいのは「触れる場所が残っているか」なので、高いほうを見る。
+      let largest = null;
+      for (const el of b.querySelectorAll('main, .main, .panel, .tab-body, .stage, .work, .board-area')) {
         const q = el.getBoundingClientRect();
         if (q.width === 0) continue;
-        if (smallest === null || q.height < smallest.height) {
-          smallest = { name: String(el.className || el.tagName).split(' ')[0], height: Math.round(q.height) };
+        if (largest === null || q.height > largest.height) {
+          largest = { name: String(el.className || el.tagName).split(' ')[0], height: Math.round(q.height) };
         }
       }
-      return { overY, overX, smallest };
+      return { overY, overX, smallest: largest };
     });
 
     const area = result.smallest;
@@ -122,7 +128,7 @@ for (const app of APPS) {
     check(`${where}: 縦にはみ出さない`, result.overY <= 0, `${result.overY}px`);
     check(`${where}: 横にはみ出さない`, result.overX <= 0, `${result.overX}px`);
     check(
-      `${where}: 操作する場所が潰れていない`,
+      `${where}: 触れる場所が残っている`,
       !area || area.height >= MIN_WORK_AREA,
       area ? `${area.name}=${area.height}px` : ''
     );
