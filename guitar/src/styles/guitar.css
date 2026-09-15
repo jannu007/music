@@ -784,6 +784,8 @@ html, body {
   cursor: grab;
   touch-action: none;
   user-select: none;
+  position: relative;
+  overflow: hidden;
 }
 .strum-bar:active { cursor: grabbing; border-color: var(--ember); }
 
@@ -1101,3 +1103,25 @@ html, body {
      ここを 22px のままにすると、そのぶん弦の間隔が 24px を割った */
   .fb-markers { height: 17px; }
 }
+
+/* かき鳴らす帯の中に、揺れる弦を描く。
+   場所を新たに取らず、弾いている所で弦が動くので分かりやすい。
+   触りは帯そのものが受けるので、面は素通りさせる */
+.strum-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  opacity: 0.85;
+}
+/* 案内の文字は弦の手前に置く。鳴らしているあいだは控えめにして、
+   弦の動きを隠さないようにする */
+.strum-hint {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+.strum-bar:active .strum-hint { opacity: 0.35; }

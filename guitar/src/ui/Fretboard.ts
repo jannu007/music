@@ -39,6 +39,8 @@ export class Fretboard {
   private root: HTMLElement;
   private board: HTMLElement;
   private strumBar: HTMLElement;
+  /** 揺れる弦を描く面（App が StringView に渡す） */
+  readonly strumCanvas: HTMLCanvasElement;
   private handlers: FretboardHandlers;
   private tuning: Tuning;
   private capo = 0;
@@ -62,7 +64,10 @@ export class Fretboard {
 
     this.board = el('div', 'fretboard');
     this.strumBar = el('div', 'strum-bar');
-    this.strumBar.innerHTML = `<span>${t('fretboard.strumHint')}</span>`;
+    // 揺れる弦を、かき鳴らす帯の中に描く。場所を新たに取らずに済み、
+    // 弾いている場所で弦が揺れるので、見ていて分かりやすい
+    this.strumCanvas = el('canvas', 'strum-canvas');
+    this.strumBar.append(this.strumCanvas, el('span', 'strum-hint', t('fretboard.strumHint')));
     this.root.append(this.board, this.strumBar);
 
     this.build();

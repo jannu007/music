@@ -249,6 +249,55 @@ async function reach() {
   return { byStrip, byString, touch, visible };
 }
 
+/*
+ * 揺れる弦（波形）が、演奏の邪魔をせずに残っているか。
+ *
+ * もとは画面の上に大きく出していたが、指板へ高さを譲るために畳んだ。
+ * 気に入っていたという話だったので、かき鳴らす帯の中へ描き直した。
+ * 場所を新たに取らず、弾いている所で弦が動く。
+ *
+ * 見るのは2つ。触りを奪っていないこと（奪うとかき鳴らせなくなる）と、
+ * 弾いたときに本当に動くこと（置いてあるだけでは意味がない）。
+ */
+async function waveform() {
+  const ctx = await browser.newContext({ viewport: { width: 412, height: 890 } });
+  const page = await ctx.newPage();
+  await page.goto(`http://localhost:${PORT}/guitar/`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  const geo = await page.evaluate(() => {
+    const c = document.querySelector('.strum-canvas');
+    const bar = document.querySelector('.strum-bar');
+    if (!c || !bar) return null;
+    const r = c.getBoundingClientRect();
+    const br = bar.getBoundingClientRect();
+    return {
+      fills: r.width > br.width - 6 && r.height > br.height - 6,
+      passes: getComputedStyle(c).pointerEvents === 'none',
+      size: `${Math.round(r.width)}x${Math.round(r.height)}`,
+    };
+  });
+
+  const brightness = () => page.evaluate(() => {
+    const c = document.querySelector('.strum-canvas');
+    const g = c.getContext('2d');
+    const d = g.getImageData(0, 0, c.width, c.height).data;
+    let sum = 0;
+    for (let i = 0; i < d.length; i += 4) sum += d[i] + d[i + 1] + d[i + 2];
+    return sum;
+  });
+
+  await page.mouse.click(5, 5);
+  await page.waitForTimeout(600);
+  const quiet = await brightness();
+  await page.locator('.fb-cell').nth(40).click({ force: true });
+  await page.waitForTimeout(160);
+  const ringing = await brightness();
+
+  await ctx.close();
+  return { geo, moved: ringing !== quiet, quiet, ringing };
+}
+
 console.log('ギターが、実物のように弾ける形になっているか\n');
 
 for (const screen of SCREENS) {
@@ -285,6 +334,13 @@ check('触りの割り当てが正しい',
   r.touch.row === 'none' && r.touch.strip.includes('pan-x'),
   `弦=${r.touch.row} 帯=${r.touch.strip}`);
 check('端まで送ると 24 フレットが画面に入る', r.visible === true);
+console.log('');
+
+const wave = await waveform();
+check('揺れる弦が、かき鳴らす帯の中にある', wave.geo?.fills === true, wave.geo?.size ?? 'なし');
+check('その面が演奏の触りを奪っていない', wave.geo?.passes === true,
+  wave.geo?.passes ? '' : 'pointer-events が none でない');
+check('弾くと弦が動く', wave.moved === true, `${wave.quiet} → ${wave.ringing}`);
 console.log('');
 
 const mig = await migration();

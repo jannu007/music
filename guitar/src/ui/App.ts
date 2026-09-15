@@ -497,10 +497,6 @@ export class GuitarApp {
     app.append(header, main, boardArea, panel, tabs);
     this.root.append(app);
 
-    this.view = new StringView(canvas);
-    this.view.setCount(this.tuning().notes.length);
-    this.view.start();
-
     this.fretboard = new Fretboard(boardScroll, this.tuning(), {
       onPluck: (string, fret, vel) => this.pluck(string, fret, vel),
       onSlide: (string, fret, time) => {
@@ -511,6 +507,14 @@ export class GuitarApp {
     this.fretboard.setLabelMode(this.ui.labelMode);
     this.fretboard.setFrets(this.ui.fretCount);
     this.fretboard.setCapo(this.settings.capo);
+
+    // 揺れる弦の描き先は2つ。広い画面では上のステージ、スマホでは
+    // かき鳴らす帯の中。畳まれているほうは StringView が飛ばすので、
+    // どちらの画面でも「弾いた弦が揺れる」手ごたえが残る。
+    // 指板より後に作る（帯の面は Fretboard が持っているため）
+    this.view = new StringView([canvas, this.fretboard.strumCanvas]);
+    this.view.setCount(this.tuning().notes.length);
+    this.view.start();
 
     this.showTab(this.activeTab);
     this.setStatus();
