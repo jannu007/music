@@ -499,14 +499,14 @@ export class Fretboard {
          * 描く側（neckArt）にも伝わっている。丸い糸巻きは同じ比率で
          * 縦長の楕円になるので、形の関係は崩れない。
          *
-         * 1.5 倍・1.9 倍。ヘッドもボディも、ほぼ1画面で全体が見える。
+         * ヘッドもボディも 1.5 倍。ヘッドもボディも、ほぼ1画面で全体が見える。
          * ここを 2 倍以上にしていたときは、実機で画面いっぱいの木の板に
          * なって何を見ているのか分からなかった。縦横の縮み方の差は
          * 1.4 倍前後で、斜め上から覗き込んだときの見え方と同じくらい。
          */
         const headW = Math.round(bandPx * 1.5);
         this.headCanvas.style.width = `${headW}px`;
-        this.bodyCanvas.style.width = `${Math.round(bandPx * 1.9)}px`;
+        this.bodyCanvas.style.width = `${Math.round(bandPx * 1.5)}px`;
         // 弦の太さも、実寸から引き直す（弦の間隔 = 7mm）
         const perMm = bandPx / 35;
         for (const row of rows) {

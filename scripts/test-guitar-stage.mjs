@@ -549,11 +549,37 @@ async function bareMode() {
         let painted = 0;
         for (let i = 3; i < bd.length; i += 4 * 29) if (bd[i] > 10) painted += 1;
 
+        /*
+         * ボディ側も同じように、継ぎ目（面の左端）で弦の高さを拾う。
+         *
+         * ここを見ていなかったせいで、ボディの 1mm を「ブリッジでの
+         * 広がり 42mm」から出すという取り違えを見逃した。指板から来た
+         * 弦は継ぎ目では 35mm ぶんなので、ボディ側の6本だけが 83% の
+         * 幅に縮み、そこで段差になっていた。実機で見つかるまで
+         * 検査は素通りしていた。
+         */
+        const bcol = [];
+        for (let y = 0; y < body.height; y++) {
+          let best = 0;
+          for (let x = 0; x < 6; x++) {
+            const i = (y * body.width + x) * 4;
+            if (bd[i + 3] < 200) continue;
+            best = Math.max(best, (bd[i] + bd[i + 1] + bd[i + 2]) / 3);
+          }
+          bcol.push(best);
+        }
+        const blit = [...bcol].filter((v) => v > 0).sort((a, b) => a - b);
+        const bgate = ((blit[Math.floor(blit.length / 2)] ?? 0) + (blit[blit.length - 1] ?? 0)) / 2;
+        const bwhite = [];
+        for (let y = 0; y < bcol.length; y++) if (bcol[y] > bgate) bwhite.push(y);
+
         return {
           headDrawn: white.length > 0,
           bodyPainted: painted / (bd.length / (4 * 29)),
           nutTop: white[0] ?? -1,
           nutBottom: white[white.length - 1] ?? -1,
+          jointTop: bwhite[0] ?? -1,
+          jointBottom: bwhite[bwhite.length - 1] ?? -1,
           firstY,
           lastY,
         };
@@ -636,6 +662,9 @@ check('ヘッドとボディが描かれている',
 check('ヘッドの弦が指板の弦とつながっている',
   !!e && Math.abs(e.nutTop - e.firstY) <= 6 && Math.abs(e.nutBottom - e.lastY) <= 6,
   e ? `ナット ${e.nutTop}..${e.nutBottom} / 弦 ${e.firstY}..${e.lastY}` : 'なし');
+check('ボディの弦が指板の弦とつながっている',
+  !!e && Math.abs(e.jointTop - e.firstY) <= 6 && Math.abs(e.jointBottom - e.lastY) <= 6,
+  e ? `継ぎ目 ${e.jointTop}..${e.jointBottom} / 弦 ${e.firstY}..${e.lastY}` : 'なし');
 console.log('');
 
 const lk = await looks();
