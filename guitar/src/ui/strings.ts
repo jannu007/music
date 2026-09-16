@@ -256,7 +256,7 @@ const ja = {
   'help.play.tap': '<b>指板をタップ</b> … その弦・フレットを弾きます。',
   'help.play.bendSlide': '<b>押したまま上下</b> … チョーキング。<b>左右</b> … スライド。',
   'help.play.vibrato': '<b>押さえたまま指を小刻みに上下</b> … チョーキングと同じ仕組みでビブラートがかかります。',
-  'help.play.strumBar': '<b>指板の下の帯を左右になぞる</b> … ストローク。',
+  'help.play.strumBar': '<b>▼ダウン ／ ▲アップ</b> … 和音をまとめてストローク。',
   'help.play.chordPad': '<b>コードタブのパッド</b> … タップでダウン、上へスワイプでアップストローク。',
   'help.keyboard.heading': 'キーボード',
   'help.keyboard.space': '<b>Space</b> … ダウンストローク（<b>Shift+Space</b> でアップ）',
@@ -418,7 +418,6 @@ const ja = {
   'quality.dom7s9.name': 'セブンスシャープナイン',
   'quality.power.name': 'パワーコード',
 
-  'fretboard.strumHint': 'ここを左右になぞってストローク',
   'fretboard.slideHint': 'フレット番号の帯を左右になぞると、ネックを移動できます（24フレットまで）',
 };
 
@@ -678,7 +677,7 @@ const en: typeof ja = {
   'help.play.tap': '<b>Tap the fretboard</b> … plays that string and fret.',
   'help.play.bendSlide': '<b>Drag up/down while holding</b> … bend. <b>Left/right</b> … slide.',
   'help.play.vibrato': '<b>Wiggle your finger up and down slightly while holding</b> … uses the same bend mechanism to add vibrato.',
-  'help.play.strumBar': '<b>Drag left/right on the strip below the fretboard</b> … strum.',
+  'help.play.strumBar': '<b>▼ Down / ▲ Up</b> … strum the whole chord.',
   'help.play.chordPad': '<b>Chord tab pads</b> … tap for a downstroke, swipe up for an upstroke.',
   'help.keyboard.heading': 'Keyboard',
   'help.keyboard.space': '<b>Space</b> … downstroke (<b>Shift+Space</b> for up)',
@@ -840,7 +839,6 @@ const en: typeof ja = {
   'quality.dom7s9.name': '7♯9',
   'quality.power.name': 'Power Chord',
 
-  'fretboard.strumHint': 'Drag left and right here to strum',
   'fretboard.slideHint': 'Drag the fret-number strip to move along the neck (up to fret 24)',
 };
 

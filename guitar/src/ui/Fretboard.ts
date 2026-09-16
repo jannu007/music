@@ -56,7 +56,6 @@ const MIN_FRET_PX = 22;
 export class Fretboard {
   private root: HTMLElement;
   private board: HTMLElement;
-  private strumBar: HTMLElement;
   private strip!: HTMLElement;
   /** 揺れる弦を描く面（App が StringView に渡す） */
   /** 揺れる弦を描く面。App が StringView に渡す */
@@ -85,7 +84,6 @@ export class Fretboard {
     number,
     { string: number; fret: number; startX: number; startY: number; bent: boolean }
   >();
-  private strumLast = new Map<number, number>();
 
   constructor(root: HTMLElement, tuning: Tuning, handlers: FretboardHandlers) {
     this.root = root;
@@ -93,7 +91,6 @@ export class Fretboard {
     this.handlers = handlers;
 
     this.board = el('div', 'fretboard');
-    this.strumBar = el('div', 'strum-bar');
     // 揺れる弦を、かき鳴らす帯の中に描く。場所を新たに取らずに済み、
     // 弾いている場所で弦が揺れるので、見ていて分かりやすい
     this.texture = el('canvas', 'fb-texture');
@@ -118,14 +115,12 @@ export class Fretboard {
     this.waveStrip.title = t('fretboard.slideHint');
     this.waveStrip.setAttribute('aria-label', t('fretboard.slideHint'));
     this.waveStrip.append(this.waveCanvas);
-    this.strumBar.append(el('span', 'strum-hint', t('fretboard.strumHint')));
     // ヘッド → 指板 → ボディ を横に並べ、まとめて送れるようにする
     this.strip = el('div', 'neck-strip');
     this.strip.append(this.headCanvas, this.board, this.bodyCanvas);
-    this.root.append(this.strip, this.strumBar);
+    this.root.append(this.strip);
 
     this.build();
-    this.bindStrumBar();
     this.bindWaveScroll();
     // 触られたら、こちらからの位置合わせはやめる
     const moved = () => { this.userScrolled = true; };
@@ -227,8 +222,6 @@ export class Fretboard {
     const narrowest = widths[widths.length - 1] / total;
     const minWidth = Math.round(MIN_FRET_PX / narrowest);
     this.board.style.minWidth = `${minWidth}px`;
-    // かき鳴らす帯も同じ幅にする。ずれると、弦と帯が横に食い違う
-    this.strumBar.style.minWidth = `${minWidth}px`;
 
     // 木目の面は、いちばん下に敷く
     this.board.append(this.texture);
@@ -514,12 +507,6 @@ export class Fretboard {
         const headW = Math.round(bandPx * 1.5);
         this.headCanvas.style.width = `${headW}px`;
         this.bodyCanvas.style.width = `${Math.round(bandPx * 1.9)}px`;
-        /*
-         * かき鳴らす帯は、指板の真下に来なければならない。
-         * ヘッドの面を足したぶん、帯の左端も同じだけずらす。これが
-         * 無いと、帯はヘッドの下に敷かれて指板とは横に食い違う。
-         */
-        this.strumBar.style.marginLeft = `${headW}px`;
         // 弦の太さも、実寸から引き直す（弦の間隔 = 7mm）
         const perMm = bandPx / 35;
         for (const row of rows) {
@@ -683,37 +670,6 @@ export class Fretboard {
     this.waveStrip.addEventListener('pointercancel', end);
   }
 
-  private bindStrumBar() {
-    const positionToString = (x: number): number => {
-      const rect = this.strumBar.getBoundingClientRect();
-      const count = this.tuning.notes.length;
-      const t = (x - rect.left) / Math.max(1, rect.width);
-      return Math.max(0, Math.min(count - 1, Math.floor(t * count)));
-    };
-
-    this.strumBar.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      this.strumBar.setPointerCapture(e.pointerId);
-      const s = positionToString(e.clientX);
-      this.strumLast.set(e.pointerId, s);
-      this.handlers.onPluck(s, FRET_CHORD, velocityFromEvent(e));
-    });
-    this.strumBar.addEventListener('pointermove', (e) => {
-      if (!this.strumLast.has(e.pointerId)) return;
-      const s = positionToString(e.clientX);
-      const last = this.strumLast.get(e.pointerId)!;
-      if (s === last) return;
-      const step = s > last ? 1 : -1;
-      for (let i = last + step; ; i += step) {
-        this.handlers.onPluck(i, FRET_CHORD, velocityFromEvent(e));
-        if (i === s) break;
-      }
-      this.strumLast.set(e.pointerId, s);
-    });
-    const end = (e: PointerEvent) => this.strumLast.delete(e.pointerId);
-    this.strumBar.addEventListener('pointerup', end);
-    this.strumBar.addEventListener('pointercancel', end);
-  }
 }
 
 const DEGREE_NAMES = ['R', '♭2', '2', '♭3', '3', '4', '♭5', '5', '♭6', '6', '♭7', '7'];
