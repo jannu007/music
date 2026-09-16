@@ -295,12 +295,13 @@ async function reach() {
 /*
  * 揺れる弦（波形）が、演奏の邪魔をせずに残っているか。
  *
- * もとは画面の上に大きく出していたが、指板へ高さを譲るために畳んだ。
- * 気に入っていたという話だったので、かき鳴らす帯の中へ描き直した。
- * 場所を新たに取らず、弾いている所で弦が動く。
+ * 置き場所は二度変えている。はじめは画面の上に大きく、次は指板へ高さを
+ * 譲ってかき鳴らす帯の中、いまは指板のすぐ上の帯。いちばん下では
+ * 演奏中に目の端にしか入らなかったため。
  *
- * 見るのは2つ。触りを奪っていないこと（奪うとかき鳴らせなくなる）と、
- * 弾いたときに本当に動くこと（置いてあるだけでは意味がない）。
+ * その帯は、掴んで左右になぞるとネックが動く場所も兼ねている。
+ * 見るのは3つ。描く面が帯を埋めていること、弾いたときに本当に
+ * 動くこと（置いてあるだけでは意味がない）、そして掴んで送れること。
  */
 async function waveform() {
   const ctx = await browser.newContext({ viewport: { width: 412, height: 890 } });
@@ -309,20 +310,23 @@ async function waveform() {
   await page.waitForTimeout(1200);
 
   const geo = await page.evaluate(() => {
-    const c = document.querySelector('.strum-canvas');
-    const bar = document.querySelector('.strum-bar');
-    if (!c || !bar) return null;
+    const c = document.querySelector('.wave-canvas');
+    const bar = document.querySelector('.wave-strip');
+    const board = document.querySelector('.board-scroll');
+    if (!c || !bar || !board) return null;
     const r = c.getBoundingClientRect();
     const br = bar.getBoundingClientRect();
     return {
       fills: r.width > br.width - 6 && r.height > br.height - 6,
       passes: getComputedStyle(c).pointerEvents === 'none',
+      // 指板の上にあること。下に戻ると、演奏中は目の端にしか入らない
+      above: br.bottom <= board.getBoundingClientRect().top + 1,
       size: `${Math.round(r.width)}x${Math.round(r.height)}`,
     };
   });
 
   const brightness = () => page.evaluate(() => {
-    const c = document.querySelector('.strum-canvas');
+    const c = document.querySelector('.wave-canvas');
     const g = c.getContext('2d');
     const d = g.getImageData(0, 0, c.width, c.height).data;
     let sum = 0;
@@ -337,8 +341,30 @@ async function waveform() {
   await page.waitForTimeout(160);
   const ringing = await brightness();
 
+  // 波形の帯を掴んで、ネックが動くか
+  const from = await page.evaluate(() => {
+    const sc = document.querySelector('.board-scroll');
+    const fb = document.querySelector('.fretboard');
+    sc.scrollLeft = fb.offsetLeft;
+    return Math.round(sc.scrollLeft);
+  });
+  const box = await page.locator('.wave-strip').boundingBox();
+  const y = box.y + box.height / 2;
+  await page.mouse.move(box.x + box.width - 30, y);
+  await page.mouse.down();
+  for (let x = box.x + box.width - 30; x >= box.x + 30; x -= 30) {
+    await page.mouse.move(x, y);
+    await page.waitForTimeout(16);
+  }
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  const dragged = await page.evaluate((start) => {
+    const sc = document.querySelector('.board-scroll');
+    return Math.round(sc.scrollLeft) - start;
+  }, from);
+
   await ctx.close();
-  return { geo, moved: ringing !== quiet, quiet, ringing };
+  return { geo, moved: ringing !== quiet, quiet, ringing, dragged };
 }
 
 /*
@@ -629,10 +655,13 @@ check('画面の地も音色で変わる',
 console.log('');
 
 const wave = await waveform();
-check('揺れる弦が、かき鳴らす帯の中にある', wave.geo?.fills === true, wave.geo?.size ?? 'なし');
+check('揺れる弦の帯が、指板の上にある', wave.geo?.above === true);
+check('その帯を面が埋めている', wave.geo?.fills === true, wave.geo?.size ?? 'なし');
 check('その面が演奏の触りを奪っていない', wave.geo?.passes === true,
   wave.geo?.passes ? '' : 'pointer-events が none でない');
 check('弾くと弦が動く', wave.moved === true, `${wave.quiet} → ${wave.ringing}`);
+check('波形の帯をなぞると、ネックが動く',
+  (wave.dragged ?? 0) > 100, `scrollLeft +${wave.dragged}px`);
 console.log('');
 
 const mig = await migration();

@@ -59,7 +59,10 @@ export class Fretboard {
   private strumBar: HTMLElement;
   private strip!: HTMLElement;
   /** 揺れる弦を描く面（App が StringView に渡す） */
-  readonly strumCanvas: HTMLCanvasElement;
+  /** 揺れる弦を描く面。App が StringView に渡す */
+  readonly waveCanvas: HTMLCanvasElement;
+  /** 波形の帯そのもの。指板の上に置くので、App が画面へ差し込む */
+  readonly waveStrip: HTMLElement;
   /** 木目を描く面。CSS の縞では木に見えないので、その場で描く */
   private texture: HTMLCanvasElement;
   private headCanvas: HTMLCanvasElement;
@@ -75,8 +78,8 @@ export class Fretboard {
   private rootPitch: number | null = null;
 
   private sizeWatch: ResizeObserver | null = null;
-  /** 最初の一度だけ、指板の頭へ送る */
-  private scrolled = false;
+  /** 指で動かされたか。それまでは指板の頭に合わせ続ける */
+  private userScrolled = false;
 
   private pointerState = new Map<
     number,
@@ -101,8 +104,21 @@ export class Fretboard {
     this.headCanvas.setAttribute('aria-hidden', 'true');
     this.bodyCanvas = el('canvas', 'fb-body');
     this.bodyCanvas.setAttribute('aria-hidden', 'true');
-    this.strumCanvas = el('canvas', 'strum-canvas');
-    this.strumBar.append(this.strumCanvas, el('span', 'strum-hint', t('fretboard.strumHint')));
+    /*
+     * 揺れる弦（波形）。
+     *
+     * かき鳴らす帯の中に描いていたが、画面のいちばん下なので
+     * 目の端にしか入らなかった。指板のすぐ上へ移し、同時に
+     * 「ここを左右になぞるとネックを移動できる」帯にする。
+     * 演奏中にいちばん見ている高さに、見るものと掴むものが揃う。
+     */
+    this.waveCanvas = el('canvas', 'wave-canvas');
+    this.waveCanvas.setAttribute('aria-hidden', 'true');
+    this.waveStrip = el('div', 'wave-strip');
+    this.waveStrip.title = t('fretboard.slideHint');
+    this.waveStrip.setAttribute('aria-label', t('fretboard.slideHint'));
+    this.waveStrip.append(this.waveCanvas);
+    this.strumBar.append(el('span', 'strum-hint', t('fretboard.strumHint')));
     // ヘッド → 指板 → ボディ を横に並べ、まとめて送れるようにする
     this.strip = el('div', 'neck-strip');
     this.strip.append(this.headCanvas, this.board, this.bodyCanvas);
@@ -110,6 +126,11 @@ export class Fretboard {
 
     this.build();
     this.bindStrumBar();
+    this.bindWaveScroll();
+    // 触られたら、こちらからの位置合わせはやめる
+    const moved = () => { this.userScrolled = true; };
+    this.root.addEventListener('pointerdown', moved, { passive: true });
+    this.root.addEventListener('wheel', moved, { passive: true });
   }
 
   setTuning(tuning: Tuning) {
@@ -485,13 +506,14 @@ export class Fretboard {
          * 描く側（neckArt）にも伝わっている。丸い糸巻きは同じ比率で
          * 縦長の楕円になるので、形の関係は崩れない。
          *
-         * 2.0 倍・2.4 倍にしてある。縦横の縮み方の差はおよそ 1.3 倍で、
-         * 斜め上から覗き込んだときの見え方と同じくらい。ここを実寸どおり
-         * （3.3 倍）にすると、ヘッドを見るのに画面3つぶん送ることになる。
+         * 1.5 倍・1.9 倍。ヘッドもボディも、ほぼ1画面で全体が見える。
+         * ここを 2 倍以上にしていたときは、実機で画面いっぱいの木の板に
+         * なって何を見ているのか分からなかった。縦横の縮み方の差は
+         * 1.4 倍前後で、斜め上から覗き込んだときの見え方と同じくらい。
          */
-        const headW = Math.round(bandPx * 2.0);
+        const headW = Math.round(bandPx * 1.5);
         this.headCanvas.style.width = `${headW}px`;
-        this.bodyCanvas.style.width = `${Math.round(bandPx * 2.4)}px`;
+        this.bodyCanvas.style.width = `${Math.round(bandPx * 1.9)}px`;
         /*
          * かき鳴らす帯は、指板の真下に来なければならない。
          * ヘッドの面を足したぶん、帯の左端も同じだけずらす。これが
@@ -513,11 +535,19 @@ export class Fretboard {
     paint(this.headCanvas, drawHeadstock);
     paint(this.bodyCanvas, drawBody);
 
-    // 開いたときは指板の頭を見せる。まだ触られていないときだけ
-    if (!this.scrolled) {
-      this.scrolled = true;
+    /*
+     * 開いたときは指板の頭を見せる（左はヘッドなので、そこから始めない）。
+     *
+     * 一度きりで済ませていたが、ヘッドの幅はこの関数の中で決まり、
+     * 画面の大きさや音色が変わるたびに引き直される。最初の1回で
+     * 合わせたあとに幅が変わると、そのぶん行き過ぎたままになり、
+     * 指板の頭が画面の左へ 56px はみ出していた。
+     * 指で動かされるまでは、引き直すたびに合わせ直す。
+     */
+    if (!this.userScrolled) {
       requestAnimationFrame(() => {
-        this.root.scrollLeft = this.headCanvas.getBoundingClientRect().width;
+        if (this.userScrolled) return;
+        this.root.scrollLeft = this.board.offsetLeft;
       });
     }
   }
@@ -616,6 +646,41 @@ export class Fretboard {
     };
     this.board.addEventListener('pointerup', release);
     this.board.addEventListener('pointercancel', release);
+  }
+
+  /**
+   * 波形の帯を左右になぞると、ネックが動く。
+   *
+   * 指板そのものは画面より広く、弦の上は演奏に使われていて空いていない。
+   * 送る手立てとしてフレット番号の帯があるが、そちらは指板の中にあって
+   * 細い。波形の帯は指板のすぐ上にあって太いので、ここでも送れるように
+   * する。実物で手を持ち替える動きにあたる。
+   *
+   * 帯は送る箱（.board-scroll）の外にあるので、ブラウザ任せの送りは
+   * 効かない。掴んだところからの差を、そのまま scrollLeft に移す。
+   */
+  private bindWaveScroll() {
+    let from = 0;
+    let at = 0;
+    this.waveStrip.addEventListener('pointerdown', (e) => {
+      from = this.root.scrollLeft;
+      at = e.clientX;
+      this.waveStrip.setPointerCapture(e.pointerId);
+      this.waveStrip.classList.add('is-dragging');
+    });
+    this.waveStrip.addEventListener('pointermove', (e) => {
+      if (!this.waveStrip.hasPointerCapture(e.pointerId)) return;
+      e.preventDefault();
+      this.root.scrollLeft = from - (e.clientX - at);
+    });
+    const end = (e: PointerEvent) => {
+      if (this.waveStrip.hasPointerCapture(e.pointerId)) {
+        this.waveStrip.releasePointerCapture(e.pointerId);
+      }
+      this.waveStrip.classList.remove('is-dragging');
+    };
+    this.waveStrip.addEventListener('pointerup', end);
+    this.waveStrip.addEventListener('pointercancel', end);
   }
 
   private bindStrumBar() {
