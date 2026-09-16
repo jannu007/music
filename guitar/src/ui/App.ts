@@ -397,7 +397,10 @@ export class GuitarApp {
     // 「弦」だけは上に置く。ここに機種と音色のプリセットがあり、
     // 弾いている途中でいちばん触るところだから、下まで探しに行かずに
     // 届くほうがよい。押すと下からシートが出る（下の並びと同じ動き）
-    const stringButton = button('', 'ghost round tab tab-top', () => this.toggleTab('string'));
+    // クラスに tab は付けない。下の並びと同じ名前にすると、
+    // 「最初のタブ」を探す側がこちらを掴んでしまう（実際それで、
+    // コード面が開かないまま弾こうとして無音になった）
+    const stringButton = button('', 'ghost round tab-top', () => this.toggleTab('string'));
     stringButton.dataset.tab = 'string';
     stringButton.innerHTML = TAB_ICONS.string ?? '';
     stringButton.title = t('tab.string');

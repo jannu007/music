@@ -1141,7 +1141,9 @@ html, body {
 .strum-bar:active .strum-hint { opacity: 0.35; }
 
 /* 上に出した「弦」のボタン。下の並びと同じ絵を使うが、
-   あちらは縦積み（絵＋名前）なので、ここでは絵だけの丸にする */
+   あちらは縦積み（絵＋名前）なので、ここでは絵だけの丸にする。
+   クラスに .tab は付けていない（同じ名前にすると、下の並びを
+   探している側がこちらを掴んでしまう）。土台は .ghost .round が持つ */
 .tab-top {
   flex: none;
   display: inline-flex;
