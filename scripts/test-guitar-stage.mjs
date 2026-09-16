@@ -443,7 +443,7 @@ async function bareMode() {
   // 波形は畳んだ状態で見る。操作を戻したあとに見ると、戻ったものを
   // 「消えていない」と数えてしまう（一度それで落とした）
   const waveShown = await page.evaluate(() => {
-    const c = document.querySelector('.strum-canvas');
+    const c = document.querySelector('.wave-strip');
     return c ? c.getBoundingClientRect().height > 1 : false;
   });
   const hasToggle = (await page.locator('.chrome-toggle').count()) > 0 && bare.toggle > 0;

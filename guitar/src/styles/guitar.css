@@ -826,29 +826,6 @@ html, body {
 }
 .fb-cell.in-shape .fb-label { color: #2a1508; font-weight: 700; }
 
-.strum-bar {
-  min-width: 520px;
-  margin-top: 0.35rem;
-  height: 42px;
-  border-radius: 8px;
-  border: 1px dashed var(--line-strong);
-  background:
-    repeating-linear-gradient(90deg, rgba(239, 138, 60, 0.07) 0 12px, transparent 12px 24px),
-    rgba(255, 255, 255, 0.02);
-  display: flex;
-  align-items: center;
-  /* 文字は左端に置く。帯は指板と同じ 1200px 超まで伸びるので、
-     中央に置くと画面の外へ出てしまう */
-  justify-content: flex-start;
-  color: var(--text-dim);
-  font-size: 0.72rem;
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-  position: relative;
-  overflow: hidden;
-}
-.strum-bar:active { cursor: grabbing; border-color: var(--ember); }
 
 /* ------------------------------------------------------------------ ヘルプ */
 
@@ -905,7 +882,7 @@ html, body {
   .brand-text small { display: none; }
   .status { display: none; }
   .panel-body { padding: 0.75rem 0.8rem 1.4rem; }
-  .fretboard, .strum-bar { min-width: 420px; }
+  .fretboard { min-width: 420px; }
   .fb-row { height: 27px; }
 }
 
@@ -913,7 +890,6 @@ html, body {
 @media (max-height: 480px) and (orientation: landscape) {
   .stage { display: none; }
   .fb-row { height: 24px; }
-  .strum-bar { height: 32px; }
 }
 
 /*
@@ -1165,7 +1141,6 @@ html, body {
   .tab { min-height: 38px; }
   .tab-label { display: none; }
   .fb-row { min-height: 18px; }
-  .strum-bar { height: 34px; }
   .wave-strip { height: 30px; }
   /* 横向きは高さが乏しい。送るための帯は、掴める範囲で詰める。
      ここを 22px のままにすると、そのぶん弦の間隔が 24px を割った */
@@ -1214,33 +1189,6 @@ html, body {
   opacity: 0.9;
 }
 
-/* かき鳴らす帯の中に、揺れる弦を描く（広い画面の名残）。
-   触りは帯そのものが受けるので、面は素通りさせる */
-.strum-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  pointer-events: none;
-  opacity: 0.85;
-}
-/* 案内の文字は弦の手前に置く。鳴らしているあいだは控えめにして、
-   弦の動きを隠さないようにする */
-/*
- * 案内の文字。帯は指板と同じ幅（1200px 超）まで伸びるので、ふつうに
- * 中央へ置くと画面の外に出て、何のための帯か分からなくなる。
- * 横に貼り付けて、送っても画面の中に残るようにする。
- */
-.strum-hint {
-  position: sticky;
-  left: 12px;
-  margin-left: 12px;
-  z-index: 1;
-  pointer-events: none;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
-}
-.strum-bar:active .strum-hint { opacity: 0.35; }
 
 /* 上に出した「弦」のボタン。下の並びと同じ絵を使うが、
    あちらは縦積み（絵＋名前）なので、ここでは絵だけの丸にする。
@@ -1407,7 +1355,6 @@ html, body {
      残す（ここを無くすとストロークができなくなる） */
   .guitar-app:not(.show-chrome) > .topbar,
   .guitar-app:not(.show-chrome) .play-bar,
-  .guitar-app:not(.show-chrome) .strum-canvas,
   .guitar-app:not(.show-chrome) .wave-strip,
   .guitar-app:not(.show-chrome) > .tabs { display: none; }
 
