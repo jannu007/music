@@ -1,5 +1,5 @@
 import { NOTE_NAMES, type Tuning } from '../music/tunings';
-import { drawBody, drawHeadstock, STRING_MM, type NeckColors, type NeckKind, type StringBand } from './neckArt';
+import { STRING_MM } from './strings-gauge';
 import { el } from './controls';
 import { t } from './i18n';
 
@@ -56,7 +56,6 @@ const MIN_FRET_PX = 22;
 export class Fretboard {
   private root: HTMLElement;
   private board: HTMLElement;
-  private strip!: HTMLElement;
   /** 揺れる弦を描く面（App が StringView に渡す） */
   /** 揺れる弦を描く面。App が StringView に渡す */
   readonly waveCanvas: HTMLCanvasElement;
@@ -64,8 +63,6 @@ export class Fretboard {
   readonly waveStrip: HTMLElement;
   /** 木目を描く面。CSS の縞では木に見えないので、その場で描く */
   private texture: HTMLCanvasElement;
-  private headCanvas: HTMLCanvasElement;
-  private bodyCanvas: HTMLCanvasElement;
   private handlers: FretboardHandlers;
   private tuning: Tuning;
   private capo = 0;
@@ -77,8 +74,6 @@ export class Fretboard {
   private rootPitch: number | null = null;
 
   private sizeWatch: ResizeObserver | null = null;
-  /** 指で動かされたか。それまでは指板の頭に合わせ続ける */
-  private userScrolled = false;
 
   private pointerState = new Map<
     number,
@@ -95,12 +90,6 @@ export class Fretboard {
     // 弾いている場所で弦が揺れるので、見ていて分かりやすい
     this.texture = el('canvas', 'fb-texture');
     this.texture.setAttribute('aria-hidden', 'true');
-    // ヘッドとボディ。指板を左いっぱいに送ればヘッド、右いっぱいに
-    // 送ればブリッジが出る。楽器1本ぶんが画面の中にある形になる
-    this.headCanvas = el('canvas', 'fb-head');
-    this.headCanvas.setAttribute('aria-hidden', 'true');
-    this.bodyCanvas = el('canvas', 'fb-body');
-    this.bodyCanvas.setAttribute('aria-hidden', 'true');
     /*
      * 揺れる弦（波形）。
      *
@@ -115,17 +104,10 @@ export class Fretboard {
     this.waveStrip.title = t('fretboard.slideHint');
     this.waveStrip.setAttribute('aria-label', t('fretboard.slideHint'));
     this.waveStrip.append(this.waveCanvas);
-    // ヘッド → 指板 → ボディ を横に並べ、まとめて送れるようにする
-    this.strip = el('div', 'neck-strip');
-    this.strip.append(this.headCanvas, this.board, this.bodyCanvas);
-    this.root.append(this.strip);
+    this.root.append(this.board);
 
     this.build();
     this.bindWaveScroll();
-    // 触られたら、こちらからの位置合わせはやめる
-    const moved = () => { this.userScrolled = true; };
-    this.root.addEventListener('pointerdown', moved, { passive: true });
-    this.root.addEventListener('wheel', moved, { passive: true });
   }
 
   setTuning(tuning: Tuning) {
@@ -334,7 +316,7 @@ export class Fretboard {
   private watchSize() {
     if (this.sizeWatch || typeof ResizeObserver === 'undefined') return;
     this.sizeWatch = new ResizeObserver(() => this.paintTexture());
-    this.sizeWatch.observe(this.strip);
+    this.sizeWatch.observe(this.board);
   }
 
   /** 音色が変わって木が変わったときに、外から呼ぶ */
@@ -426,116 +408,29 @@ export class Fretboard {
     g.fillStyle = round;
     g.fillRect(0, 0, w, h);
 
-    this.paintEnds(h);
+    this.sizeStrings();
   }
 
-  /** ヘッドとボディを描く。色は音色ごとの見立てから受け取る */
-  private paintEnds(h: number) {
-    const css = getComputedStyle(this.board);
-    const pick = (name: string, fallback: string) =>
-      css.getPropertyValue(name).trim() || fallback;
-    const colors: NeckColors = {
-      wood: pick('--wood-2', '#4e3220'),
-      head: pick('--head-wood', '#c9a163'),
-      body: pick('--body-paint', '#141414'),
-      guard: pick('--guard', '#f2f0ea'),
-      metal: pick('--hardware', '#c8ccd0'),
-    };
-    const count = this.tuning.notes.length;
-    // 作り（片側6連＋トレモロ／3対3＋ブリッジピン）も音色から受け取る
-    const kind: NeckKind = pick('--neck-kind', 'acoustic') === 'electric' ? 'electric' : 'acoustic';
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-
-    // 弦が通る高さを実測する。ここが合っていないと、ヘッドから来た弦が
-    // 指板の弦とつながらず、継ぎ目で折れて見える
-    const stripRect = this.strip.getBoundingClientRect();
-    const rows = this.board.querySelectorAll('.fb-row');
-    const first = rows[0]?.getBoundingClientRect();
-    const last = rows[rows.length - 1]?.getBoundingClientRect();
-    const band: StringBand = first && last && stripRect.height > 0
-      ? {
-          top: (first.top + first.height / 2 - stripRect.top) / stripRect.height,
-          bottom: (last.top + last.height / 2 - stripRect.top) / stripRect.height,
-        }
-      : { top: 0.26, bottom: 0.74 };
-
-    const paint = (
-      canvas: HTMLCanvasElement,
-      draw: (
-        g: CanvasRenderingContext2D, w: number, h: number,
-        c: NeckColors, n: number, b: StringBand, k: NeckKind
-      ) => void
-    ) => {
-      const rect = canvas.getBoundingClientRect();
-      const w = rect.width || canvas.clientWidth;
-      if (w < 4 || h < 4) return;
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-      const g = canvas.getContext('2d');
-      if (!g) return;
-      g.setTransform(dpr, 0, 0, dpr, 0, 0);
-      draw(g, w, h, colors, count, band, kind);
-    };
-
-    /*
-     * ヘッドとボディの幅を、弦の幅から決める。
-     *
-     * 実物のヘッドはナット幅のおよそ4倍の長さがある。固定の 108px に
-     * 押し込んでいたので、310px ぶんの弦がそこへ集まることになり、
-     * 糸巻きから弦が扇のように開いていた。比率を実物に合わせる。
-     *
-     * そのぶん左端はヘッドで埋まるので、開いたときは指板の頭から
-     * 始める（ヘッドは左へ送れば出てくる）。
-     */
-    if (first && last) {
-      const bandPx = (last.top + last.height / 2) - (first.top + first.height / 2);
-      if (bandPx > 8) {
-        /*
-         * ヘッドとボディの幅は、弦の広がりから決める。
-         *
-         * 弦の広がり（実寸 35mm）が画面では bandPx になる。同じ縮尺で
-         * ヘッドの長さ 165mm を引くと bandPx*4.7 になり、画面7つぶんの
-         * 幅が要る。そこまでは持てないので横だけ縮めるが、縮めた比率は
-         * 描く側（neckArt）にも伝わっている。丸い糸巻きは同じ比率で
-         * 縦長の楕円になるので、形の関係は崩れない。
-         *
-         * ヘッドもボディも 1.5 倍。ヘッドもボディも、ほぼ1画面で全体が見える。
-         * ここを 2 倍以上にしていたときは、実機で画面いっぱいの木の板に
-         * なって何を見ているのか分からなかった。縦横の縮み方の差は
-         * 1.4 倍前後で、斜め上から覗き込んだときの見え方と同じくらい。
-         */
-        const headW = Math.round(bandPx * 1.5);
-        this.headCanvas.style.width = `${headW}px`;
-        this.bodyCanvas.style.width = `${Math.round(bandPx * 1.5)}px`;
-        // 弦の太さも、実寸から引き直す（弦の間隔 = 7mm）
-        const perMm = bandPx / 35;
-        for (const row of rows) {
-          const mm = Number((row as HTMLElement).dataset.gauge);
-          if (!mm) continue;
-          (row as HTMLElement).style.setProperty(
-            '--string-w', `${Math.max(1.2, mm * perMm * 0.8).toFixed(2)}px`
-          );
-        }
-      }
-    }
-
-    paint(this.headCanvas, drawHeadstock);
-    paint(this.bodyCanvas, drawBody);
-
-    /*
-     * 開いたときは指板の頭を見せる（左はヘッドなので、そこから始めない）。
-     *
-     * 一度きりで済ませていたが、ヘッドの幅はこの関数の中で決まり、
-     * 画面の大きさや音色が変わるたびに引き直される。最初の1回で
-     * 合わせたあとに幅が変わると、そのぶん行き過ぎたままになり、
-     * 指板の頭が画面の左へ 56px はみ出していた。
-     * 指で動かされるまでは、引き直すたびに合わせ直す。
-     */
-    if (!this.userScrolled) {
-      requestAnimationFrame(() => {
-        if (this.userScrolled) return;
-        this.root.scrollLeft = this.board.offsetLeft;
-      });
+  /**
+   * 弦の太さを、実寸から引き直す。
+   *
+   * 1弦 0.23mm 〜 6弦 1.17mm。弦の間隔（7mm）が画面で何 px になるかは
+   * 画面の大きさと向きで変わるので、行の高さを測ってから換算する。
+   * build() の時点では高さが決まっていないため、ここでやる。
+   */
+  private sizeStrings() {
+    const rows = this.board.querySelectorAll<HTMLElement>('.fb-row');
+    if (rows.length < 2) return;
+    const first = rows[0].getBoundingClientRect();
+    const last = rows[rows.length - 1].getBoundingClientRect();
+    const bandPx = (last.top + last.height / 2) - (first.top + first.height / 2);
+    if (bandPx <= 8) return;
+    // 1弦から6弦までの広がりは実寸 35mm
+    const perMm = bandPx / 35;
+    for (const row of rows) {
+      const mm = Number(row.dataset.gauge);
+      if (!mm) continue;
+      row.style.setProperty('--string-w', `${Math.max(1.2, mm * perMm * 0.8).toFixed(2)}px`);
     }
   }
 
