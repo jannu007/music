@@ -1,5 +1,5 @@
 import { NOTE_NAMES, type Tuning } from '../music/tunings';
-import { drawBody, drawHeadstock, type NeckColors, type StringBand } from './neckArt';
+import { drawBody, drawHeadstock, STRING_MM, type NeckColors, type NeckKind, type StringBand } from './neckArt';
 import { el } from './controls';
 import { t } from './i18n';
 
@@ -75,6 +75,8 @@ export class Fretboard {
   private rootPitch: number | null = null;
 
   private sizeWatch: ResizeObserver | null = null;
+  /** 最初の一度だけ、指板の頭へ送る */
+  private scrolled = false;
 
   private pointerState = new Map<
     number,
@@ -218,20 +220,48 @@ export class Fretboard {
     markerRow.setAttribute('aria-label', t('fretboard.slideHint'));
     for (let f = 0; f <= this.frets; f++) {
       const cell = el('div', 'fb-marker');
-      if (DOUBLE_MARKERS.includes(f)) cell.classList.add('double');
-      else if (MARKERS.includes(f)) cell.classList.add('single');
       if (f > 0) cell.append(el('span', 'fb-fretnum', String(f)));
       markerRow.append(cell);
     }
     this.board.append(markerRow);
+
+    /*
+     * ポジションマーク（貝の目印）。
+     *
+     * これまではフレット番号の帯に入れていたので、指板のいちばん上の
+     * 縁に並んでいた。実物は面の「まん中」に入っている。3・5・7・9 が
+     * 1つ、12 と 24 が2つ。ここが違うと、どれだけ木目を描いても
+     * 本物には見えない。番号の帯とは別に、面の中央へ重ねる。
+     */
+    const inlays = el('div', 'fb-inlays');
+    inlays.style.gridTemplateColumns = template;
+    inlays.setAttribute('aria-hidden', 'true');
+    for (let f = 0; f <= this.frets; f++) {
+      const cell = el('div', 'fb-inlay');
+      if (DOUBLE_MARKERS.includes(f)) cell.classList.add('double');
+      else if (MARKERS.includes(f)) cell.classList.add('single');
+      inlays.append(cell);
+    }
+    this.board.append(inlays);
 
     // 弦は上が高音（1弦）になるよう逆順に並べる
     for (let s = count - 1; s >= 0; s--) {
       const row = el('div', 'fb-row');
       row.dataset.string = String(s);
       row.style.gridTemplateColumns = template;
-      // 低音弦ほど太く描く
-      row.style.setProperty('--string-w', `${1 + (count - 1 - s) * 0.55}px`);
+      /*
+       * 弦の太さ。実寸（1弦 0.23mm 〜 6弦 1.17mm）から引く。
+       *
+       * これまでは 1px から 0.55px ずつ足していたので、6弦でも 3.75px、
+       * 1弦との差は4倍しか無かった。実物の差は5倍あり、しかも弦の間隔
+       * （7mm）に対して6弦は 1.17mm ＝ 1/6 を占める。細すぎると
+       * 「板に引いた線」に見える。実際の太さは行の高さが決まってから
+       * でないと出せないので、ここでは mm だけ持たせ、sizeStrings() で
+       * px に直す（画面の向きが変わっても合う）。
+       */
+      const gauge = STRING_MM[Math.min(count - 1 - s, STRING_MM.length - 1)];
+      row.dataset.gauge = String(gauge);
+      row.style.setProperty('--string-w', `${(1 + (count - 1 - s) * 0.55).toFixed(2)}px`);
 
       // 実物は低音側の3本が巻き弦（ブロンズを巻いてあるので黄みがかり、
       // 表面に巻き目が見える）、高音側の3本が素の鋼線（白く、つるり）。
@@ -338,12 +368,14 @@ export class Fretboard {
     const rnd = seeded(20260916);
 
     // 導管。ネックの長手方向に走る。太さ・濃さ・長さ・蛇行をすべて変える
-    const lines = Math.max(60, Math.round(w / 1.8));
+    // 線が多すぎると、木ではなくブラシをかけた金属に見える。
+    // 実物の導管はもっとまばらで、濃さも控えめ
+    const lines = Math.max(40, Math.round(w / 6));
     for (let i = 0; i < lines; i++) {
       const dark = rnd() < 0.74;
       g.strokeStyle = dark
-        ? `rgba(0, 0, 0, ${(0.04 + rnd() * 0.2).toFixed(3)})`
-        : `rgba(255, 224, 186, ${(0.02 + rnd() * 0.08).toFixed(3)})`;
+        ? `rgba(0, 0, 0, ${(0.02 + rnd() * 0.08).toFixed(3)})`
+        : `rgba(255, 224, 186, ${(0.01 + rnd() * 0.035).toFixed(3)})`;
       g.lineWidth = 0.4 + rnd() * 1.7;
       g.beginPath();
       let x = -40 - rnd() * 80;
@@ -362,7 +394,7 @@ export class Fretboard {
     // 小さな斑（ローズウッドの点々）。これが無いと、線を引いただけに見える
     const flecks = Math.round(w / 9);
     for (let i = 0; i < flecks; i++) {
-      g.fillStyle = `rgba(0, 0, 0, ${(0.05 + rnd() * 0.16).toFixed(3)})`;
+      g.fillStyle = `rgba(0, 0, 0, ${(0.03 + rnd() * 0.07).toFixed(3)})`;
       const x = rnd() * w;
       const y = rnd() * h;
       g.beginPath();
@@ -396,6 +428,8 @@ export class Fretboard {
       metal: pick('--hardware', '#c8ccd0'),
     };
     const count = this.tuning.notes.length;
+    // 作り（片側6連＋トレモロ／3対3＋ブリッジピン）も音色から受け取る
+    const kind: NeckKind = pick('--neck-kind', 'acoustic') === 'electric' ? 'electric' : 'acoustic';
     const dpr = Math.min(2, window.devicePixelRatio || 1);
 
     // 弦が通る高さを実測する。ここが合っていないと、ヘッドから来た弦が
@@ -415,7 +449,7 @@ export class Fretboard {
       canvas: HTMLCanvasElement,
       draw: (
         g: CanvasRenderingContext2D, w: number, h: number,
-        c: NeckColors, n: number, b: StringBand
+        c: NeckColors, n: number, b: StringBand, k: NeckKind
       ) => void
     ) => {
       const rect = canvas.getBoundingClientRect();
@@ -426,11 +460,66 @@ export class Fretboard {
       const g = canvas.getContext('2d');
       if (!g) return;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
-      draw(g, w, h, colors, count, band);
+      draw(g, w, h, colors, count, band, kind);
     };
+
+    /*
+     * ヘッドとボディの幅を、弦の幅から決める。
+     *
+     * 実物のヘッドはナット幅のおよそ4倍の長さがある。固定の 108px に
+     * 押し込んでいたので、310px ぶんの弦がそこへ集まることになり、
+     * 糸巻きから弦が扇のように開いていた。比率を実物に合わせる。
+     *
+     * そのぶん左端はヘッドで埋まるので、開いたときは指板の頭から
+     * 始める（ヘッドは左へ送れば出てくる）。
+     */
+    if (first && last) {
+      const bandPx = (last.top + last.height / 2) - (first.top + first.height / 2);
+      if (bandPx > 8) {
+        /*
+         * ヘッドとボディの幅は、弦の広がりから決める。
+         *
+         * 弦の広がり（実寸 35mm）が画面では bandPx になる。同じ縮尺で
+         * ヘッドの長さ 165mm を引くと bandPx*4.7 になり、画面7つぶんの
+         * 幅が要る。そこまでは持てないので横だけ縮めるが、縮めた比率は
+         * 描く側（neckArt）にも伝わっている。丸い糸巻きは同じ比率で
+         * 縦長の楕円になるので、形の関係は崩れない。
+         *
+         * 2.0 倍・2.4 倍にしてある。縦横の縮み方の差はおよそ 1.3 倍で、
+         * 斜め上から覗き込んだときの見え方と同じくらい。ここを実寸どおり
+         * （3.3 倍）にすると、ヘッドを見るのに画面3つぶん送ることになる。
+         */
+        const headW = Math.round(bandPx * 2.0);
+        this.headCanvas.style.width = `${headW}px`;
+        this.bodyCanvas.style.width = `${Math.round(bandPx * 2.4)}px`;
+        /*
+         * かき鳴らす帯は、指板の真下に来なければならない。
+         * ヘッドの面を足したぶん、帯の左端も同じだけずらす。これが
+         * 無いと、帯はヘッドの下に敷かれて指板とは横に食い違う。
+         */
+        this.strumBar.style.marginLeft = `${headW}px`;
+        // 弦の太さも、実寸から引き直す（弦の間隔 = 7mm）
+        const perMm = bandPx / 35;
+        for (const row of rows) {
+          const mm = Number((row as HTMLElement).dataset.gauge);
+          if (!mm) continue;
+          (row as HTMLElement).style.setProperty(
+            '--string-w', `${Math.max(1.2, mm * perMm * 0.8).toFixed(2)}px`
+          );
+        }
+      }
+    }
 
     paint(this.headCanvas, drawHeadstock);
     paint(this.bodyCanvas, drawBody);
+
+    // 開いたときは指板の頭を見せる。まだ触られていないときだけ
+    if (!this.scrolled) {
+      this.scrolled = true;
+      requestAnimationFrame(() => {
+        this.root.scrollLeft = this.headCanvas.getBoundingClientRect().width;
+      });
+    }
   }
 
   private paintLabels() {

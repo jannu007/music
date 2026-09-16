@@ -598,9 +598,24 @@ html, body {
   touch-action: pan-x;
 }
 
+/*
+ * フレット番号の帯。
+ *
+ * 弦の行と同じ列の中に、いちばん上の子として積む。
+ *
+ * 一度これを絶対位置にして上の余白へ重ねたことがある。指板が画面の
+ * 高さいっぱいあるうちは具合が良かったが、パネルを開いて指板が
+ * 200px まで縮むと、余白そのものが無くなって帯が 1弦の上に乗った。
+ * 1弦を押さえたつもりが「送る帯」を掴んだことになり、音が出ないまま
+ * 指板が横に動く（録音の検査がこれで落ちた）。
+ *
+ * 流れの中に置けば、どれだけ縮んでも弦とは重ならない。そのぶん上の木が
+ * 20px ぶん厚くなるが、弦が高さを分け合うようになったいまでは、
+ * 上下の差は 10px ほどで目には付かない。
+ */
 .fb-markers {
   display: grid;
-  height: 22px;
+  height: 20px;
   align-items: center;
   /* ここを掴むと横に送れる。指板は画面より広いので、
      送る手立てが要る（弦の上は演奏に使われていて空いていない） */
@@ -609,29 +624,48 @@ html, body {
 }
 .fb-markers:active { cursor: grabbing; }
 .fb-marker { position: relative; height: 100%; }
-.fb-marker::after {
+
+/*
+ * ポジションマーク（貝の目印）。
+ *
+ * 実物は指板の「まん中」に埋まっている。番号の帯に入れていたころは
+ * 上の縁に並んでいて、見た人が真っ先に違和感を覚えるところだった。
+ * 弦の下・木目の上に重ねる（触りは素通りさせる）。
+ */
+.fb-inlays {
+  display: grid;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.fb-inlay { position: relative; }
+.fb-inlay::after {
   content: '';
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 5px;
-  height: 5px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   background: transparent;
 }
-/* ポジションマーク（貝）。片側から光が当たって、反対側に影が落ちる */
-.fb-marker.single::after {
+/* 片側から光が当たって、反対側に影が落ちる */
+.fb-inlay.single::after {
   background: radial-gradient(circle at 34% 28%,
     var(--inlay-hi, #fffdf6), var(--inlay, #e7dcc6) 58%, var(--inlay-lo, #b3a68c));
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.55), inset 0 0 2px rgba(255, 255, 255, 0.7);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), inset 0 0 3px rgba(255, 255, 255, 0.55);
 }
-/* 12・24 フレットは2つ並ぶ。実物と同じ決まり */
-.fb-marker.double::after {
+/* 12・24 フレットは2つ、弦をまたいで上下に並ぶ。実物と同じ決まり */
+.fb-inlay.double::after {
   background: transparent;
   box-shadow:
-    -5px 0 0 var(--inlay, #e7dcc6), -5px 1px 2px rgba(0, 0, 0, 0.5),
-    5px 0 0 var(--inlay, #e7dcc6), 5px 1px 2px rgba(0, 0, 0, 0.5);
+    0 -46px 0 var(--inlay, #e7dcc6), 0 -45px 3px rgba(0, 0, 0, 0.5),
+    0 46px 0 var(--inlay, #e7dcc6), 0 47px 3px rgba(0, 0, 0, 0.5);
 }
 .fb-fretnum {
   position: absolute;
@@ -664,14 +698,21 @@ html, body {
    * 表面に巻き目が見える）、高音側の3本が素の鋼線（白っぽく、つるりとしている）。
    * 色と巻き目を --wound で受け取り、Fretboard が弦ごとに渡す。
    */
-  background:
-    repeating-linear-gradient(90deg,
-      rgba(0, 0, 0, var(--wind, 0)) 0 1px, transparent 1px 3px),
-    linear-gradient(180deg,
-      var(--str-hi, #fdfaf4) 0%,
-      var(--str-mid, #cfc6b6) 45%,
-      var(--str-lo, #6e6558) 100%);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 245, 225, 0.5);
+  /*
+   * 巻き弦の巻き目を 1px おきの縞で描いていたが、画面では点が並んだ
+   * 数珠に見えていた。実物の巻き目はもっと細かく、遠目には均一な
+   * 金属の艶になる。縞はやめ、上が光って下に影が落ちる丸みだけで描く。
+   */
+  /*
+   * 丸い金属線は、いちばん上ではなく上から3割あたりがいちばん光る。
+   * 0% を白にしていたので、上端で切れた帯に見えていた。
+   */
+  background: linear-gradient(180deg,
+    var(--str-edge, rgba(105, 100, 88, 0.85)) 0%,
+    var(--str-hi, #fdfaf4) 28%,
+    var(--str-mid, #cfc6b6) 58%,
+    var(--str-lo, #6e6558) 100%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.65), 0 0 1px rgba(255, 245, 225, 0.35);
   pointer-events: none;
   border-radius: 2px;
 }
@@ -708,20 +749,28 @@ html, body {
   top: 0;
   bottom: 0;
   right: -1px;
-  width: 3px;
+  /*
+   * 実物のフレットの山は 2.4mm ほど。この画面では 1mm がおよそ 2.5px
+   * なので 6px 前後になる。ただし色が白いと「柵」に見えるので、
+   * 洋白の鈍い灰色を基調にして、上の角だけを光らせる。
+   */
+  width: 4px;
   pointer-events: none;
+  /* 光るのは山の頂の細い一筋だけ。幅いっぱいを明るくすると白い柵になる */
   background: linear-gradient(90deg,
-    rgba(0, 0, 0, 0.45) 0%,
-    rgba(232, 228, 220, 0.85) 34%,
-    rgba(255, 253, 248, 0.95) 52%,
-    rgba(150, 145, 138, 0.8) 72%,
-    rgba(0, 0, 0, 0.5) 100%);
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(92, 96, 100, 0.85) 26%,
+    rgba(176, 181, 186, 0.92) 42%,
+    rgba(226, 231, 236, 0.95) 50%,
+    rgba(150, 155, 160, 0.9) 62%,
+    rgba(58, 60, 63, 0.9) 84%,
+    rgba(0, 0, 0, 0.6) 100%);
 }
 
 /* ナット（0フレットの右端）は牛骨。金属より白く、太く、艶が鈍い */
 .fb-cell.open::before {
-  right: -2px;
-  width: 6px;
+  right: -3px;
+  width: 7px;
   background: linear-gradient(90deg,
     rgba(0, 0, 0, 0.5) 0%,
     #efe6d4 30%,
@@ -760,13 +809,18 @@ html, body {
   100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
 }
 
+/*
+ * 音名。弦の真上に置いていたので、弦を実寸の太さにしたとたん
+ * 下敷きになって読めなくなった。弦のすぐ下へ逃がす。
+ */
 .fb-label {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 72%;
   transform: translate(-50%, -50%);
   font-size: 0.6rem;
-  color: rgba(245, 230, 215, 0.5);
+  color: rgba(245, 230, 215, 0.55);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   pointer-events: none;
   z-index: 1;
 }
@@ -1012,7 +1066,13 @@ html, body {
     flex: 1 1 0;
     height: auto;
     min-height: 22px;
-    max-height: 62px;
+    /*
+     * 62px で頭打ちにしていたので、縦向きでは6本で 372px しか使わず、
+     * 残り 230px が上下の木の余白になっていた。実物のネックは、外側の
+     * 弦から縁まで 4mm（＝弦の間隔の半分ほど）しか無い。指板が画面の
+     * 高さを使い切るところまで広げる。押さえる的も、そのぶん大きくなる
+     */
+    max-height: 90px;
   }
 }
 
@@ -1414,13 +1474,19 @@ html, body {
 .fb-row,
 .fb-side { position: relative; z-index: 1; }
 
-/* ナット側の細まりを、見て分かる量にする。
-   5% では目に入らなかった（弦の行は削らず、余白だけを削る） */
+/*
+ * ナット側の細まり。
+ *
+ * 9% まで深くしていたが、弦が画面の高さを使い切るようになってからは、
+ * 削りが 6弦の行まで食い込んで、いちばん下の弦と音名が切れていた。
+ * 削ってよいのは、いちばん外の弦より外にある木のぶんだけ。
+ * いまの余白（およそ 60px）に収まる 3.5% に留める。
+ */
 .fretboard {
   padding: 11px 0 7px;
-  clip-path: polygon(0 9%, 100% 0, 100% 100%, 0 91%);
+  clip-path: polygon(0 3.5%, 100% 0, 100% 100%, 0 96.5%);
 }
-.fretboard::after { clip-path: polygon(0 9%, 100% 0, 100% 100%, 0 91%); }
+.fretboard::after { clip-path: polygon(0 3.5%, 100% 0, 100% 100%, 0 96.5%); }
 
 /* ==================================================================
    ヘッドからブリッジまで
@@ -1464,7 +1530,24 @@ html, body {
 .guitar-app[data-look='archtop'] { --head-wood: #2c1a12; --body-paint: #4a2213; --guard: #2a1a12; --hardware: #d9b45c; }
 .guitar-app[data-look='pbass'] { --head-wood: #d3a765; --body-paint: #e9e6df; --guard: #23252c; --hardware: #c8ccd0; }
 .guitar-app[data-look='offset'] { --head-wood: #c9a163; --body-paint: #2b4a6e; --guard: #efe7d5; --hardware: #c8ccd0; }
+/*
+ * 生ギターの表板はスプルース（明るい白木）。ここを濃い茶にしていたので、
+ * サウンドホールを開けても板の色に沈んで、胴に見えなかった。
+ */
 .guitar-app[data-look='acoustic'],
-.guitar-app[data-look='nylon'],
-.guitar-app[data-look='koa'],
-.guitar-app[data-look='resonator'] { --head-wood: #6b4527; --body-paint: #8a5a2c; --guard: #3a2414; --hardware: #cfd3d6; }
+.guitar-app[data-look='nylon'] { --head-wood: #6b4527; --body-paint: #d9b478; --guard: #3a2414; --hardware: #cfd3d6; }
+.guitar-app[data-look='koa'] { --head-wood: #6b4527; --body-paint: #c08a46; --guard: #3a2414; --hardware: #cfd3d6; }
+.guitar-app[data-look='resonator'] { --head-wood: #6b4527; --body-paint: #b9bec2; --guard: #3a2414; --hardware: #cfd3d6; }
+
+/*
+ * ヘッドとボディの「作り」。色ではなく仕組みが違うので、別に持つ。
+ * 弦を糸巻き6連で巻くのか3対3なのか、ブリッジで留めるのかピンで
+ * 刺すのか。ここを間違えると、生ギターにトレモロが付く。
+ */
+.guitar-app { --neck-kind: acoustic; }
+.guitar-app[data-look='strat'],
+.guitar-app[data-look='superstrat'],
+.guitar-app[data-look='lespaul'],
+.guitar-app[data-look='archtop'],
+.guitar-app[data-look='offset'],
+.guitar-app[data-look='pbass'] { --neck-kind: electric; }
