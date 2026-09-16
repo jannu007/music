@@ -38,6 +38,7 @@ import { TUNINGS, findTuning, midiToFreq, noteName } from '../music/tunings';
 import { DEMOS } from '../data/demos';
 import { ChordPads } from './ChordPads';
 import { FRET_CHORD, Fretboard, MAX_FRETS, type LabelMode } from './Fretboard';
+import { lookFor } from './looks';
 import { Metronome, ReferenceTone } from './Metronome';
 import { StringView } from './StringView';
 import { button, el, section, segmented, select, slider, switchRow } from './controls';
@@ -160,6 +161,10 @@ export class GuitarApp {
   private sheetOpen = false;
   private panel!: HTMLElement;
   private sheetTitle!: HTMLElement;
+  /** 画面上部に出した「弦」のボタン */
+  private topTabButton: HTMLButtonElement | null = null;
+  /** .guitar-app 本体。見た目の印はここに付ける（this.root はその外側） */
+  private appEl: HTMLElement | null = null;
   private palmButton!: HTMLButtonElement;
   private recordButton!: HTMLButtonElement;
   private audioReady = false;
@@ -374,6 +379,7 @@ export class GuitarApp {
   private build() {
     this.root.innerHTML = '';
     const app = el('div', 'guitar-app');
+    this.appEl = app;
 
     // ---------- ヘッダー ----------
     const header = el('header', 'topbar');
@@ -387,6 +393,16 @@ export class GuitarApp {
 
 
     this.statusEl = el('div', 'status');
+
+    // 「弦」だけは上に置く。ここに機種と音色のプリセットがあり、
+    // 弾いている途中でいちばん触るところだから、下まで探しに行かずに
+    // 届くほうがよい。押すと下からシートが出る（下の並びと同じ動き）
+    const stringButton = button('', 'ghost round tab tab-top', () => this.toggleTab('string'));
+    stringButton.dataset.tab = 'string';
+    stringButton.innerHTML = TAB_ICONS.string ?? '';
+    stringButton.title = t('tab.string');
+    stringButton.setAttribute('aria-label', t('tab.string'));
+    this.topTabButton = stringButton;
 
     const langButton = button(t('lang.toggle'), 'ghost round lang-btn', () => toggleLocale());
 
@@ -416,7 +432,7 @@ export class GuitarApp {
 
     const headerActions = el('div', 'header-actions');
     headerActions.append(langButton, panicButton, button(t('help.button'), 'ghost round', () => this.toggleHelp()));
-    header.append(brand, this.statusEl, this.master.root, headerActions);
+    header.append(brand, stringButton, this.statusEl, this.master.root, headerActions);
 
     // ---------- ステージ ----------
     const stage = el('section', 'stage');
@@ -442,7 +458,6 @@ export class GuitarApp {
     const tabDefs: { id: string; label: string }[] = [
       { id: 'chord', label: t('tab.chord') },
       { id: 'backing', label: t('tab.backing') },
-      { id: 'string', label: t('tab.string') },
       { id: 'amp', label: t('tab.amp') },
       { id: 'space', label: t('tab.space') },
       { id: 'play', label: t('tab.play') },
@@ -450,6 +465,9 @@ export class GuitarApp {
       { id: 'demo', label: t('tab.demo') },
     ];
     this.tabButtons = [];
+    // 上に出した「弦」も同じ一覧に入れる。開いているものが光る決まりを
+    // 1つにしておかないと、上と下で見え方が食い違う
+    if (this.topTabButton) this.tabButtons.push(this.topTabButton);
     for (const def of tabDefs) {
       const btn = el('button', 'tab');
       btn.type = 'button';
@@ -507,6 +525,7 @@ export class GuitarApp {
     this.fretboard.setLabelMode(this.ui.labelMode);
     this.fretboard.setFrets(this.ui.fretCount);
     this.fretboard.setCapo(this.settings.capo);
+    this.applyLook();
 
     // 揺れる弦の描き先は2つ。広い画面では上のステージ、スマホでは
     // かき鳴らす帯の中。畳まれているほうは StringView が飛ばすので、
@@ -613,6 +632,16 @@ export class GuitarApp {
     this.showTab(this.activeTab);
     this.setStatus(t('status.resetDone'));
     window.setTimeout(() => this.setStatus(), 2500);
+  }
+
+  /**
+   * いま選んでいる音色に合わせて、ギターの見た目を変える。
+   *
+   * 何を持っているのかが一目で分かるようにするため。色そのものは
+   * CSS 側（[data-look=...]）に置いてあり、ここは印を付け替えるだけ。
+   */
+  private applyLook() {
+    if (this.appEl) this.appEl.dataset.look = lookFor(this.ui.presetId);
   }
 
   private setStatus(message?: string) {
@@ -1482,6 +1511,7 @@ export class GuitarApp {
     this.ui.presetId = id;
     const preset = findPreset(id);
     this.settings = applyPreset(this.settings, id);
+    this.applyLook();
 
     // ベースやウクレレはチューニングも一緒に変わる
     const tuning = this.tuning();

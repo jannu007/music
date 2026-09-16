@@ -575,12 +575,17 @@ html, body {
     linear-gradient(180deg, rgba(255, 236, 214, 0.16), transparent 14%),
     linear-gradient(0deg, rgba(0, 0, 0, 0.45), transparent 16%),
     /* 導管。3枚とも周期が違うので、重なりが繰り返して見えない */
-    repeating-linear-gradient(91deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 13px),
-    repeating-linear-gradient(89.4deg, rgba(0, 0, 0, 0.13) 0 2px, transparent 2px 23px),
-    repeating-linear-gradient(90deg, rgba(120, 78, 44, 0.16) 0 3px, transparent 3px 37px),
-    /* 地の色。根元ほど濃く、ハイポジションへ向けてわずかに明るい */
-    linear-gradient(95deg, #3a2414, #4e3220 42%, #43291a 78%, #2e1c10),
-    linear-gradient(180deg, #4a2f1c, #2f1d11);
+    repeating-linear-gradient(91deg, rgba(0, 0, 0, var(--grain-a, 0.22)) 0 1px, transparent 1px 13px),
+    repeating-linear-gradient(89.4deg, rgba(0, 0, 0, var(--grain-b, 0.13)) 0 2px, transparent 2px 23px),
+    repeating-linear-gradient(90deg, var(--grain-c, rgba(120, 78, 44, 0.16)) 0 3px, transparent 3px 37px),
+    /* 地の色。根元ほど濃く、ハイポジションへ向けてわずかに明るい。
+       木の種類は音色ごとに変わるので、変数で受ける（既定はローズウッド） */
+    linear-gradient(95deg,
+      var(--wood-1, #3a2414),
+      var(--wood-2, #4e3220) 42%,
+      var(--wood-1, #43291a) 78%,
+      var(--wood-3, #2e1c10)),
+    linear-gradient(180deg, var(--wood-2, #4a2f1c), var(--wood-3, #2f1d11));
   box-shadow:
     inset 0 0 26px rgba(0, 0, 0, 0.6),
     inset 0 2px 1px rgba(255, 230, 200, 0.10);
@@ -618,15 +623,16 @@ html, body {
 }
 /* ポジションマーク（貝）。片側から光が当たって、反対側に影が落ちる */
 .fb-marker.single::after {
-  background: radial-gradient(circle at 34% 28%, #fffdf6, #e7dcc6 58%, #b3a68c);
+  background: radial-gradient(circle at 34% 28%,
+    var(--inlay-hi, #fffdf6), var(--inlay, #e7dcc6) 58%, var(--inlay-lo, #b3a68c));
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.55), inset 0 0 2px rgba(255, 255, 255, 0.7);
 }
 /* 12・24 フレットは2つ並ぶ。実物と同じ決まり */
 .fb-marker.double::after {
   background: transparent;
   box-shadow:
-    -5px 0 0 #e7dcc6, -5px 1px 2px rgba(0, 0, 0, 0.5),
-    5px 0 0 #e7dcc6, 5px 1px 2px rgba(0, 0, 0, 0.5);
+    -5px 0 0 var(--inlay, #e7dcc6), -5px 1px 2px rgba(0, 0, 0, 0.5),
+    5px 0 0 var(--inlay, #e7dcc6), 5px 1px 2px rgba(0, 0, 0, 0.5);
 }
 .fb-fretnum {
   position: absolute;
@@ -1102,6 +1108,14 @@ html, body {
   /* 横向きは高さが乏しい。送るための帯は、掴める範囲で詰める。
      ここを 22px のままにすると、そのぶん弦の間隔が 24px を割った */
   .fb-markers { height: 17px; }
+  /* 上に出した「弦」のボタンも、そのぶん詰める */
+  .tab-top { min-height: 30px; min-width: 30px; }
+  /* 横向きは 359/360px と限界まで使っている。弦に高さを回すため、
+     操作の帯とアイコンの列の余白を削る（押せる大きさは残す） */
+  .play-bar { padding: 0.2rem 0.5rem; gap: 0.3rem; }
+  .pedal { padding: 0.3rem 0.6rem; }
+  .tabs { padding: 0.12rem 0.3rem; }
+  .tab { min-height: 34px; }
 }
 
 /* かき鳴らす帯の中に、揺れる弦を描く。
@@ -1125,3 +1139,127 @@ html, body {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 .strum-bar:active .strum-hint { opacity: 0.35; }
+
+/* 上に出した「弦」のボタン。下の並びと同じ絵を使うが、
+   あちらは縦積み（絵＋名前）なので、ここでは絵だけの丸にする */
+.tab-top {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  flex-direction: row;
+}
+.tab-top .tab-icon { width: 19px; height: 19px; }
+.tab-top.active {
+  background: rgba(239, 138, 60, 0.18);
+  border-color: var(--ember);
+  color: var(--ember-soft);
+}
+
+/* ==================================================================
+   音色ごとの見た目
+   ------------------------------------------------------------------
+   19 種類の音に対して、実物の系統ごとに見立てを割り当てている。
+   どの音がどの楽器かは guitar/src/ui/looks.ts に書いてある。
+   ここで変えるのは3つだけ。指板の木、本体（画面の地）の色、
+   ポジションマークの色。この3つが変われば、別のギターに見える。
+   ================================================================== */
+
+/* アコースティック。スプルースの明るい本体に、ローズウッドの指板 */
+.guitar-app[data-look='acoustic'] {
+  --wood-1: #3a2414; --wood-2: #4e3220; --wood-3: #2e1c10;
+  --body-1: rgba(214, 150, 78, 0.16);
+  --body-2: rgba(150, 92, 40, 0.18);
+}
+
+/* クラシック。エボニーの黒い指板。実物はポジションマークを置かない */
+.guitar-app[data-look='nylon'] {
+  --wood-1: #241c17; --wood-2: #2f2620; --wood-3: #171210;
+  --grain-a: 0.3; --grain-b: 0.16; --grain-c: rgba(90, 70, 52, 0.12);
+  --body-1: rgba(226, 196, 140, 0.15);
+  --body-2: rgba(140, 104, 56, 0.16);
+}
+.guitar-app[data-look='nylon'] .fb-marker::after { opacity: 0; }
+
+/* リゾネーター。金属ボディ。冷たい銀色 */
+.guitar-app[data-look='resonator'] {
+  --wood-1: #2b2622; --wood-2: #3a342e; --wood-3: #1e1a17;
+  --inlay: #dfe4e6; --inlay-hi: #ffffff; --inlay-lo: #9aa3a7;
+  --body-1: rgba(180, 196, 204, 0.16);
+  --body-2: rgba(96, 112, 120, 0.2);
+}
+
+/* ジャズのアーチトップ。焦げ茶のサンバースト、金の金物 */
+.guitar-app[data-look='archtop'] {
+  --wood-1: #241610; --wood-2: #35211a; --wood-3: #150d09;
+  --inlay: #f0dfae; --inlay-hi: #fff8dc; --inlay-lo: #a98e4e;
+  --body-1: rgba(196, 128, 46, 0.2);
+  --body-2: rgba(92, 40, 14, 0.24);
+}
+
+/* ストラト。メイプルの明るい指板がいちばんの見どころ */
+.guitar-app[data-look='strat'] {
+  --wood-1: #b98a4e; --wood-2: #d6a869; --wood-3: #9a6f3a;
+  --grain-a: 0.12; --grain-b: 0.07; --grain-c: rgba(255, 226, 180, 0.2);
+  --inlay: #2a1a0e; --inlay-hi: #4a3320; --inlay-lo: #140c06;
+  --body-1: rgba(120, 200, 220, 0.16);
+  --body-2: rgba(40, 110, 140, 0.18);
+}
+/* 明るい木の上では、文字は黒のほうが読める */
+.guitar-app[data-look='strat'] .fb-label { color: rgba(40, 24, 10, 0.72); }
+.guitar-app[data-look='strat'] .fb-fretnum { color: rgba(40, 24, 10, 0.6); }
+
+/* レスポール。マホガニーの赤茶、ゴールドトップ */
+.guitar-app[data-look='lespaul'] {
+  --wood-1: #33190f; --wood-2: #4a2416; --wood-3: #22110a;
+  --inlay: #efe6cf; --inlay-hi: #fffdf3; --inlay-lo: #b3a586;
+  --body-1: rgba(212, 168, 74, 0.22);
+  --body-2: rgba(122, 52, 22, 0.22);
+}
+
+/* モダン・ハイゲイン。黒とエボニー */
+.guitar-app[data-look='superstrat'] {
+  --wood-1: #1a1614; --wood-2: #262120; --wood-3: #0e0b0a;
+  --grain-a: 0.34; --grain-b: 0.18; --grain-c: rgba(70, 62, 58, 0.14);
+  --inlay: #c9ced2; --inlay-hi: #ffffff; --inlay-lo: #7e868c;
+  --body-1: rgba(150, 60, 220, 0.16);
+  --body-2: rgba(30, 30, 40, 0.3);
+}
+
+/* オフセット。くすんだ青 */
+.guitar-app[data-look='offset'] {
+  --wood-1: #2e2016; --wood-2: #40301f; --wood-3: #1f1610;
+  --body-1: rgba(96, 156, 210, 0.18);
+  --body-2: rgba(38, 66, 104, 0.22);
+}
+
+/* エレキベース */
+.guitar-app[data-look='pbass'] {
+  --wood-1: #b98a4e; --wood-2: #cfa268; --wood-3: #93693a;
+  --grain-a: 0.13; --grain-b: 0.08; --grain-c: rgba(255, 226, 180, 0.18);
+  --inlay: #2a1a0e; --inlay-hi: #4a3320; --inlay-lo: #140c06;
+  --body-1: rgba(214, 214, 218, 0.14);
+  --body-2: rgba(70, 76, 92, 0.22);
+}
+.guitar-app[data-look='pbass'] .fb-label { color: rgba(40, 24, 10, 0.72); }
+.guitar-app[data-look='pbass'] .fb-fretnum { color: rgba(40, 24, 10, 0.6); }
+
+/* ウクレレ。ハワイのコア材 */
+.guitar-app[data-look='koa'] {
+  --wood-1: #4a2f18; --wood-2: #6b4525; --wood-3: #341f10;
+  --body-1: rgba(224, 168, 88, 0.2);
+  --body-2: rgba(140, 86, 34, 0.2);
+}
+
+/* 本体の色は、画面の地にも回す。持っているギターの色が
+   画面ぜんたいににじむ（篝火の橙は、その上に薄く残る） */
+.guitar-app {
+  background:
+    radial-gradient(120% 80% at 12% -10%, var(--body-1, rgba(239, 138, 60, 0.16)), transparent 58%),
+    radial-gradient(90% 70% at 100% 0%, var(--body-2, rgba(140, 60, 20, 0.18)), transparent 55%),
+    var(--ink);
+  transition: background 0.35s ease;
+}
