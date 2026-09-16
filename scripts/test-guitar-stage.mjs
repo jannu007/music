@@ -123,8 +123,10 @@ async function look(screen) {
           clientW: scroll ? scroll.clientWidth : 0,
         };
       })(),
-      tabCount: document.querySelectorAll('.tabs .tab').length,
-      iconCount: document.querySelectorAll('.tabs .tab .tab-icon').length,
+      // 「弦」だけは上に出したので、下の並びは 7 個。
+      // 上の 1 個と合わせて、絵のあるボタンが 8 個あることを見る
+      tabCount: document.querySelectorAll('.tabs .tab, .topbar .tab-top').length,
+      iconCount: document.querySelectorAll('.tabs .tab .tab-icon, .topbar .tab-top .tab-icon').length,
       open: !!document.querySelector('.panel.is-open'),
       // 閉じているシートが場所を取っていないか
       panelVisible: (() => {
@@ -298,6 +300,53 @@ async function waveform() {
   return { geo, moved: ringing !== quiet, quiet, ringing };
 }
 
+/*
+ * 「弦」だけを上に出したこと、そして音色ごとに見た目が変わることを見る。
+ *
+ * 音は 19 種類あるのに指板はずっと同じ木だった。ジャズのアーチトップを
+ * 選んでもファズのハイゲインを選んでも同じでは、何を持っているのか
+ * 分からない。実物の系統ごとに見立てを割り当てた（guitar/src/ui/looks.ts）。
+ *
+ * 印が付け替わるだけでは足りない。CSS が当たっていなければ見た目は
+ * 変わらないので、実際に描かれている色が変わるところまで確かめる。
+ */
+async function looks() {
+  const ctx = await browser.newContext({ viewport: { width: 412, height: 890 } });
+  const page = await ctx.newPage();
+  await page.goto(`http://localhost:${PORT}/guitar/`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(900);
+
+  // 上に出した「弦」を押すと、その設定が出るか
+  const top = page.locator('.topbar .tab-top');
+  const topCount = await top.count();
+  if (topCount > 0) await top.click();
+  await page.waitForTimeout(500);
+  const opened = await page.evaluate(() => ({
+    open: !!document.querySelector('.panel.is-open'),
+    title: document.querySelector('.sheet-title')?.textContent ?? '',
+    stillBelow: document.querySelectorAll('.tabs .tab[data-tab="string"]').length,
+  }));
+
+  // 音色を変えると、指板と地の色が実際に変わるか
+  const seen = [];
+  for (const id of ['steel', 'clean', 'metal', 'jazz', 'nylon']) {
+    await page.selectOption('.preset-select', id);
+    await page.waitForTimeout(450);
+    seen.push(await page.evaluate(() => {
+      const app = document.querySelector('.guitar-app');
+      const fb = document.querySelector('.fretboard');
+      return {
+        look: app?.dataset.look ?? null,
+        wood: getComputedStyle(fb).backgroundImage,
+        body: getComputedStyle(app).backgroundImage,
+      };
+    }));
+  }
+
+  await ctx.close();
+  return { topCount, opened, seen };
+}
+
 console.log('ギターが、実物のように弾ける形になっているか\n');
 
 for (const screen of SCREENS) {
@@ -334,6 +383,22 @@ check('触りの割り当てが正しい',
   r.touch.row === 'none' && r.touch.strip.includes('pan-x'),
   `弦=${r.touch.row} 帯=${r.touch.strip}`);
 check('端まで送ると 24 フレットが画面に入る', r.visible === true);
+console.log('');
+
+const lk = await looks();
+check('「弦」が画面上部にある', lk.topCount === 1, `${lk.topCount} 個`);
+check('上の「弦」を押すと、その設定が出る',
+  lk.opened.open && /String|弦/.test(lk.opened.title), `見出し=${lk.opened.title}`);
+check('「弦」は下の並びから外れている', lk.opened.stillBelow === 0, `${lk.opened.stillBelow} 個`);
+check('音色ごとに見立てが変わる',
+  new Set(lk.seen.map((x) => x.look)).size === lk.seen.length,
+  lk.seen.map((x) => x.look).join(' / '));
+check('指板の木が実際に描き分けられている',
+  new Set(lk.seen.map((x) => x.wood)).size === lk.seen.length,
+  `${new Set(lk.seen.map((x) => x.wood)).size} 通り`);
+check('画面の地も音色で変わる',
+  new Set(lk.seen.map((x) => x.body)).size === lk.seen.length,
+  `${new Set(lk.seen.map((x) => x.body)).size} 通り`);
 console.log('');
 
 const wave = await waveform();
