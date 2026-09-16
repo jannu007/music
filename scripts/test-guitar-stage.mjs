@@ -40,7 +40,9 @@ const MIME = {
 const SCREENS = [
   { w: 360, h: 780, label: '縦 360' },
   { w: 412, h: 890, label: '縦 412' },
-  { w: 780, h: 360, label: '横 780' },
+  // 横向きは指板だけにしてある。上の帯も操作もアイコンも畳むので、
+  // 下の並びを押す確かめ方はここでは成り立たない（別に見る）
+  { w: 780, h: 360, label: '横 780', bare: true },
 ];
 
 /** 指板が画面に占める割合の下限。これを割ると「いっぱい」とは言えない */
@@ -124,9 +126,15 @@ async function look(screen) {
         };
       })(),
       // 「弦」だけは上に出したので、下の並びは 7 個。
-      // 上の 1 個と合わせて、絵のあるボタンが 8 個あることを見る
-      tabCount: document.querySelectorAll('.tabs .tab, .topbar .tab-top').length,
-      iconCount: document.querySelectorAll('.tabs .tab .tab-icon, .topbar .tab-top .tab-icon').length,
+      // 上の 1 個と合わせて、絵のあるボタンが 8 個あることを見る。
+      //
+      // 数えるのは見えているものだけ。querySelectorAll は畳んだもの
+      // （display: none）も返すので、そのまま数えると横向きでも
+      // 8 個あることになってしまう
+      tabCount: [...document.querySelectorAll('.tabs .tab, .topbar .tab-top')]
+        .filter((e) => e.getBoundingClientRect().height > 0).length,
+      iconCount: [...document.querySelectorAll('.tabs .tab .tab-icon, .topbar .tab-top .tab-icon')]
+        .filter((e) => e.getBoundingClientRect().height > 0).length,
       open: !!document.querySelector('.panel.is-open'),
       // 閉じているシートが場所を取っていないか
       panelVisible: (() => {
@@ -137,14 +145,19 @@ async function look(screen) {
     };
   });
 
-  // アイコンを押す → 出る、もう一度押す → 引っ込む
-  const first = page.locator('.tabs .tab').first();
-  await first.click();
-  await page.waitForTimeout(400);
-  const opened = await page.evaluate(() => !!document.querySelector('.panel.is-open'));
-  await first.click();
-  await page.waitForTimeout(400);
-  const closed = await page.evaluate(() => !document.querySelector('.panel.is-open'));
+  // アイコンを押す → 出る、もう一度押す → 引っ込む。
+  // 横向きは畳んであるので、ここでは見ない（bareMode で別に見る）
+  let opened = null;
+  let closed = null;
+  if (!screen.bare) {
+    const first = page.locator('.tabs .tab').first();
+    await first.click();
+    await page.waitForTimeout(400);
+    opened = await page.evaluate(() => !!document.querySelector('.panel.is-open'));
+    await first.click();
+    await page.waitForTimeout(400);
+    closed = await page.evaluate(() => !document.querySelector('.panel.is-open'));
+  }
 
   await ctx.close();
   return { ...at_rest, opened, closed };
@@ -347,23 +360,79 @@ async function looks() {
   return { topCount, opened, seen };
 }
 
+/*
+ * 横に倒したときは指板だけにする。ただし戻る道は塞がない。
+ *
+ * 音量も設定もそこにあるので、畳みきってしまうと何もできなくなる。
+ * 隅の小さなボタンひとつで戻せることを、実際に押して確かめる。
+ * 「畳めた」だけを見て合格にすると、詰む作りを通してしまう。
+ */
+async function bareMode() {
+  const ctx = await browser.newContext({ viewport: { width: 780, height: 360 } });
+  const page = await ctx.newPage();
+  await page.goto(`http://localhost:${PORT}/guitar/`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(800);
+
+  const measure = () => page.evaluate(() => {
+    const h = (sel) => {
+      const el = document.querySelector(sel);
+      return el ? Math.round(el.getBoundingClientRect().height) : 0;
+    };
+    return {
+      vh: window.innerHeight,
+      topbar: h('.topbar'), play: h('.play-bar'), tabs: h('.tabs'),
+      board: h('.board-area'), toggle: h('.chrome-toggle'),
+    };
+  });
+
+  const bare = await measure();
+  const hasToggle = (await page.locator('.chrome-toggle').count()) > 0 && bare.toggle > 0;
+  if (hasToggle) await page.locator('.chrome-toggle').click();
+  await page.waitForTimeout(400);
+  const back = await measure();
+
+  // ネックらしく見えるための部品が、実際に描かれているか
+  const neck = await page.evaluate(() => {
+    const fb = document.querySelector('.fretboard');
+    const side = document.querySelector('.fb-side');
+    return {
+      // ナット側を細く見せるための削り
+      tapered: getComputedStyle(fb).clipPath !== 'none',
+      // 側面の目印
+      sideDots: document.querySelectorAll('.fb-side-cell.single, .fb-side-cell.double').length,
+      sideShown: side ? side.getBoundingClientRect().height > 2 : false,
+    };
+  });
+
+  await ctx.close();
+  return { bare, back, hasToggle, neck };
+}
+
 console.log('ギターが、実物のように弾ける形になっているか\n');
 
 for (const screen of SCREENS) {
   const r = await look(screen);
   const share = r.board ? r.board.height / r.vh : 0;
 
-  check(`${screen.label}: 画面上部が1列`, r.rows === 1, `${r.rows}列`);
+  if (screen.bare) {
+    // 横に倒したときは弦だけ。上の帯も操作もアイコンも畳んである
+    check(`${screen.label}: 指板だけになっている`,
+      r.rows === 0 && r.tabCount === 0, `上 ${r.rows}列 / アイコン ${r.tabCount}個`);
+  } else {
+    check(`${screen.label}: 画面上部が1列`, r.rows === 1, `${r.rows}列`);
+  }
   check(`${screen.label}: 指板が画面の大半を占める`,
     share >= MIN_BOARD_SHARE, `${Math.round(share * 100)}%`);
   check(`${screen.label}: 弦が指で押さえられる間隔`,
     (r.row?.height ?? 0) >= MIN_ROW, `${Math.round(r.row?.height ?? 0)}px`);
   check(`${screen.label}: ふだんは弦だけが見えている`,
     r.open === false && r.panelVisible === false, r.open ? 'シートが出たまま' : '');
-  check(`${screen.label}: 小さなアイコンが並んでいる`,
-    r.tabCount >= 8 && r.iconCount === r.tabCount, `${r.iconCount}/${r.tabCount} 個`);
-  check(`${screen.label}: 押すと出て、もう一度押すと引っ込む`,
-    r.opened && r.closed, `出る=${r.opened} 引っ込む=${r.closed}`);
+  if (!screen.bare) {
+    check(`${screen.label}: 小さなアイコンが並んでいる`,
+      r.tabCount >= 8 && r.iconCount === r.tabCount, `${r.iconCount}/${r.tabCount} 個`);
+    check(`${screen.label}: 押すと出て、もう一度押すと引っ込む`,
+      r.opened && r.closed, `出る=${r.opened} 引っ込む=${r.closed}`);
+  }
   check(`${screen.label}: 24 フレットまで弾ける`,
     r.fret.max === 24, `最終フレット ${r.fret.max}`);
   check(`${screen.label}: いちばん狭いフレットも指で押さえられる`,
@@ -383,6 +452,21 @@ check('触りの割り当てが正しい',
   r.touch.row === 'none' && r.touch.strip.includes('pan-x'),
   `弦=${r.touch.row} 帯=${r.touch.strip}`);
 check('端まで送ると 24 フレットが画面に入る', r.visible === true);
+console.log('');
+
+const bm = await bareMode();
+check('横向きでは、上も操作もアイコンも畳まれている',
+  bm.bare.topbar === 0 && bm.bare.play === 0 && bm.bare.tabs === 0,
+  `上${bm.bare.topbar} 操作${bm.bare.play} アイコン${bm.bare.tabs}`);
+check('そのぶん指板が画面をほぼ埋める',
+  bm.bare.board / bm.bare.vh >= 0.95, `${Math.round(bm.bare.board / bm.bare.vh * 100)}%`);
+check('戻すボタンが出ている', bm.hasToggle, `${bm.bare.toggle}px`);
+check('押すと操作が戻る',
+  bm.back.topbar > 0 && bm.back.play > 0 && bm.back.tabs > 0,
+  `上${bm.back.topbar} 操作${bm.back.play} アイコン${bm.back.tabs}`);
+check('ネックがナット側で細くなっている', bm.neck.tapered);
+check('側面に目印が並んでいる',
+  bm.neck.sideShown && bm.neck.sideDots >= 10, `${bm.neck.sideDots} 個`);
 console.log('');
 
 const lk = await looks();

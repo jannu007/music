@@ -165,6 +165,10 @@ export class GuitarApp {
   private topTabButton: HTMLButtonElement | null = null;
   /** .guitar-app 本体。見た目の印はここに付ける（this.root はその外側） */
   private appEl: HTMLElement | null = null;
+  /** 横向きで畳んだ操作を呼び戻すボタン */
+  private chromeToggle: HTMLButtonElement | null = null;
+  /** 横向きでも操作を出したままにするか */
+  private chromeShown = false;
   private palmButton!: HTMLButtonElement;
   private recordButton!: HTMLButtonElement;
   private audioReady = false;
@@ -515,7 +519,19 @@ export class GuitarApp {
     const boardScroll = el('div', 'board-scroll');
     boardArea.append(playBar, boardScroll);
 
-    app.append(header, main, boardArea, panel, tabs);
+    // 横向きのときは、指板だけを残して他を畳む。演奏中に見たいのは弦だけ。
+    // ただし戻る道は必ず残す。塞ぐと、音量にも設定にも触れないまま
+    // 詰んでしまう（これまで何度もそこで失敗している）
+    const chromeToggle = button('', 'ghost round chrome-toggle', () => this.toggleChrome());
+    chromeToggle.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+      + ' stroke-linecap="round" aria-hidden="true">'
+      + '<path d="M4 7h16M4 12h16M4 17h16" /></svg>';
+    chromeToggle.title = t('chrome.toggle');
+    chromeToggle.setAttribute('aria-label', t('chrome.toggle'));
+    this.chromeToggle = chromeToggle;
+
+    app.append(header, main, boardArea, panel, tabs, chromeToggle);
     this.root.append(app);
 
     this.fretboard = new Fretboard(boardScroll, this.tuning(), {
@@ -651,6 +667,18 @@ export class GuitarApp {
    * 何を持っているのかが一目で分かるようにするため。色そのものは
    * CSS 側（[data-look=...]）に置いてあり、ここは印を付け替えるだけ。
    */
+  /**
+   * 横向きで畳んだ操作を出し入れする。
+   *
+   * 横にしたときは指板だけにするが、音量も設定もそこにあるので、
+   * 戻る道が無いと何もできなくなる。小さなボタンを1つだけ残してある。
+   */
+  private toggleChrome() {
+    this.chromeShown = !this.chromeShown;
+    this.appEl?.classList.toggle('show-chrome', this.chromeShown);
+    this.chromeToggle?.classList.toggle('active', this.chromeShown);
+  }
+
   private applyLook() {
     if (this.appEl) this.appEl.dataset.look = lookFor(this.ui.presetId);
   }
