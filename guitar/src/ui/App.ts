@@ -122,6 +122,9 @@ export class GuitarApp {
   private root: HTMLElement;
   private engine = new GuitarEngine();
   private fretboard!: Fretboard;
+  /** 指板のまわり。波形の帯をここへ差し込む */
+  private boardArea?: HTMLElement;
+  private boardScroll?: HTMLElement;
   private chordPads: ChordPads | null = null;
   private view!: StringView;
   private recorder = new Recorder();
@@ -518,6 +521,8 @@ export class GuitarApp {
 
     const boardScroll = el('div', 'board-scroll');
     boardArea.append(playBar, boardScroll);
+    this.boardArea = boardArea;
+    this.boardScroll = boardScroll;
 
     // 横向きのときは、指板だけを残して他を畳む。演奏中に見たいのは弦だけ。
     // ただし戻る道は必ず残す。塞ぐと、音量にも設定にも触れないまま
@@ -546,19 +551,21 @@ export class GuitarApp {
     this.fretboard.setCapo(this.settings.capo);
     this.applyLook();
 
-    // 揺れる弦の描き先は2つ。広い画面では上のステージ、スマホでは
-    // かき鳴らす帯の中。畳まれているほうは StringView が飛ばすので、
-    // どちらの画面でも「弾いた弦が揺れる」手ごたえが残る。
-    // 指板より後に作る（帯の面は Fretboard が持っているため）
-    this.view = new StringView([canvas, this.fretboard.strumCanvas]);
-    this.view.setCount(this.tuning().notes.length);
-    this.view.start();
-
-    // 揺れる弦の描き先は2つ。広い画面では上のステージ、スマホでは
-    // かき鳴らす帯の中。畳まれているほうは StringView が飛ばすので、
-    // どちらの画面でも「弾いた弦が揺れる」手ごたえが残る。
-    // 指板より後に作る（帯の面は Fretboard が持っているため）
-    this.view = new StringView([canvas, this.fretboard.strumCanvas]);
+    /*
+     * 揺れる弦の描き先は2つ。広い画面では上のステージ、スマホでは
+     * 指板のすぐ上の帯。畳まれているほうは StringView が飛ばすので、
+     * どちらの画面でも「弾いた弦が揺れる」手ごたえが残る。
+     *
+     * 帯そのものは Fretboard が持っている（掴んでネックを送る役目も
+     * 兼ねていて、送り先の指板を知っているのはあちらなので）。
+     * ここでは、指板の上に差し込むだけ。
+     *
+     * この一式は以前2回書いてあり、StringView が2つ動いていた。
+     * 先に作ったほうは誰も止めないまま毎フレーム描き続けていたので、
+     * 1つにまとめてある。
+     */
+    this.boardArea?.insertBefore(this.fretboard.waveStrip, this.boardScroll);
+    this.view = new StringView([canvas, this.fretboard.waveCanvas]);
     this.view.setCount(this.tuning().notes.length);
     this.view.start();
 
