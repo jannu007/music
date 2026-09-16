@@ -1,4 +1,5 @@
 import { NOTE_NAMES, type Tuning } from '../music/tunings';
+import { drawBody, drawHeadstock, type NeckColors, type StringBand } from './neckArt';
 import { el } from './controls';
 import { t } from './i18n';
 
@@ -56,10 +57,13 @@ export class Fretboard {
   private root: HTMLElement;
   private board: HTMLElement;
   private strumBar: HTMLElement;
+  private strip!: HTMLElement;
   /** 揺れる弦を描く面（App が StringView に渡す） */
   readonly strumCanvas: HTMLCanvasElement;
   /** 木目を描く面。CSS の縞では木に見えないので、その場で描く */
   private texture: HTMLCanvasElement;
+  private headCanvas: HTMLCanvasElement;
+  private bodyCanvas: HTMLCanvasElement;
   private handlers: FretboardHandlers;
   private tuning: Tuning;
   private capo = 0;
@@ -89,9 +93,18 @@ export class Fretboard {
     // 弾いている場所で弦が揺れるので、見ていて分かりやすい
     this.texture = el('canvas', 'fb-texture');
     this.texture.setAttribute('aria-hidden', 'true');
+    // ヘッドとボディ。指板を左いっぱいに送ればヘッド、右いっぱいに
+    // 送ればブリッジが出る。楽器1本ぶんが画面の中にある形になる
+    this.headCanvas = el('canvas', 'fb-head');
+    this.headCanvas.setAttribute('aria-hidden', 'true');
+    this.bodyCanvas = el('canvas', 'fb-body');
+    this.bodyCanvas.setAttribute('aria-hidden', 'true');
     this.strumCanvas = el('canvas', 'strum-canvas');
     this.strumBar.append(this.strumCanvas, el('span', 'strum-hint', t('fretboard.strumHint')));
-    this.root.append(this.board, this.strumBar);
+    // ヘッド → 指板 → ボディ を横に並べ、まとめて送れるようにする
+    this.strip = el('div', 'neck-strip');
+    this.strip.append(this.headCanvas, this.board, this.bodyCanvas);
+    this.root.append(this.strip, this.strumBar);
 
     this.build();
     this.bindStrumBar();
@@ -277,7 +290,7 @@ export class Fretboard {
   private watchSize() {
     if (this.sizeWatch || typeof ResizeObserver === 'undefined') return;
     this.sizeWatch = new ResizeObserver(() => this.paintTexture());
-    this.sizeWatch.observe(this.board);
+    this.sizeWatch.observe(this.strip);
   }
 
   /** 音色が変わって木が変わったときに、外から呼ぶ */
@@ -366,6 +379,58 @@ export class Fretboard {
     round.addColorStop(1, 'rgba(0, 0, 0, 0.55)');
     g.fillStyle = round;
     g.fillRect(0, 0, w, h);
+
+    this.paintEnds(h);
+  }
+
+  /** ヘッドとボディを描く。色は音色ごとの見立てから受け取る */
+  private paintEnds(h: number) {
+    const css = getComputedStyle(this.board);
+    const pick = (name: string, fallback: string) =>
+      css.getPropertyValue(name).trim() || fallback;
+    const colors: NeckColors = {
+      wood: pick('--wood-2', '#4e3220'),
+      head: pick('--head-wood', '#c9a163'),
+      body: pick('--body-paint', '#141414'),
+      guard: pick('--guard', '#f2f0ea'),
+      metal: pick('--hardware', '#c8ccd0'),
+    };
+    const count = this.tuning.notes.length;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+
+    // 弦が通る高さを実測する。ここが合っていないと、ヘッドから来た弦が
+    // 指板の弦とつながらず、継ぎ目で折れて見える
+    const stripRect = this.strip.getBoundingClientRect();
+    const rows = this.board.querySelectorAll('.fb-row');
+    const first = rows[0]?.getBoundingClientRect();
+    const last = rows[rows.length - 1]?.getBoundingClientRect();
+    const band: StringBand = first && last && stripRect.height > 0
+      ? {
+          top: (first.top + first.height / 2 - stripRect.top) / stripRect.height,
+          bottom: (last.top + last.height / 2 - stripRect.top) / stripRect.height,
+        }
+      : { top: 0.26, bottom: 0.74 };
+
+    const paint = (
+      canvas: HTMLCanvasElement,
+      draw: (
+        g: CanvasRenderingContext2D, w: number, h: number,
+        c: NeckColors, n: number, b: StringBand
+      ) => void
+    ) => {
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width || canvas.clientWidth;
+      if (w < 4 || h < 4) return;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      const g = canvas.getContext('2d');
+      if (!g) return;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw(g, w, h, colors, count, band);
+    };
+
+    paint(this.headCanvas, drawHeadstock);
+    paint(this.bodyCanvas, drawBody);
   }
 
   private paintLabels() {
