@@ -189,6 +189,115 @@ async function migration() {
   return { raised, kept };
 }
 
+/*
+ * 24 フレットまで、指で送って本当に届くか。
+ *
+ * 出すだけでは届かなかった。指板には touch-action: none が掛かっていて
+ * ブラウザ側の送りが殺されており、横になぞる動きはスライド（グリッサンド）
+ * という演奏機能に使われていた。つまり画面には 24 まであるのに、
+ * そこへ行く手立てが無かった。
+ *
+ * 弦の上は演奏に譲り、フレット番号の帯を送り専用にした。実物で手を
+ * 持ち替えるのと同じ動きにあたる。ここでは実際に指でなぞって確かめる。
+ */
+async function reach() {
+  const ctx = await browser.newContext({
+    viewport: { width: 412, height: 890 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  const page = await ctx.newPage();
+  await page.goto(`http://localhost:${PORT}/guitar/`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(900);
+  const cdp = await ctx.newCDPSession(page);
+
+  const swipe = async (selector) => {
+    await page.evaluate(() => { document.querySelector('.board-scroll').scrollLeft = 0; });
+    const box = await page.locator(selector).first().boundingBox();
+    if (!box) return null;
+    const y = box.y + box.height / 2;
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 330, y }] });
+    for (let x = 330; x >= 60; x -= 30) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y }] });
+      await page.waitForTimeout(16);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(600);
+    return page.evaluate(() => Math.round(document.querySelector('.board-scroll').scrollLeft));
+  };
+
+  const byStrip = await swipe('.fb-markers');
+  const byString = await swipe('.fb-row');
+
+  const touch = await page.evaluate(() => ({
+    board: getComputedStyle(document.querySelector('.fretboard')).touchAction,
+    row: getComputedStyle(document.querySelector('.fb-row')).touchAction,
+    strip: getComputedStyle(document.querySelector('.fb-markers')).touchAction,
+  }));
+
+  // 端まで送ったとき、24 フレットが画面の中に入るか
+  const visible = await page.evaluate(() => {
+    const sc = document.querySelector('.board-scroll');
+    sc.scrollLeft = sc.scrollWidth;
+    const last = document.querySelector('.fb-cell[data-fret="24"]');
+    if (!last) return false;
+    const r = last.getBoundingClientRect();
+    return r.left >= -1 && r.right <= window.innerWidth + 1 && r.width > 1;
+  });
+
+  await ctx.close();
+  return { byStrip, byString, touch, visible };
+}
+
+/*
+ * 揺れる弦（波形）が、演奏の邪魔をせずに残っているか。
+ *
+ * もとは画面の上に大きく出していたが、指板へ高さを譲るために畳んだ。
+ * 気に入っていたという話だったので、かき鳴らす帯の中へ描き直した。
+ * 場所を新たに取らず、弾いている所で弦が動く。
+ *
+ * 見るのは2つ。触りを奪っていないこと（奪うとかき鳴らせなくなる）と、
+ * 弾いたときに本当に動くこと（置いてあるだけでは意味がない）。
+ */
+async function waveform() {
+  const ctx = await browser.newContext({ viewport: { width: 412, height: 890 } });
+  const page = await ctx.newPage();
+  await page.goto(`http://localhost:${PORT}/guitar/`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  const geo = await page.evaluate(() => {
+    const c = document.querySelector('.strum-canvas');
+    const bar = document.querySelector('.strum-bar');
+    if (!c || !bar) return null;
+    const r = c.getBoundingClientRect();
+    const br = bar.getBoundingClientRect();
+    return {
+      fills: r.width > br.width - 6 && r.height > br.height - 6,
+      passes: getComputedStyle(c).pointerEvents === 'none',
+      size: `${Math.round(r.width)}x${Math.round(r.height)}`,
+    };
+  });
+
+  const brightness = () => page.evaluate(() => {
+    const c = document.querySelector('.strum-canvas');
+    const g = c.getContext('2d');
+    const d = g.getImageData(0, 0, c.width, c.height).data;
+    let sum = 0;
+    for (let i = 0; i < d.length; i += 4) sum += d[i] + d[i + 1] + d[i + 2];
+    return sum;
+  });
+
+  await page.mouse.click(5, 5);
+  await page.waitForTimeout(600);
+  const quiet = await brightness();
+  await page.locator('.fb-cell').nth(40).click({ force: true });
+  await page.waitForTimeout(160);
+  const ringing = await brightness();
+
+  await ctx.close();
+  return { geo, moved: ringing !== quiet, quiet, ringing };
+}
+
 console.log('ギターが、実物のように弾ける形になっているか\n');
 
 for (const screen of SCREENS) {
@@ -215,6 +324,24 @@ for (const screen of SCREENS) {
     `指板 ${r.fret.scrollW}px / 画面 ${r.fret.clientW}px`);
   console.log('');
 }
+
+const r = await reach();
+check('フレット番号の帯を指でなぞると、ネックを移動できる',
+  (r.byStrip ?? 0) > 100, `scrollLeft ${r.byStrip}px`);
+check('弦の上をなぞっても移動しない（演奏の手が残っている）',
+  r.byString === 0, `scrollLeft ${r.byString}px`);
+check('触りの割り当てが正しい',
+  r.touch.row === 'none' && r.touch.strip.includes('pan-x'),
+  `弦=${r.touch.row} 帯=${r.touch.strip}`);
+check('端まで送ると 24 フレットが画面に入る', r.visible === true);
+console.log('');
+
+const wave = await waveform();
+check('揺れる弦が、かき鳴らす帯の中にある', wave.geo?.fills === true, wave.geo?.size ?? 'なし');
+check('その面が演奏の触りを奪っていない', wave.geo?.passes === true,
+  wave.geo?.passes ? '' : 'pointer-events が none でない');
+check('弾くと弦が動く', wave.moved === true, `${wave.quiet} → ${wave.ringing}`);
+console.log('');
 
 const mig = await migration();
 check('前から使っている端末でも 24 まで届く', mig.raised === 24, `最終フレット ${mig.raised}`);

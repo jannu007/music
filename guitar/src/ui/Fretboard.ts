@@ -39,6 +39,8 @@ export class Fretboard {
   private root: HTMLElement;
   private board: HTMLElement;
   private strumBar: HTMLElement;
+  /** 揺れる弦を描く面（App が StringView に渡す） */
+  readonly strumCanvas: HTMLCanvasElement;
   private handlers: FretboardHandlers;
   private tuning: Tuning;
   private capo = 0;
@@ -62,7 +64,10 @@ export class Fretboard {
 
     this.board = el('div', 'fretboard');
     this.strumBar = el('div', 'strum-bar');
-    this.strumBar.innerHTML = `<span>${t('fretboard.strumHint')}</span>`;
+    // 揺れる弦を、かき鳴らす帯の中に描く。場所を新たに取らずに済み、
+    // 弾いている場所で弦が揺れるので、見ていて分かりやすい
+    this.strumCanvas = el('canvas', 'strum-canvas');
+    this.strumBar.append(this.strumCanvas, el('span', 'strum-hint', t('fretboard.strumHint')));
     this.root.append(this.board, this.strumBar);
 
     this.build();
@@ -94,6 +99,34 @@ export class Fretboard {
     this.shape = frets;
     this.rootPitch = rootPitch;
     this.paintShape();
+    this.followShape();
+  }
+
+  /**
+   * 押さえる形が画面の外にあるなら、そこまで送る。
+   *
+   * 指板は画面より広いので、選んだ和音がいまの位置から外れていると、
+   * 「光っているはずなのに何も出ない」ように見える。実物で手を
+   * 持ち替えるのと同じことを、こちらでやる。
+   */
+  private followShape() {
+    if (!this.shape) return;
+    const used = this.shape.filter((f) => f > 0);
+    if (used.length === 0) return;
+    const lo = Math.min(...used);
+    const hi = Math.max(...used);
+    const first = this.cells[0]?.[lo];
+    const last = this.cells[0]?.[hi];
+    if (!first || !last) return;
+
+    const view = this.root.getBoundingClientRect();
+    const a = first.getBoundingClientRect();
+    const b = last.getBoundingClientRect();
+    // すでに全部見えているなら動かさない。勝手に動くほうが煩わしい
+    if (a.left >= view.left && b.right <= view.right) return;
+
+    const center = (a.left + b.right) / 2 - view.left + this.root.scrollLeft;
+    this.root.scrollTo({ left: Math.max(0, center - view.width / 2), behavior: 'smooth' });
   }
 
   /** 弦が鳴っていることを示す（アニメーション） */
@@ -141,6 +174,9 @@ export class Fretboard {
     // 目印（ポジションマーク）の帯
     const markerRow = el('div', 'fb-markers');
     markerRow.style.gridTemplateColumns = template;
+    // 掴んで横に送れることを伝える。弦の上は演奏に使われていて空いていない
+    markerRow.title = t('fretboard.slideHint');
+    markerRow.setAttribute('aria-label', t('fretboard.slideHint'));
     for (let f = 0; f <= this.frets; f++) {
       const cell = el('div', 'fb-marker');
       if (DOUBLE_MARKERS.includes(f)) cell.classList.add('double');
@@ -157,6 +193,24 @@ export class Fretboard {
       row.style.gridTemplateColumns = template;
       // 低音弦ほど太く描く
       row.style.setProperty('--string-w', `${1 + (count - 1 - s) * 0.55}px`);
+
+      // 実物は低音側の3本が巻き弦（ブロンズを巻いてあるので黄みがかり、
+      // 表面に巻き目が見える）、高音側の3本が素の鋼線（白く、つるり）。
+      // s は 0 が高音側なので、下から数えて何番目かで分ける
+      const fromLow = count - 1 - s;
+      const wound = fromLow >= count - 3;
+      if (wound) {
+        row.style.setProperty('--str-hi', '#f0d9a8');
+        row.style.setProperty('--str-mid', '#c19a5e');
+        row.style.setProperty('--str-lo', '#6b5230');
+        // 巻き目。太い弦ほどはっきり見える
+        row.style.setProperty('--wind', String(0.16 + fromLow * 0.04));
+      } else {
+        row.style.setProperty('--str-hi', '#fdfaf4');
+        row.style.setProperty('--str-mid', '#d7cfc1');
+        row.style.setProperty('--str-lo', '#776e60');
+        row.style.setProperty('--wind', '0');
+      }
       const rowCells: HTMLButtonElement[] = [];
       for (let f = 0; f <= this.frets; f++) {
         const cell = el('button', 'fb-cell');

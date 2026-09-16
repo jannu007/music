@@ -13,19 +13,27 @@ interface StringVis {
  * 「いまどの弦がどのくらい鳴っているか」を見せるための表示）。
  */
 export class StringView {
-  private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D | null;
+  /**
+   * 描き先は1つとは限らない。
+   *
+   * 広い画面では上のステージに大きく出すが、スマホではそこを畳んで
+   * 指板に高さを譲っている。かといって揺れる弦が消えるのは惜しいので、
+   * かき鳴らす帯の中にも同じものを描く。弾く場所で弦が揺れるので、
+   * 置き場所としてもむしろ素直になる。
+   *
+   * 大きさの無い描き先（畳まれているステージなど）は、そのつど飛ばす。
+   */
+  private targets: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D | null }[];
   private strings: StringVis[] = [];
   private count = 6;
   private raf = 0;
   private last = 0;
   private status: StringStatus | null = null;
 
-  constructor(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
+  constructor(canvas: HTMLCanvasElement | HTMLCanvasElement[]) {
+    const list = Array.isArray(canvas) ? canvas : [canvas];
+    this.targets = list.map((c) => ({ canvas: c, ctx: c.getContext('2d') }));
     this.setCount(6);
-    this.resize();
   }
 
   setCount(n: number) {
@@ -48,16 +56,19 @@ export class StringView {
    * 生成直後はまだレイアウトが決まっていないことがあるので、
    * 毎フレーム確認して必要なときだけ作り直す。
    */
-  private resize(): { w: number; h: number } | null {
-    const rect = this.canvas.getBoundingClientRect();
+  private resize(
+    canvas: HTMLCanvasElement,
+    ctx: CanvasRenderingContext2D | null
+  ): { w: number; h: number } | null {
+    const rect = canvas.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return null;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.round(rect.width * dpr);
     const h = Math.round(rect.height * dpr);
-    if (this.canvas.width !== w || this.canvas.height !== h) {
-      this.canvas.width = w;
-      this.canvas.height = h;
-      this.ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+      ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     return { w: rect.width, h: rect.height };
   }
@@ -80,12 +91,32 @@ export class StringView {
   }
 
   private draw(dt: number) {
-    const ctx = this.ctx;
-    if (!ctx) return;
-    const size = this.resize();
-    if (!size) return;
-    const { w, h } = size;
+    // 揺れの計算は1回だけ。描き先が増えても、動きは同じものを写す
+    this.step(dt);
+    for (const t of this.targets) {
+      if (!t.ctx) continue;
+      const size = this.resize(t.canvas, t.ctx);
+      if (!size) continue;   // 畳まれている描き先は飛ばす
+      this.paint(t.ctx, size.w, size.h);
+    }
+  }
 
+  /** 弦ごとの揺れ幅と位相を進める */
+  private step(dt: number) {
+    const levels = this.status?.levels;
+    const freqs = this.status?.freqs;
+    for (let i = 0; i < this.count; i++) {
+      const vis = this.strings[i];
+      // エンジンの実レベルへ滑らかに追従させる
+      const target = levels ? Math.min(1, (levels[i] ?? 0) * 3.2) : 0;
+      vis.amp += (target - vis.amp) * Math.min(1, dt * (target > vis.amp ? 22 : 4));
+      if (freqs && freqs[i] > 0) vis.freq = freqs[i];
+      // 実周波数だと速すぎて見えないので、見える速さに落とす
+      vis.phase += dt * Math.min(24, 3 + vis.freq * 0.02);
+    }
+  }
+
+  private paint(ctx: CanvasRenderingContext2D, w: number, h: number) {
     ctx.clearRect(0, 0, w, h);
 
     // 背景（篝火のような暖色のにじみ）
@@ -95,18 +126,10 @@ export class StringView {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
 
-    const levels = this.status?.levels;
-    const freqs = this.status?.freqs;
     const gap = h / (this.count + 1);
 
     for (let i = 0; i < this.count; i++) {
       const vis = this.strings[i];
-      // エンジンの実レベルへ滑らかに追従させる
-      const target = levels ? Math.min(1, (levels[i] ?? 0) * 3.2) : 0;
-      vis.amp += (target - vis.amp) * Math.min(1, dt * (target > vis.amp ? 22 : 4));
-      if (freqs && freqs[i] > 0) vis.freq = freqs[i];
-      // 実周波数だと速すぎて見えないので、見える速さに落とす
-      vis.phase += dt * Math.min(24, 3 + vis.freq * 0.02);
 
       // 上が1弦（高音）になるよう逆順に描く
       const y = gap * (this.count - i);

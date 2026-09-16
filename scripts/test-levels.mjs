@@ -114,7 +114,14 @@ for (const app of APPS) {
           const c = dest.context;
           if (!c.__probe) {
             const an = c.createAnalyser();
-            an.fftSize = 2048;
+            /*
+             * 窓を広く取る。2048（約43ms）だと、25ms ごとに覗いても
+             * 主スレッドが混んだ拍子に立ち上がりを逃し、測るピークが
+             * 0.25〜0.37 と振れていた。測定の揺れだけで 3.4dB あり、
+             * 4dB の差を語れる精度ではなかった。
+             * 16384（約341ms）なら、覗く間隔が空いても取りこぼさない。
+             */
+            an.fftSize = 16384;
             c.__probe = an;
             window.__probes.push(an);
           }

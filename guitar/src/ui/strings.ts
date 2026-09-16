@@ -418,6 +418,7 @@ const ja = {
   'quality.power.name': 'パワーコード',
 
   'fretboard.strumHint': 'ここを左右になぞってストローク',
+  'fretboard.slideHint': 'フレット番号の帯を左右になぞると、ネックを移動できます（24フレットまで）',
 };
 
 const en: typeof ja = {
@@ -838,6 +839,7 @@ const en: typeof ja = {
   'quality.power.name': 'Power Chord',
 
   'fretboard.strumHint': 'Drag left and right here to strum',
+  'fretboard.slideHint': 'Drag the fret-number strip to move along the neck (up to fret 24)',
 };
 
 registerStrings(ja, en);

@@ -562,21 +562,48 @@ html, body {
   min-width: 520px;
   border-radius: 8px;
   padding: 0.2rem 0 0.3rem;
-  /* 指板の木目 */
+  /*
+   * 指板の木目（ローズウッド）。
+   *
+   * もとは 2px おきの縞を一律に敷いていたので、木ではなく布の柄に見えた。
+   * 実物の導管は太さも間隔も不揃いで、ネックの長手方向に走る。
+   * 幅の違う縞を3枚ずらして重ね、規則性が目に付かないようにする。
+   * 上下の縁は、丸みのついた面が光を受けて明るくなるぶん。
+   */
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 30%),
-    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.16) 0 2px, transparent 2px 7px),
+    /* 縁の丸み（上が明るく、下に影） */
+    linear-gradient(180deg, rgba(255, 236, 214, 0.16), transparent 14%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.45), transparent 16%),
+    /* 導管。3枚とも周期が違うので、重なりが繰り返して見えない */
+    repeating-linear-gradient(91deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 13px),
+    repeating-linear-gradient(89.4deg, rgba(0, 0, 0, 0.13) 0 2px, transparent 2px 23px),
+    repeating-linear-gradient(90deg, rgba(120, 78, 44, 0.16) 0 3px, transparent 3px 37px),
+    /* 地の色。根元ほど濃く、ハイポジションへ向けてわずかに明るい */
+    linear-gradient(95deg, #3a2414, #4e3220 42%, #43291a 78%, #2e1c10),
     linear-gradient(180deg, #4a2f1c, #2f1d11);
-  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.6);
+  box-shadow:
+    inset 0 0 26px rgba(0, 0, 0, 0.6),
+    inset 0 2px 1px rgba(255, 230, 200, 0.10);
   user-select: none;
-  touch-action: none;
+  /*
+   * 指板そのものは横に送れるようにしておく（touch-action: none にすると、
+   * ブラウザ側の送りが殺されて 24 フレットまで到達する手立てが無くなる）。
+   * 弦の行だけが none を名乗り、押さえる・チョーキング・スライドを独占する。
+   * フレット番号の帯は送り専用で、実物のネックを持ち替える動きにあたる。
+   */
+  touch-action: pan-x;
 }
 
 .fb-markers {
   display: grid;
-  height: 16px;
+  height: 22px;
   align-items: center;
+  /* ここを掴むと横に送れる。指板は画面より広いので、
+     送る手立てが要る（弦の上は演奏に使われていて空いていない） */
+  touch-action: pan-x;
+  cursor: grab;
 }
+.fb-markers:active { cursor: grabbing; }
 .fb-marker { position: relative; height: 100%; }
 .fb-marker::after {
   content: '';
@@ -589,10 +616,17 @@ html, body {
   transform: translate(-50%, -50%);
   background: transparent;
 }
-.fb-marker.single::after { background: rgba(247, 220, 190, 0.5); }
+/* ポジションマーク（貝）。片側から光が当たって、反対側に影が落ちる */
+.fb-marker.single::after {
+  background: radial-gradient(circle at 34% 28%, #fffdf6, #e7dcc6 58%, #b3a68c);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.55), inset 0 0 2px rgba(255, 255, 255, 0.7);
+}
+/* 12・24 フレットは2つ並ぶ。実物と同じ決まり */
 .fb-marker.double::after {
   background: transparent;
-  box-shadow: -5px 0 0 rgba(247, 220, 190, 0.6), 5px 0 0 rgba(247, 220, 190, 0.6);
+  box-shadow:
+    -5px 0 0 #e7dcc6, -5px 1px 2px rgba(0, 0, 0, 0.5),
+    5px 0 0 #e7dcc6, 5px 1px 2px rgba(0, 0, 0, 0.5);
 }
 .fb-fretnum {
   position: absolute;
@@ -607,6 +641,8 @@ html, body {
   display: grid;
   position: relative;
   height: 30px;
+  /* 押さえる・チョーキング・スライドを自前で扱うので、送りには渡さない */
+  touch-action: none;
 }
 
 /* 弦（横線） */
@@ -618,8 +654,19 @@ html, body {
   top: 50%;
   height: var(--string-w, 1px);
   transform: translateY(-50%);
-  background: linear-gradient(180deg, #f6e2c8, #9d7f5f);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  /*
+   * 弦。実物は低音側の3本が巻き弦（ブロンズを巻いてあるので黄みがかり、
+   * 表面に巻き目が見える）、高音側の3本が素の鋼線（白っぽく、つるりとしている）。
+   * 色と巻き目を --wound で受け取り、Fretboard が弦ごとに渡す。
+   */
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(0, 0, 0, var(--wind, 0)) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg,
+      var(--str-hi, #fdfaf4) 0%,
+      var(--str-mid, #cfc6b6) 45%,
+      var(--str-lo, #6e6558) 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 245, 225, 0.5);
   pointer-events: none;
   border-radius: 2px;
 }
@@ -635,7 +682,6 @@ html, body {
   appearance: none;
   position: relative;
   border: none;
-  border-right: 1px solid rgba(210, 200, 190, 0.22);
   background: transparent;
   padding: 0;
   cursor: pointer;
@@ -643,8 +689,44 @@ html, body {
   font-family: inherit;
   touch-action: none;
 }
-/* ナット（0フレットの右端）は太く */
-.fb-cell.open { border-right: 3px solid rgba(245, 235, 220, 0.75); }
+
+/*
+ * フレット（金属線）。
+ *
+ * もとは 1px の半透明な線で、紙に引いた罫線に見えていた。実物は打ち込まれた
+ * 洋白の丸山で、上の角が光り、根元に影が落ちる。線を1本引くのではなく、
+ * 「明るい山＋暗い影」の帯にすると、金属が乗っているように見える。
+ */
+.fb-cell::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -1px;
+  width: 3px;
+  pointer-events: none;
+  background: linear-gradient(90deg,
+    rgba(0, 0, 0, 0.45) 0%,
+    rgba(232, 228, 220, 0.85) 34%,
+    rgba(255, 253, 248, 0.95) 52%,
+    rgba(150, 145, 138, 0.8) 72%,
+    rgba(0, 0, 0, 0.5) 100%);
+}
+
+/* ナット（0フレットの右端）は牛骨。金属より白く、太く、艶が鈍い */
+.fb-cell.open::before {
+  right: -2px;
+  width: 6px;
+  background: linear-gradient(90deg,
+    rgba(0, 0, 0, 0.5) 0%,
+    #efe6d4 30%,
+    #fffaf0 55%,
+    #cdbfa6 80%,
+    rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* 指板の終わりには線を引かない（そこに金属は無い） */
+.fb-cell[data-fret="24"]::before { display: none; }
 
 .fb-dot {
   position: absolute;
@@ -702,6 +784,8 @@ html, body {
   cursor: grab;
   touch-action: none;
   user-select: none;
+  position: relative;
+  overflow: hidden;
 }
 .strum-bar:active { cursor: grabbing; border-color: var(--ember); }
 
@@ -1015,4 +1099,29 @@ html, body {
   .tab-label { display: none; }
   .fb-row { min-height: 18px; }
   .strum-bar { height: 34px; }
+  /* 横向きは高さが乏しい。送るための帯は、掴める範囲で詰める。
+     ここを 22px のままにすると、そのぶん弦の間隔が 24px を割った */
+  .fb-markers { height: 17px; }
 }
+
+/* かき鳴らす帯の中に、揺れる弦を描く。
+   場所を新たに取らず、弾いている所で弦が動くので分かりやすい。
+   触りは帯そのものが受けるので、面は素通りさせる */
+.strum-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  opacity: 0.85;
+}
+/* 案内の文字は弦の手前に置く。鳴らしているあいだは控えめにして、
+   弦の動きを隠さないようにする */
+.strum-hint {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+.strum-bar:active .strum-hint { opacity: 0.35; }
