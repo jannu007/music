@@ -386,6 +386,12 @@ async function bareMode() {
   });
 
   const bare = await measure();
+  // 波形は畳んだ状態で見る。操作を戻したあとに見ると、戻ったものを
+  // 「消えていない」と数えてしまう（一度それで落とした）
+  const waveShown = await page.evaluate(() => {
+    const c = document.querySelector('.strum-canvas');
+    return c ? c.getBoundingClientRect().height > 1 : false;
+  });
   const hasToggle = (await page.locator('.chrome-toggle').count()) > 0 && bare.toggle > 0;
   if (hasToggle) await page.locator('.chrome-toggle').click();
   await page.waitForTimeout(400);
@@ -395,17 +401,46 @@ async function bareMode() {
   const neck = await page.evaluate(() => {
     const fb = document.querySelector('.fretboard');
     const side = document.querySelector('.fb-side');
+    const tex = document.querySelector('.fb-texture');
+
+    /*
+     * 木目が「縞」になっていないか。
+     *
+     * CSS のグラデーションで引くと等間隔の縞にしかならず、木ではなく
+     * 布の柄に見える。縞なら、どの行を取っても並びが同じになる。
+     * 本物の木目は行ごとに違うので、2本取って一致率を見る。
+     */
+    let rowMatch = 1;
+    if (tex && tex.width > 8 && tex.height > 8) {
+      const g = tex.getContext('2d');
+      const W = tex.width;
+      const H = tex.height;
+      const d = g.getImageData(0, 0, W, H).data;
+      const rowAt = (y) => {
+        const o = [];
+        for (let x = 0; x < W; x += 3) o.push(d[(y * W + x) * 4]);
+        return o;
+      };
+      const a = rowAt(Math.round(H * 0.3));
+      const b = rowAt(Math.round(H * 0.7));
+      let same = 0;
+      for (let i = 0; i < a.length; i++) if (a[i] === b[i]) same += 1;
+      rowMatch = same / a.length;
+    }
+
     return {
       // ナット側を細く見せるための削り
       tapered: getComputedStyle(fb).clipPath !== 'none',
       // 側面の目印
       sideDots: document.querySelectorAll('.fb-side-cell.single, .fb-side-cell.double').length,
       sideShown: side ? side.getBoundingClientRect().height > 2 : false,
+      hasTexture: !!tex && tex.width > 8,
+      rowMatch,
     };
   });
 
   await ctx.close();
-  return { bare, back, hasToggle, neck };
+  return { bare, back, hasToggle, neck, waveShown };
 }
 
 console.log('ギターが、実物のように弾ける形になっているか\n');
@@ -467,6 +502,10 @@ check('押すと操作が戻る',
 check('ネックがナット側で細くなっている', bm.neck.tapered);
 check('側面に目印が並んでいる',
   bm.neck.sideShown && bm.neck.sideDots >= 10, `${bm.neck.sideDots} 個`);
+check('木目が描かれている', bm.neck.hasTexture);
+check('木目が縞になっていない（行ごとに違う）',
+  bm.neck.rowMatch < 0.2, `行の一致率 ${(bm.neck.rowMatch * 100).toFixed(1)}%`);
+check('横向きでは波形を出さない', bm.waveShown === false);
 console.log('');
 
 const lk = await looks();

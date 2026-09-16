@@ -572,13 +572,11 @@ html, body {
    * 上下の縁は、丸みのついた面が光を受けて明るくなるぶん。
    */
   background:
-    /* 縁の丸み（上が明るく、下に影） */
-    linear-gradient(180deg, rgba(255, 236, 214, 0.16), transparent 14%),
-    linear-gradient(0deg, rgba(0, 0, 0, 0.45), transparent 16%),
-    /* 導管。3枚とも周期が違うので、重なりが繰り返して見えない */
-    repeating-linear-gradient(91deg, rgba(0, 0, 0, var(--grain-a, 0.22)) 0 1px, transparent 1px 13px),
-    repeating-linear-gradient(89.4deg, rgba(0, 0, 0, var(--grain-b, 0.13)) 0 2px, transparent 2px 23px),
-    repeating-linear-gradient(90deg, var(--grain-c, rgba(120, 78, 44, 0.16)) 0 3px, transparent 3px 37px),
+    /*
+     * 木目そのものは、この下に敷いたキャンバス（.fb-texture）が描く。
+     * CSS では等間隔の縞しか引けず、それだと木ではなく布の柄に見えた。
+     * ここに残すのは、キャンバスが用意できないときの地の色だけ。
+     */
     /* 地の色。根元ほど濃く、ハイポジションへ向けてわずかに明るい。
        木の種類は音色ごとに変わるので、変数で受ける（既定はローズウッド） */
     linear-gradient(95deg,
@@ -1300,9 +1298,13 @@ html, body {
   .chrome-toggle.active { opacity: 1; }
   .chrome-toggle svg { width: 17px; height: 17px; }
 
-  /* 畳む。押して戻したときだけ出す */
+  /* 畳む。押して戻したときだけ出す。
+     揺れる弦（波形）も横向きでは出さない。弾いているときに見たいのは
+     指板だけで、下の帯が光っていると目が散る。かき鳴らす場所そのものは
+     残す（ここを無くすとストロークができなくなる） */
   .guitar-app:not(.show-chrome) > .topbar,
   .guitar-app:not(.show-chrome) .play-bar,
+  .guitar-app:not(.show-chrome) .strum-canvas,
   .guitar-app:not(.show-chrome) > .tabs { display: none; }
 
   /* 音が出ない断りは、畳んでいても出す。これだけは隠してはいけない */
@@ -1396,3 +1398,26 @@ html, body {
 .guitar-app[data-look='superstrat'] { --binding: rgba(220, 224, 228, 0.5); }
 .guitar-app[data-look='archtop'] { --binding: #f2e6c4; }
 .guitar-app[data-look='lespaul'] { --binding: #f0e7d0; }
+
+/* 木目を描く面。いちばん下に敷き、触りは素通りさせる */
+.fb-texture {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  z-index: 0;
+}
+/* 弦・目印・側面は木目の上に乗る */
+.fb-markers,
+.fb-row,
+.fb-side { position: relative; z-index: 1; }
+
+/* ナット側の細まりを、見て分かる量にする。
+   5% では目に入らなかった（弦の行は削らず、余白だけを削る） */
+.fretboard {
+  padding: 11px 0 7px;
+  clip-path: polygon(0 9%, 100% 0, 100% 100%, 0 91%);
+}
+.fretboard::after { clip-path: polygon(0 9%, 100% 0, 100% 100%, 0 91%); }

@@ -28,6 +28,23 @@ const DOUBLE_MARKERS = [12, 24];
  */
 
 /** 出せるフレットの上限。実物の 24 フレットに合わせる */
+
+/**
+ * 種を固定した乱数。
+ *
+ * 木目は描き直すたびに同じでなければならない。毎回変わると、画面の
+ * 大きさが変わるたびに木目が踊って、木に見えなくなる。
+ */
+function seeded(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export const MAX_FRETS = 24;
 /**
  * いちばん狭いフレットに残す幅。指の腹はおよそ 10mm なので、
@@ -41,6 +58,8 @@ export class Fretboard {
   private strumBar: HTMLElement;
   /** 揺れる弦を描く面（App が StringView に渡す） */
   readonly strumCanvas: HTMLCanvasElement;
+  /** 木目を描く面。CSS の縞では木に見えないので、その場で描く */
+  private texture: HTMLCanvasElement;
   private handlers: FretboardHandlers;
   private tuning: Tuning;
   private capo = 0;
@@ -50,6 +69,8 @@ export class Fretboard {
   /** 表示中のコードフォーム（-1 = ミュート、null = 表示なし） */
   private shape: number[] | null = null;
   private rootPitch: number | null = null;
+
+  private sizeWatch: ResizeObserver | null = null;
 
   private pointerState = new Map<
     number,
@@ -66,6 +87,8 @@ export class Fretboard {
     this.strumBar = el('div', 'strum-bar');
     // 揺れる弦を、かき鳴らす帯の中に描く。場所を新たに取らずに済み、
     // 弾いている場所で弦が揺れるので、見ていて分かりやすい
+    this.texture = el('canvas', 'fb-texture');
+    this.texture.setAttribute('aria-hidden', 'true');
     this.strumCanvas = el('canvas', 'strum-canvas');
     this.strumBar.append(this.strumCanvas, el('span', 'strum-hint', t('fretboard.strumHint')));
     this.root.append(this.board, this.strumBar);
@@ -171,6 +194,9 @@ export class Fretboard {
     // かき鳴らす帯も同じ幅にする。ずれると、弦と帯が横に食い違う
     this.strumBar.style.minWidth = `${minWidth}px`;
 
+    // 木目の面は、いちばん下に敷く
+    this.board.append(this.texture);
+
     // 目印（ポジションマーク）の帯
     const markerRow = el('div', 'fb-markers');
     markerRow.style.gridTemplateColumns = template;
@@ -243,6 +269,103 @@ export class Fretboard {
     this.bindBoard();
     this.paintLabels();
     this.paintShape();
+    this.paintTexture();
+    this.watchSize();
+  }
+
+  /** 大きさが変わったら木目を描き直す（向きを変えたときなど） */
+  private watchSize() {
+    if (this.sizeWatch || typeof ResizeObserver === 'undefined') return;
+    this.sizeWatch = new ResizeObserver(() => this.paintTexture());
+    this.sizeWatch.observe(this.board);
+  }
+
+  /** 音色が変わって木が変わったときに、外から呼ぶ */
+  repaintTexture() {
+    this.paintTexture();
+  }
+
+  /**
+   * 指板の木目を描く。
+   *
+   * CSS のグラデーションでは、等間隔の縞しか引けない。木目は本来
+   * 不揃いで、太さも間隔も走り方もばらばらなので、縞のままだと
+   * 木ではなく布の柄に見える。ここでは1本ずつ、太さと濃さと蛇行を
+   * 変えて引く。種は固定してあるので、描き直しても同じ木目が出る。
+   */
+  private paintTexture() {
+    const canvas = this.texture;
+    const rect = this.board.getBoundingClientRect();
+    if (rect.width < 4 || rect.height < 4) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = rect.width;
+    const h = rect.height;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    const g = canvas.getContext('2d');
+    if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const css = getComputedStyle(this.board);
+    const pick = (name: string, fallback: string) =>
+      css.getPropertyValue(name).trim() || fallback;
+    const c1 = pick('--wood-1', '#3a2414');
+    const c2 = pick('--wood-2', '#4e3220');
+    const c3 = pick('--wood-3', '#2e1c10');
+
+    // 地の色。根元と先で濃さが違う（一枚板でも色は一様ではない）
+    const base = g.createLinearGradient(0, 0, w, 0);
+    base.addColorStop(0, c1);
+    base.addColorStop(0.42, c2);
+    base.addColorStop(0.78, c1);
+    base.addColorStop(1, c3);
+    g.fillStyle = base;
+    g.fillRect(0, 0, w, h);
+
+    const rnd = seeded(20260916);
+
+    // 導管。ネックの長手方向に走る。太さ・濃さ・長さ・蛇行をすべて変える
+    const lines = Math.max(60, Math.round(w / 1.8));
+    for (let i = 0; i < lines; i++) {
+      const dark = rnd() < 0.74;
+      g.strokeStyle = dark
+        ? `rgba(0, 0, 0, ${(0.04 + rnd() * 0.2).toFixed(3)})`
+        : `rgba(255, 224, 186, ${(0.02 + rnd() * 0.08).toFixed(3)})`;
+      g.lineWidth = 0.4 + rnd() * 1.7;
+      g.beginPath();
+      let x = -40 - rnd() * 80;
+      let y = rnd() * h;
+      g.moveTo(x, y);
+      const len = w * (0.2 + rnd() * 0.95);
+      const steps = 16;
+      for (let k = 1; k <= steps; k++) {
+        x += len / steps;
+        y += (rnd() - 0.5) * 1.8;
+        g.lineTo(x, y);
+      }
+      g.stroke();
+    }
+
+    // 小さな斑（ローズウッドの点々）。これが無いと、線を引いただけに見える
+    const flecks = Math.round(w / 9);
+    for (let i = 0; i < flecks; i++) {
+      g.fillStyle = `rgba(0, 0, 0, ${(0.05 + rnd() * 0.16).toFixed(3)})`;
+      const x = rnd() * w;
+      const y = rnd() * h;
+      g.beginPath();
+      g.ellipse(x, y, 0.6 + rnd() * 2.4, 0.4 + rnd() * 0.9, 0, 0, Math.PI * 2);
+      g.fill();
+    }
+
+    // 面の丸み（指板R）。中央が明るく、上下の縁が落ちる
+    const round = g.createLinearGradient(0, 0, 0, h);
+    round.addColorStop(0, 'rgba(0, 0, 0, 0.5)');
+    round.addColorStop(0.14, 'rgba(0, 0, 0, 0.12)');
+    round.addColorStop(0.46, 'rgba(255, 238, 214, 0.08)');
+    round.addColorStop(0.8, 'rgba(0, 0, 0, 0.14)');
+    round.addColorStop(1, 'rgba(0, 0, 0, 0.55)');
+    g.fillStyle = round;
+    g.fillRect(0, 0, w, h);
   }
 
   private paintLabels() {
