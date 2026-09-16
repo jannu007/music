@@ -226,6 +226,20 @@ export class Fretboard {
       this.board.append(row);
     }
 
+    // ネックの側面。実物はここに小さな目印（サイドドット）が並んでいて、
+    // 弾いている本人からはこちらのほうがよく見える。位置がずれると
+    // 嘘になるので、指板と同じ割り付けを使う
+    const side = el('div', 'fb-side');
+    side.style.gridTemplateColumns = template;
+    side.setAttribute('aria-hidden', 'true');
+    for (let f = 0; f <= this.frets; f++) {
+      const cell = el('div', 'fb-side-cell');
+      if (DOUBLE_MARKERS.includes(f)) cell.classList.add('double');
+      else if (MARKERS.includes(f)) cell.classList.add('single');
+      side.append(cell);
+    }
+    this.board.append(side);
+
     this.bindBoard();
     this.paintLabels();
     this.paintShape();

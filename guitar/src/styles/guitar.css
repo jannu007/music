@@ -559,6 +559,7 @@ html, body {
 }
 
 .fretboard {
+  position: relative;
   min-width: 520px;
   border-radius: 8px;
   padding: 0.2rem 0 0.3rem;
@@ -1265,3 +1266,133 @@ html, body {
     var(--ink);
   transition: background 0.35s ease;
 }
+
+/* ==================================================================
+   横向きは、指板だけにする
+   ------------------------------------------------------------------
+   横に倒すのは弾くときなので、見たいのは弦だけ。上の帯も、操作の帯も、
+   下のアイコンも畳む。指板は画面のほぼ全部になる。
+
+   ただし戻る道は必ず残す。音量も設定もそこにあるので、塞ぐと何も
+   できなくなる（音が出ないまま詰む形は、これまで何度も直してきた）。
+   隅に小さなボタンを1つだけ置き、押すと操作が戻る。
+
+   音が出ない断りだけは、畳んでいても必ず出す。伝わらないと意味がない。
+   ================================================================== */
+.chrome-toggle { display: none; }
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .chrome-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 4px;
+    right: 4px;
+    z-index: 50;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    opacity: 0.45;
+    background: rgba(16, 11, 8, 0.75);
+  }
+  .chrome-toggle:hover,
+  .chrome-toggle.active { opacity: 1; }
+  .chrome-toggle svg { width: 17px; height: 17px; }
+
+  /* 畳む。押して戻したときだけ出す */
+  .guitar-app:not(.show-chrome) > .topbar,
+  .guitar-app:not(.show-chrome) .play-bar,
+  .guitar-app:not(.show-chrome) > .tabs { display: none; }
+
+  /* 音が出ない断りは、畳んでいても出す。これだけは隠してはいけない */
+  .has-alert .guitar-app:not(.show-chrome) > .topbar,
+  .guitar-app.has-alert:not(.show-chrome) > .topbar { display: flex; }
+}
+
+/* ==================================================================
+   ネックを、実物の形に近づける
+   ------------------------------------------------------------------
+   これまでは「木目を敷いた長方形」だった。実物のネックは
+   長方形ではない。次の4つが揃うと、板ではなくネックに見える。
+
+     1. ナット側が細い（先へ向かって広がる）
+     2. 縁に白いバインディングが回っている
+     3. 面が横に丸い（指板R）。中央が明るく、縁が落ちる
+     4. 側面に小さな目印（サイドドット）がある
+
+   1 は、指板の上下に余白を持たせ、そこだけをくさび形に削ることで出す。
+   弦の行そのものは削らない（削ると端の弦が押せなくなる）。
+   ================================================================== */
+
+/* 上下に余白を作る。ここがくさびに削られる部分になる */
+.fretboard {
+  padding: 7px 0 4px;
+  /* ナット側（左）を細く。削るのは余白のぶんだけ */
+  clip-path: polygon(0 5%, 100% 0, 100% 100%, 0 95%);
+}
+
+/* 面の丸み（指板R）。中央が明るく、縁が落ちる。
+   平らな板と丸い面の差は、この明暗だけで伝わる */
+.fretboard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(0, 0, 0, 0.42) 0%,
+    rgba(0, 0, 0, 0.1) 16%,
+    rgba(255, 240, 220, 0.07) 46%,
+    rgba(0, 0, 0, 0.12) 78%,
+    rgba(0, 0, 0, 0.5) 100%);
+}
+
+/* 縁のバインディング。ナット側へ向かって寄っていく（ネックが細くなるため） */
+.fretboard::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, var(--binding, #e8dcc2) 0 2px, transparent 2px),
+    linear-gradient(0deg, var(--binding, #e8dcc2) 0 2px, transparent 2px);
+  clip-path: polygon(0 5%, 100% 0, 100% 100%, 0 95%);
+  opacity: 0.85;
+}
+
+/* ネックの側面。弾いている本人からは、こちらの目印のほうがよく見える */
+.fb-side {
+  display: grid;
+  height: 9px;
+  align-items: center;
+  position: relative;
+  /* 側面は面より暗い。光が回り込まないので */
+  background: linear-gradient(180deg,
+    rgba(0, 0, 0, 0.3),
+    rgba(0, 0, 0, 0.62));
+}
+.fb-side-cell { position: relative; height: 100%; }
+.fb-side-cell::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3.5px;
+  height: 3.5px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: transparent;
+}
+.fb-side-cell.single::after { background: var(--inlay, #e7dcc6); }
+.fb-side-cell.double::after {
+  background: transparent;
+  box-shadow: -3.5px 0 0 var(--inlay, #e7dcc6), 3.5px 0 0 var(--inlay, #e7dcc6);
+}
+
+/* バインディングの色も、木に合わせて変える。
+   黒い指板には白が映え、明るいメイプルには縁が無い（実物もそう） */
+.guitar-app[data-look='strat'] { --binding: transparent; }
+.guitar-app[data-look='pbass'] { --binding: transparent; }
+.guitar-app[data-look='superstrat'] { --binding: rgba(220, 224, 228, 0.5); }
+.guitar-app[data-look='archtop'] { --binding: #f2e6c4; }
+.guitar-app[data-look='lespaul'] { --binding: #f0e7d0; }
