@@ -681,6 +681,8 @@ export class GuitarApp {
 
   private applyLook() {
     if (this.appEl) this.appEl.dataset.look = lookFor(this.ui.presetId);
+    // 木が変わったので、木目も描き直す（色は CSS 変数から読んでいる）
+    this.fretboard?.repaintTexture();
   }
 
   private setStatus(message?: string) {

@@ -386,6 +386,12 @@ async function bareMode() {
   });
 
   const bare = await measure();
+  // 波形は畳んだ状態で見る。操作を戻したあとに見ると、戻ったものを
+  // 「消えていない」と数えてしまう（一度それで落とした）
+  const waveShown = await page.evaluate(() => {
+    const c = document.querySelector('.strum-canvas');
+    return c ? c.getBoundingClientRect().height > 1 : false;
+  });
   const hasToggle = (await page.locator('.chrome-toggle').count()) > 0 && bare.toggle > 0;
   if (hasToggle) await page.locator('.chrome-toggle').click();
   await page.waitForTimeout(400);
@@ -395,17 +401,92 @@ async function bareMode() {
   const neck = await page.evaluate(() => {
     const fb = document.querySelector('.fretboard');
     const side = document.querySelector('.fb-side');
+    const tex = document.querySelector('.fb-texture');
+
+    /*
+     * 木目が「縞」になっていないか。
+     *
+     * CSS のグラデーションで引くと等間隔の縞にしかならず、木ではなく
+     * 布の柄に見える。縞なら、どの行を取っても並びが同じになる。
+     * 本物の木目は行ごとに違うので、2本取って一致率を見る。
+     */
+    let rowMatch = 1;
+    if (tex && tex.width > 8 && tex.height > 8) {
+      const g = tex.getContext('2d');
+      const W = tex.width;
+      const H = tex.height;
+      const d = g.getImageData(0, 0, W, H).data;
+      const rowAt = (y) => {
+        const o = [];
+        for (let x = 0; x < W; x += 3) o.push(d[(y * W + x) * 4]);
+        return o;
+      };
+      const a = rowAt(Math.round(H * 0.3));
+      const b = rowAt(Math.round(H * 0.7));
+      let same = 0;
+      for (let i = 0; i < a.length; i++) if (a[i] === b[i]) same += 1;
+      rowMatch = same / a.length;
+    }
+
     return {
       // ナット側を細く見せるための削り
       tapered: getComputedStyle(fb).clipPath !== 'none',
       // 側面の目印
       sideDots: document.querySelectorAll('.fb-side-cell.single, .fb-side-cell.double').length,
       sideShown: side ? side.getBoundingClientRect().height > 2 : false,
+      hasTexture: !!tex && tex.width > 8,
+      rowMatch,
+
+      /*
+       * ヘッドとボディ。指板を左いっぱいに送ればヘッド、右いっぱいで
+       * ブリッジが出る。ただ在るだけでは足りない。ヘッドから来た弦が
+       * 指板の弦とつながっていないと、継ぎ目で折れて見える。
+       * ナット（ほぼ白）の上端と下端が、指板の 1 弦・6 弦と
+       * 揃っているかを画素で見る。
+       */
+      ends: (() => {
+        const strip = document.querySelector('.neck-strip');
+        const head = document.querySelector('.fb-head');
+        const body = document.querySelector('.fb-body');
+        if (!strip || !head || !body || head.width < 8) return null;
+        const sr = strip.getBoundingClientRect();
+        const rows = [...document.querySelectorAll('.fb-row')];
+        if (rows.length < 2) return null;
+        const mid = (el) => {
+          const b = el.getBoundingClientRect();
+          return Math.round(b.top + b.height / 2 - sr.top);
+        };
+        const firstY = mid(rows[0]);
+        const lastY = mid(rows[rows.length - 1]);
+
+        const g = head.getContext('2d');
+        const d = g.getImageData(0, 0, head.width, head.height).data;
+        const white = [];
+        for (let y = 0; y < head.height; y++) {
+          for (let x = head.width - 6; x < head.width; x++) {
+            const i = (y * head.width + x) * 4;
+            if ((d[i] + d[i + 1] + d[i + 2]) / 3 > 230 && d[i + 3] > 200) { white.push(y); break; }
+          }
+        }
+        const bg = body.getContext('2d');
+        const bd = bg.getImageData(0, 0, body.width, body.height).data;
+        let painted = 0;
+        for (let i = 3; i < bd.length; i += 4 * 29) if (bd[i] > 10) painted += 1;
+
+        return {
+          headDrawn: white.length > 0,
+          bodyPainted: painted / (bd.length / (4 * 29)),
+          nutTop: white[0] ?? -1,
+          nutBottom: white[white.length - 1] ?? -1,
+          firstY,
+          lastY,
+        };
+      })(),
     };
   });
 
   await ctx.close();
-  return { bare, back, hasToggle, neck };
+  return { bare, back, hasToggle, neck, waveShown };
 }
 
 console.log('ギターが、実物のように弾ける形になっているか\n');
@@ -467,6 +548,17 @@ check('押すと操作が戻る',
 check('ネックがナット側で細くなっている', bm.neck.tapered);
 check('側面に目印が並んでいる',
   bm.neck.sideShown && bm.neck.sideDots >= 10, `${bm.neck.sideDots} 個`);
+check('木目が描かれている', bm.neck.hasTexture);
+check('木目が縞になっていない（行ごとに違う）',
+  bm.neck.rowMatch < 0.2, `行の一致率 ${(bm.neck.rowMatch * 100).toFixed(1)}%`);
+check('横向きでは波形を出さない', bm.waveShown === false);
+const e = bm.neck.ends;
+check('ヘッドとボディが描かれている',
+  !!e && e.headDrawn && e.bodyPainted > 0.5,
+  e ? `ボディ描画率 ${(e.bodyPainted * 100).toFixed(0)}%` : 'なし');
+check('ヘッドの弦が指板の弦とつながっている',
+  !!e && Math.abs(e.nutTop - e.firstY) <= 3 && Math.abs(e.nutBottom - e.lastY) <= 3,
+  e ? `ナット ${e.nutTop}..${e.nutBottom} / 弦 ${e.firstY}..${e.lastY}` : 'なし');
 console.log('');
 
 const lk = await looks();
