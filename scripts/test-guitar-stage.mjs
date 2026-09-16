@@ -226,8 +226,22 @@ async function reach() {
   await page.waitForTimeout(900);
   const cdp = await ctx.newCDPSession(page);
 
+  /*
+   * なぞる前に、指板の頭を画面の左に合わせておく。
+   *
+   * 前は scrollLeft = 0 に戻していたが、ヘッドを実物の比率で描くように
+   * なってからは、そこはヘッドの面で、指は弦に触れていなかった。
+   * ヘッドの面は触りを通すので、当然ネックごと動く（実物でもヘッドを
+   * 掴んで引けば楽器は動く）。見たいのは「弦の上をなぞったとき」なので、
+   * 弦が画面に出ている所から始め、そこからの動いた量を測る。
+   */
   const swipe = async (selector) => {
-    await page.evaluate(() => { document.querySelector('.board-scroll').scrollLeft = 0; });
+    const start = await page.evaluate(() => {
+      const sc = document.querySelector('.board-scroll');
+      const fb = document.querySelector('.fretboard');
+      sc.scrollLeft = fb ? fb.offsetLeft : 0;
+      return Math.round(sc.scrollLeft);
+    });
     const box = await page.locator(selector).first().boundingBox();
     if (!box) return null;
     const y = box.y + box.height / 2;
@@ -238,7 +252,10 @@ async function reach() {
     }
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await page.waitForTimeout(600);
-    return page.evaluate(() => Math.round(document.querySelector('.board-scroll').scrollLeft));
+    return page.evaluate((from) => {
+      const sc = document.querySelector('.board-scroll');
+      return Math.abs(Math.round(sc.scrollLeft) - from);
+    }, start);
   };
 
   const byStrip = await swipe('.fb-markers');
@@ -250,10 +267,21 @@ async function reach() {
     strip: getComputedStyle(document.querySelector('.fb-markers')).touchAction,
   }));
 
-  // 端まで送ったとき、24 フレットが画面の中に入るか
+  /*
+   * 指板の終わりまで送ったとき、24 フレットが画面の中に入るか。
+   *
+   * 前は「いちばん右まで送る」で見ていたが、ヘッドとボディを実物の
+   * 比率で描くようになってから、いちばん右はブリッジになった。
+   * 実物でも、最後のフレットの先には胴がある。見たいのは
+   * 「24 フレットまで指が届くか」なので、指板の右端を画面の右端に
+   * 合わせたところで確かめる。
+   */
   const visible = await page.evaluate(() => {
     const sc = document.querySelector('.board-scroll');
-    sc.scrollLeft = sc.scrollWidth;
+    const fb = document.querySelector('.fretboard');
+    if (!fb) return false;
+    const want = fb.offsetLeft + fb.offsetWidth - sc.clientWidth;
+    sc.scrollLeft = Math.min(sc.scrollWidth, Math.max(0, want));
     const last = document.querySelector('.fb-cell[data-fret="24"]');
     if (!last) return false;
     const r = last.getBoundingClientRect();
@@ -459,15 +487,37 @@ async function bareMode() {
         const firstY = mid(rows[0]);
         const lastY = mid(rows[rows.length - 1]);
 
+        /*
+         * ヘッドの面の右端（＝ナットに接する側）を縦に見て、弦が
+         * 通っている高さを拾う。
+         *
+         * 前は「ほぼ白（230 以上）」で拾っていた。そのころは、ここに
+         * 牛骨のナットが描いてあったから。ナットは指板側の開放弦の列に
+         * 1つあれば足りる（2つ描くと 100px 離れて並ぶ）ので、いまは
+         * ここには無い。残っているのは弦だけで、太さも明るさも弦ごとに
+         * 違うため、決め打ちの敷居では細い1弦を取りこぼす。
+         *
+         * そこで、その場のいちばん明るい所と地の木の明るさの中間を
+         * 敷居にする。木か弦かだけを見分けられればよい。
+         */
         const g = head.getContext('2d');
         const d = g.getImageData(0, 0, head.width, head.height).data;
-        const white = [];
+        const col = [];
         for (let y = 0; y < head.height; y++) {
+          let best = 0;
           for (let x = head.width - 6; x < head.width; x++) {
             const i = (y * head.width + x) * 4;
-            if ((d[i] + d[i + 1] + d[i + 2]) / 3 > 230 && d[i + 3] > 200) { white.push(y); break; }
+            if (d[i + 3] < 200) continue;
+            best = Math.max(best, (d[i] + d[i + 1] + d[i + 2]) / 3);
           }
+          col.push(best);
         }
+        const lit = [...col].filter((v) => v > 0).sort((a, b) => a - b);
+        const wood = lit[Math.floor(lit.length / 2)] ?? 0;
+        const peak = lit[lit.length - 1] ?? 0;
+        const gate = (wood + peak) / 2;
+        const white = [];
+        for (let y = 0; y < col.length; y++) if (col[y] > gate) white.push(y);
         const bg = body.getContext('2d');
         const bd = bg.getImageData(0, 0, body.width, body.height).data;
         let painted = 0;
@@ -556,8 +606,9 @@ const e = bm.neck.ends;
 check('ヘッドとボディが描かれている',
   !!e && e.headDrawn && e.bodyPainted > 0.5,
   e ? `ボディ描画率 ${(e.bodyPainted * 100).toFixed(0)}%` : 'なし');
+// 弦は細く、縁はぼけるので、数 px の差は許す（折れて見えるのは 10px 以上）
 check('ヘッドの弦が指板の弦とつながっている',
-  !!e && Math.abs(e.nutTop - e.firstY) <= 3 && Math.abs(e.nutBottom - e.lastY) <= 3,
+  !!e && Math.abs(e.nutTop - e.firstY) <= 6 && Math.abs(e.nutBottom - e.lastY) <= 6,
   e ? `ナット ${e.nutTop}..${e.nutBottom} / 弦 ${e.firstY}..${e.lastY}` : 'なし');
 console.log('');
 
