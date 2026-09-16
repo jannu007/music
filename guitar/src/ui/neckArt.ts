@@ -159,13 +159,125 @@ function metal(
   g: CanvasRenderingContext2D,
   y: number, h: number, base: string
 ): CanvasGradient {
-  const grad = g.createLinearGradient(0, y, 0, y + h);
-  grad.addColorStop(0, 'rgba(60, 64, 68, 0.9)');
-  grad.addColorStop(0.16, 'rgba(255, 255, 255, 0.92)');
-  grad.addColorStop(0.42, base);
-  grad.addColorStop(0.72, base);
-  grad.addColorStop(1, 'rgba(0, 0, 0, 0.72)');
+  return chrome(g, y, h, base);
+}
+
+/** #rgb / #rrggbb を読む。読めなければクロムの既定色 */
+function rgbOf(hex: string): [number, number, number] {
+  const t = hex.trim();
+  const m3 = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(t);
+  if (m3) return [parseInt(m3[1] + m3[1], 16), parseInt(m3[2] + m3[2], 16), parseInt(m3[3] + m3[3], 16)];
+  const m6 = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(t);
+  if (m6) return [parseInt(m6[1], 16), parseInt(m6[2], 16), parseInt(m6[3], 16)];
+  return [200, 205, 210];
+}
+
+/** 色を白（t>0）または黒（t<0）へ寄せる */
+function mix(rgb: [number, number, number], t: number): string {
+  const to = t >= 0 ? 255 : 0;
+  const k = Math.abs(t);
+  const v = rgb.map((c) => Math.round(c + (to - c) * k));
+  return `rgb(${v[0]}, ${v[1]}, ${v[2]})`;
+}
+
+/**
+ * クロムの塗り。
+ *
+ * ■ なぜ滑らかなグラデーションでは金属に見えないか
+ *
+ * 磨いた金属は、自分の色を持たずに周りを映す。上半分には明るい空が、
+ * 下半分には暗い床が映り、その境目（地平線）が真ん中に鋭い暗い帯として
+ * 出る。これが金属とプラスチックを分ける、いちばん強い手がかり。
+ *
+ * ここを「上が白くて下が黒い」だけの滑らかな帯にしていたので、
+ * どれだけ形を合わせても樹脂の部品に見えていた。明→暗→明と折り返す
+ * 段を入れると、同じ図形がそのままクロムになる。
+ *
+ * 色は金物の色（クロム／ゴールド）から作るので、金メッキの楽器でも
+ * 同じ構造のまま色だけ変わる。
+ */
+const CHROME_RAMP: [number, number][] = [
+  [0.0, -0.18], [0.14, 0.85], [0.3, 0.12], [0.42, -0.52],
+  [0.5, -0.74], [0.58, -0.22], [0.74, 0.62], [0.88, -0.04], [1.0, -0.52],
+];
+
+function chrome(
+  g: CanvasRenderingContext2D, y: number, h: number, base: string
+): CanvasGradient {
+  const rgb = rgbOf(base);
+  const grad = g.createLinearGradient(0, y, 0, y + Math.max(1, h));
+  for (const [at, t] of CHROME_RAMP) grad.addColorStop(at, mix(rgb, t));
   return grad;
+}
+
+/**
+ * 磨き目。金属の面を、光の向きに細かく走る筋。
+ * 一様な塗りのままだと、大きな面ほど作り物に見える。
+ */
+function brushed(
+  g: CanvasRenderingContext2D,
+  x: number, y: number, w: number, h: number, seed: number
+): void {
+  const rnd = seeded(seed);
+  const lines = Math.max(10, Math.round(h / 3));
+  for (let i = 0; i < lines; i++) {
+    const ly = y + rnd() * h;
+    g.beginPath();
+    g.moveTo(x, ly);
+    g.lineTo(x + w, ly);
+    g.strokeStyle = rnd() > 0.5
+      ? `rgba(255, 255, 255, ${0.03 + rnd() * 0.07})`
+      : `rgba(0, 0, 0, ${0.03 + rnd() * 0.07})`;
+    g.lineWidth = 0.5 + rnd() * 1.2;
+    g.stroke();
+  }
+}
+
+/**
+ * フィルムグレイン。面の全体に、画素ほどの細かなざらつきを掛ける。
+ *
+ * これが無いと、どれだけ陰影を足しても「ベクターの絵」に見える。
+ * 写真にはレンズとセンサーのざらつきが必ず乗っていて、目はそれを
+ * 「実物を写したもの」の印になっている。灰色の雑音を overlay で
+ * 薄く重ねるだけで、同じ絵が急に写真寄りになる。
+ *
+ * 画素の大きさで掛けたいので、いったん拡大率を戻してから塗る。
+ */
+let noiseTile: HTMLCanvasElement | null = null;
+function tile(): HTMLCanvasElement | null {
+  if (noiseTile) return noiseTile;
+  if (typeof document === 'undefined') return null;
+  const n = document.createElement('canvas');
+  n.width = 128;
+  n.height = 128;
+  const tg = n.getContext('2d');
+  if (!tg) return null;
+  const img = tg.createImageData(128, 128);
+  const rnd = seeded(0x2f19a7);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = Math.max(0, Math.min(255, Math.round(128 + (rnd() - 0.5) * 210)));
+    img.data[i] = v;
+    img.data[i + 1] = v;
+    img.data[i + 2] = v;
+    img.data[i + 3] = 255;
+  }
+  tg.putImageData(img, 0, 0);
+  noiseTile = n;
+  return n;
+}
+
+function filmGrain(g: CanvasRenderingContext2D, alpha: number): void {
+  const t = tile();
+  if (!t) return;
+  const pat = g.createPattern(t, 'repeat');
+  if (!pat) return;
+  g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalCompositeOperation = 'overlay';
+  g.globalAlpha = alpha;
+  g.fillStyle = pat;
+  g.fillRect(0, 0, g.canvas.width, g.canvas.height);
+  g.restore();
 }
 
 /**
@@ -256,44 +368,94 @@ function finish(
 
   // 上下の縁が沈む
   const edge = g.createLinearGradient(0, 0, 0, h);
-  edge.addColorStop(0, 'rgba(0, 0, 0, 0.5)');
-  edge.addColorStop(0.2, 'rgba(0, 0, 0, 0.06)');
-  edge.addColorStop(0.8, 'rgba(0, 0, 0, 0.08)');
-  edge.addColorStop(1, 'rgba(0, 0, 0, 0.55)');
+  edge.addColorStop(0, 'rgba(0, 0, 0, 0.42)');
+  edge.addColorStop(0.24, 'rgba(0, 0, 0, 0.03)');
+  edge.addColorStop(0.78, 'rgba(0, 0, 0, 0.05)');
+  edge.addColorStop(1, 'rgba(0, 0, 0, 0.46)');
   g.fillStyle = edge;
   g.fillRect(0, 0, w, h);
 }
 
 /**
- * 金物の丸い部品（ポールピース・ネジ・糸巻きの軸）。
- * 落ち影 → 本体 → 縁の光 の順に重ねると、面から浮いて見える。
+ * 金物の丸い部品（ポールピース・ネジ・つまみ・糸巻きの軸）。
+ *
+ * 面から浮いて見えるかどうかは、次の4枚の重ね順でほぼ決まる。
+ *
+ *   1. 接地影 … 部品が面に触れているすぐ外側の、狭くて濃い影。
+ *               ぼかした落ち影だけだと、浮いているのに触れていない
+ *               ように見える（実際そう見えていた）
+ *   2. 本体   … クロムの映り込み（chrome）。滑らかな灰色では樹脂になる
+ *   3. 縁     … 上側に明るい細線、下側に暗い細線。厚みが出る
+ *   4. 光点   … 小さく鋭いハイライト。金属はここが一点に集まる
  */
+type Material = 'chrome' | 'steel' | 'plastic';
+
 function stud(
   g: CanvasRenderingContext2D,
-  x: number, y: number, rx: number, ry: number, base: string, dark: boolean
+  x: number, y: number, rx: number, ry: number, base: string,
+  mat: Material = 'chrome'
 ): void {
+  const ring = (kx: number, ky: number, f: number) => {
+    g.beginPath();
+    g.ellipse(x + kx, y + ky, rx * f, ry * f, 0, 0, Math.PI * 2);
+  };
+
+  // 1. 接地影
   g.save();
-  g.shadowColor = 'rgba(0, 0, 0, 0.55)';
-  g.shadowBlur = Math.max(1, ry * 0.5);
-  g.shadowOffsetY = Math.max(0.5, ry * 0.25);
-  g.beginPath();
-  g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
-  g.fillStyle = base;
+  g.shadowColor = 'rgba(0, 0, 0, 0.6)';
+  g.shadowBlur = Math.max(1, ry * 0.35);
+  g.shadowOffsetY = Math.max(0.5, ry * 0.2);
+  ring(0, 0, 1.02);
+  g.fillStyle = 'rgba(0, 0, 0, 0.85)';
   g.fill();
   g.restore();
 
-  const shade = g.createLinearGradient(0, y - ry, 0, y + ry);
-  shade.addColorStop(0, dark ? 'rgba(255, 255, 255, 0.55)' : 'rgba(255, 255, 255, 0.95)');
-  shade.addColorStop(0.35, base);
-  shade.addColorStop(0.75, base);
-  shade.addColorStop(1, 'rgba(0, 0, 0, 0.75)');
-  g.beginPath();
-  g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
-  g.fillStyle = shade;
+  // 2. 本体
+  ring(0, 0, 1);
+  if (mat === 'plastic' || mat === 'steel') {
+    /*
+     * 樹脂は周りを映さない。上から素直に明るく、下へ落ちるだけ。
+     * つまみにクロムの段を掛けていたころは、白いプラスチックの
+     * ノブが金属の円盤に見えていた。ポールピースのような小さな鉄も
+     * 同じで、段を出すと真ん中の暗い帯がネジの溝に見えてしまう。
+     * 鋭く映り込むのは、磨いたクロムの大きな面だけ。
+     */
+    const rgb = rgbOf(base);
+    const pl = g.createLinearGradient(0, y - ry, 0, y + ry);
+    pl.addColorStop(0, mix(rgb, mat === 'steel' ? 0.75 : 0.55));
+    pl.addColorStop(0.3, mix(rgb, mat === 'steel' ? 0.25 : 0.12));
+    pl.addColorStop(0.7, mix(rgb, -0.18));
+    pl.addColorStop(1, mix(rgb, mat === 'steel' ? -0.62 : -0.5));
+    g.fillStyle = pl;
+  } else {
+    g.fillStyle = chrome(g, y - ry, ry * 2, base);
+  }
   g.fill();
-  g.strokeStyle = 'rgba(0, 0, 0, 0.55)';
-  g.lineWidth = Math.max(0.6, ry * 0.08);
+
+
+  // 3. 縁
+  ring(0, 0, 1);
+  const edge = g.createLinearGradient(0, y - ry, 0, y + ry);
+  edge.addColorStop(0, 'rgba(255, 255, 255, 0.85)');
+  edge.addColorStop(0.45, 'rgba(255, 255, 255, 0)');
+  edge.addColorStop(0.6, 'rgba(0, 0, 0, 0)');
+  edge.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+  g.strokeStyle = edge;
+  g.lineWidth = Math.max(0.6, ry * 0.12);
   g.stroke();
+
+  // 4. 光点
+  if (mat === 'plastic') return;
+  const sx = x - rx * 0.3;
+  const sy = y - ry * 0.42;
+  const spot = g.createRadialGradient(sx, sy, 0, sx, sy, Math.max(1, ry * 0.5));
+  spot.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+  spot.addColorStop(0.5, 'rgba(255, 255, 255, 0.25)');
+  spot.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  g.beginPath();
+  g.ellipse(sx, sy, rx * 0.5, ry * 0.5, 0, 0, Math.PI * 2);
+  g.fillStyle = spot;
+  g.fill();
 }
 
 /**
@@ -307,7 +469,7 @@ function flame(
   g: CanvasRenderingContext2D, w: number, h: number, seed: number, strength: number
 ): void {
   const rnd = seeded(seed);
-  const bands = Math.max(18, Math.round(w / 14));
+  const bands = Math.max(10, Math.round(w / 26));
   for (let i = 0; i < bands; i++) {
     const x = rnd() * w;
     const lean = (rnd() - 0.5) * w * 0.06;
@@ -317,8 +479,31 @@ function flame(
     g.strokeStyle = rnd() > 0.5
       ? `rgba(70, 45, 22, ${(0.02 + rnd() * 0.05) * strength})`
       : `rgba(255, 238, 205, ${(0.02 + rnd() * 0.06) * strength})`;
-    g.lineWidth = 1 + rnd() * 5;
+    g.lineWidth = 3 + rnd() * 9;
     g.stroke();
+  }
+}
+
+/**
+ * 大きなむら。木の面が一様に明るいと、板を塗った色に見える。
+ * 幅の広いぼやけた斑を数枚重ねて、光の当たり方を不揃いにする。
+ */
+function blotch(
+  g: CanvasRenderingContext2D, w: number, h: number, seed: number, strength: number
+): void {
+  const rnd = seeded(seed);
+  for (let i = 0; i < 7; i++) {
+    const x = rnd() * w;
+    const y = rnd() * h;
+    const r = (0.25 + rnd() * 0.45) * Math.max(w, h);
+    const up = rnd() > 0.5;
+    const rg = g.createRadialGradient(x, y, 0, x, y, r);
+    rg.addColorStop(0, up
+      ? `rgba(255, 236, 200, ${0.05 * strength})`
+      : `rgba(40, 24, 10, ${0.07 * strength})`);
+    rg.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    g.fillStyle = rg;
+    g.fillRect(0, 0, w, h);
   }
 }
 
@@ -440,8 +625,14 @@ export function drawHeadstock(
   wood.addColorStop(1, 'rgba(0, 0, 0, 0.55)');
   g.fillStyle = wood;
   g.fillRect(0, 0, w, h);
-  grain(g, w, h, 0x51d0, 1);
-  flame(g, w, h, 0x7c41, 1);
+  /*
+   * 杢（flame）と木目（grain）を同じ濃さで重ねたら、縦線と横線が
+   * 網の目になり、木ではなく布に見えていた。杢はうんと薄くし、
+   * 代わりに大きなむら（blotch）で不揃いさを出す。
+   */
+  blotch(g, w, h, 0x2a67, 1);
+  grain(g, w, h, 0x51d0, 0.75);
+  flame(g, w, h, 0x7c41, 0.3);
 
   // 面の丸み。中央が明るく、縁が落ちる
   const round = g.createLinearGradient(0, Y(0, -21), 0, Y(0, 41));
@@ -515,7 +706,7 @@ export function drawHeadstock(
      * 並んでいるように見えていた。実物で分かるのは、面より一段低い
      * 落ち込みと、そこから立っている軸と、その軸に巻かれた弦。
      */
-    stud(g, pxc, pyc, rx, ry, c.metal, false);
+    stud(g, pxc, pyc, rx, ry, c.metal, 'chrome');
     // 座金の内側の落ち込み
     g.beginPath();
     g.ellipse(pxc, pyc, rx * 0.62, ry * 0.62, 0, 0, Math.PI * 2);
@@ -526,7 +717,7 @@ export function drawHeadstock(
     g.fillStyle = hole;
     g.fill();
     // 弦を巻く軸
-    stud(g, pxc, pyc, rx * 0.4, ry * 0.4, '#d3d8dc', false);
+    stud(g, pxc, pyc, rx * 0.4, ry * 0.4, '#d3d8dc', 'chrome');
     // 軸に巻かれた弦
     for (const t of [0.55, 0.78]) {
       g.beginPath();
@@ -534,6 +725,38 @@ export function drawHeadstock(
       g.strokeStyle = 'rgba(60, 58, 52, 0.45)';
       g.lineWidth = Math.max(0.5, ry * 0.05);
       g.stroke();
+    }
+  }
+
+  /*
+   * ロゴ。実物のヘッドには必ず何か書いてある。無地のままだと、
+   * 形は合っていても「木を切り抜いた絵」に見える。
+   * 他社の名前は載せられないので、このアプリの名前を入れる。
+   */
+  {
+    const logoMM = 86;
+    const size = 11 * py * near(logoMM);
+    if (size > 7) {
+      g.save();
+      g.translate(X(logoMM), Y(logoMM, -4));
+      /*
+       * ネックの傾きに合わせて寝かせる。
+       *
+       * 向きは「ナット側 → 先端側」で取る。逆に取ると、この面では
+       * ナットが右にあるぶん角度が 180 度回り、文字が上下逆さまの
+       * 鏡文字になる（一度そうなった）。
+       */
+      const ax = X(logoMM - 20) - X(logoMM + 20);
+      const ay = Y(logoMM - 20, -4) - Y(logoMM + 20, -4);
+      g.rotate(Math.atan2(ay, ax));
+      g.font = `italic 600 ${size}px "Times New Roman", "Hiragino Mincho ProN", serif`;
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillStyle = 'rgba(28, 18, 8, 0.4)';
+      g.fillText('Kagari', 0, size * 0.04);
+      g.fillStyle = 'rgba(255, 246, 226, 0.55)';
+      g.fillText('Kagari', 0, 0);
+      g.restore();
     }
   }
 
@@ -548,7 +771,7 @@ export function drawHeadstock(
     const guideAt = 52;
     const top = posts[Math.min(strings - 1, posts.length - 1)];
     const nutTop = -SPREAD_MM / 2;
-    const gRy = 3.5 * py * near(guideAt);
+    const gRy = 2.6 * py * near(guideAt);
     const gy = Y(guideAt, nutTop + (top.off - nutTop) * (guideAt / top.mm));
     g.beginPath();
     g.ellipse(X(guideAt), gy, gRy * flat, gRy, 0, 0, Math.PI * 2);
@@ -567,8 +790,9 @@ export function drawHeadstock(
    * 弦を留めている物は1つだけにする。
    */
 
-  // 最後に、奥へ向かう暗さと面の光を掛ける（ヘッドは左が奥）
+  // 最後に、奥へ向かう暗さと面の光、そして画素のざらつきを掛ける
   finish(g, w, h, 0.4, -1);
+  filmGrain(g, 0.13);
 }
 
 /**
@@ -624,6 +848,15 @@ export function drawBody(
    * 玉の上を通らず、少しずつずれていった。通り道を1か所に持てば、
    * ずれようがない。
    */
+  /*
+   * トレモロの台。弦を引く輪の中でも使うので、ここで出しておく
+   * （駒を台の中に収めたいが、台は先に描いてしまうため）
+   */
+  const plateH = 42 * py * near(BRIDGE_MM);
+  const plateL = X(BRIDGE_MM - 8);
+  const plateR = X(BRIDGE_MM + 30);
+  const plateW = plateR - plateL;
+
   const stringOff = (i: number, mm: number) => {
     const a = -35 / 2 + (35 * i) / (strings - 1);
     const b = -42 / 2 + (42 * i) / (strings - 1);
@@ -638,7 +871,30 @@ export function drawBody(
   paint.addColorStop(1, 'rgba(0, 0, 0, 0.62)');
   g.fillStyle = paint;
   g.fillRect(0, 0, w, h);
-  if (kind === 'acoustic') grain(g, w, h, 0x9a31, 0.8);
+  if (kind === 'acoustic') {
+    /*
+     * スプルースの表板。木目は胴の長手方向に走る。杢を強く出すと
+     * 縦縞の板に見えるので、大きなむらのほうで不揃いさを作る。
+     */
+    blotch(g, w, h, 0x6f18, 0.9);
+    grain(g, w, h, 0x9a31, 0.7);
+    flame(g, w, h, 0x4d92, 0.16);
+  } else {
+    /*
+     * 塗装のつや。エレキの胴はポリウレタンで鏡のように光るので、
+     * 縁に沿って細く強い光が走る。ここが無いと、同じ黒でも
+     * 「黒く塗った紙」に見える
+     */
+    const gloss = g.createLinearGradient(0, 0, 0, h);
+    gloss.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    gloss.addColorStop(0.07, 'rgba(255, 255, 255, 0.22)');
+    gloss.addColorStop(0.13, 'rgba(255, 255, 255, 0.02)');
+    gloss.addColorStop(0.86, 'rgba(255, 255, 255, 0.02)');
+    gloss.addColorStop(0.93, 'rgba(255, 255, 255, 0.16)');
+    gloss.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    g.fillStyle = gloss;
+    g.fillRect(0, 0, w, h);
+  }
 
   if (kind === 'electric') {
     // ── ピックガード。上下は画面の外まで続く ──
@@ -646,25 +902,31 @@ export function drawBody(
     g.beginPath();
     g.moveTo(X(0), 0);
     /*
-     * 実物のピックガードは幅 250mm ある（＝中心から 125mm）。
-     * ここを ±58mm にしていたので、白い帯が弦の周りにだけ乗った
-     * 細長い板になり、つまみもブリッジの台に食い込んでいた。
+     * ピックガードの幅。
+     *
+     * 実物は 250mm（中心から 125mm）あるが、そのまま描くと、この
+     * 画面で見える範囲（継ぎ目でおよそ 42mm ぶん）に対して広すぎて、
+     * 端から端まで白一色になる。いただいた写真は黒い胴に白いガードが
+     * 乗っているところが要で、白しか映らないとその対比が消えてしまう。
+     *
+     * 縁が画面の半ばから入ってくる ±80mm ほどに詰めてある。
+     * こうすると、奥へ行くほど黒い胴が見えてきて、写真と同じ見え方になる。
      */
     through(g, [
-      P(0, -112), P(22, -118), P(55, -122),
-      P(110, -120), P(155, -114), P(196, -104), [X(196), 0],
+      P(0, -64), P(22, -67), P(55, -69),
+      P(110, -68), P(155, -65), P(196, -60), [X(196), 0],
     ]);
     g.lineTo(X(196), h);
     through(g, [
-      [X(196), h], P(196, 104), P(155, 114), P(110, 120),
-      P(55, 122), P(22, 118), P(0, 112),
+      [X(196), h], P(196, 60), P(155, 65), P(110, 68),
+      P(55, 69), P(22, 67), P(0, 64),
     ]);
     g.closePath();
-    const guard = g.createLinearGradient(0, Y(0, -112), 0, Y(0, 112));
-    guard.addColorStop(0, 'rgba(255, 255, 255, 0.22)');
-    guard.addColorStop(0.35, c.guard);
-    guard.addColorStop(0.75, c.guard);
-    guard.addColorStop(1, 'rgba(0, 0, 0, 0.35)');
+    const guard = g.createLinearGradient(0, Y(0, -69), 0, Y(0, 69));
+    guard.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+    guard.addColorStop(0.3, c.guard);
+    guard.addColorStop(0.62, c.guard);
+    guard.addColorStop(1, 'rgba(0, 0, 0, 0.3)');
     g.fillStyle = guard;
     g.fill();
     /*
@@ -693,11 +955,23 @@ export function drawBody(
     const hr = 50 * py * near(holeMM);
     const hx = X(holeMM);
     const hy = cy;
-    for (const ring of [1.18, 1.1]) {
+    /*
+     * ロゼッタ。実物は細い木を何本も寄せた輪が何重にも回っている。
+     * 2本だけだと、穴のまわりに線を引いただけに見える。
+     */
+    const rings: [number, string, number][] = [
+      [1.28, 'rgba(38, 22, 12, 0.85)', 2.2],
+      [1.22, 'rgba(226, 200, 156, 0.75)', 1.2],
+      [1.18, 'rgba(48, 28, 15, 0.8)', 3.2],
+      [1.12, 'rgba(232, 208, 166, 0.8)', 2.4],
+      [1.07, 'rgba(40, 24, 13, 0.85)', 1.6],
+      [1.03, 'rgba(210, 180, 136, 0.6)', 1.0],
+    ];
+    for (const [ring, color, wide] of rings) {
       g.beginPath();
       g.ellipse(hx, hy, hr * ring * flat, hr * ring, 0, 0, Math.PI * 2);
-      g.strokeStyle = ring > 1.14 ? 'rgba(52, 32, 18, 0.75)' : 'rgba(215, 186, 140, 0.6)';
-      g.lineWidth = Math.max(1.2, 2.5 * py * near(holeMM));
+      g.strokeStyle = color;
+      g.lineWidth = Math.max(1, wide * py * near(holeMM));
       g.stroke();
     }
     g.beginPath();
@@ -781,7 +1055,7 @@ export function drawBody(
         for (let i = 0; i < strings; i++) {
           const yy = Y(colMM, stringOff(i, colMM));
           stud(g, X(colMM), yy, Math.max(1, pr * flat), pr,
-            pu.wide ? '#8d9296' : '#4e5256', !pu.wide);
+            pu.wide ? '#9aa0a5' : '#5a5f64', 'steel');
         }
       }
 
@@ -789,7 +1063,7 @@ export function drawBody(
       if (!pu.wide) {
         const sr = 2 * py * near(pu.mm);
         for (const yy of [cy - half * 0.88, cy + half * 0.88]) {
-          stud(g, bx + bw / 2, yy, Math.max(1, sr * flat), sr, '#b9bec3', false);
+          stud(g, bx + bw / 2, yy, Math.max(1, sr * flat), sr, '#b9bec3', 'chrome');
           // ネジの溝
           g.beginPath();
           g.moveTo(bx + bw / 2 - sr * flat * 0.6, yy);
@@ -801,12 +1075,69 @@ export function drawBody(
       }
     }
 
+    /*
+     * ピックガードを留めるネジ。
+     *
+     * 実物は縁に沿って 11 本並んでいる。無地の白い面が広がっているだけ
+     * だと、どれだけ縁を作り込んでも「白い紙」に見える。奥のほうは縁が
+     * 画面に入ってくるので、そこに並べるだけで一気に楽器になる。
+     */
+    for (const sc of [
+      { mm: 118, off: 61 }, { mm: 152, off: 58 }, { mm: 180, off: 55 },
+    ]) {
+      const sr = 2.6 * py * near(sc.mm);
+      for (const sign of [-1, 1]) {
+        const sy = Y(sc.mm, sc.off * sign);
+        if (sy < -sr || sy > h + sr) continue;
+        stud(g, X(sc.mm), sy, Math.max(1, sr * flat), sr, '#c6cbd0', 'chrome');
+        g.beginPath();
+        g.moveTo(X(sc.mm) - sr * flat * 0.6, sy);
+        g.lineTo(X(sc.mm) + sr * flat * 0.6, sy);
+        g.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+        g.lineWidth = Math.max(0.5, sr * 0.2);
+        g.stroke();
+      }
+    }
+
+    /*
+     * 5点スイッチ。中央のピックアップとつまみの間に立っている。
+     * 白いレバーが1本あるかないかで、ストラトかどうかが決まる。
+     */
+    {
+      const swMM = 116;
+      const swY = Y(swMM, 28);
+      const len = 16 * py * near(swMM);
+      const wid = 5 * py * near(swMM) * flat;
+      g.save();
+      g.translate(X(swMM), swY);
+      g.rotate(-0.5);
+      g.beginPath();
+      if (g.roundRect) g.roundRect(-wid / 2, -len * 0.5, wid, len, wid * 0.5);
+      else g.rect(-wid / 2, -len * 0.5, wid, len);
+      const lever = g.createLinearGradient(-wid / 2, 0, wid / 2, 0);
+      lever.addColorStop(0, '#8e8a7e');
+      lever.addColorStop(0.35, '#fffdf6');
+      lever.addColorStop(1, '#a9a498');
+      g.fillStyle = lever;
+      g.fill();
+      g.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+      g.lineWidth = Math.max(0.6, wid * 0.12);
+      g.stroke();
+      g.restore();
+    }
+
     // ── つまみ（ボリューム・トーン2つ）──
-    for (const k of [{ mm: 110, off: 78 }, { mm: 142, off: 90 }, { mm: 170, off: 100 }]) {
+    for (const k of [{ mm: 112, off: 38 }, { mm: 142, off: 43 }, { mm: 170, off: 46 }]) {
       const kr = 9.5 * py * near(k.mm);
       const kx = X(k.mm);
       const ky = Y(k.mm, k.off);
-      stud(g, kx, ky, kr * flat, kr, '#e6e0d1', false);
+      stud(g, kx, ky, kr * flat, kr, '#f2ece0', 'plastic');
+      // 段（スカート）。実物のノブは裾が広がっていて、天面が一段低い
+      g.beginPath();
+      g.ellipse(kx, ky, kr * flat * 0.74, kr * 0.74, 0, 0, Math.PI * 2);
+      g.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+      g.lineWidth = Math.max(0.6, kr * 0.06);
+      g.stroke();
       // 天面のくぼみ
       g.beginPath();
       g.ellipse(kx, ky - kr * 0.12, kr * flat * 0.6, kr * 0.6, 0, 0, Math.PI * 2);
@@ -819,10 +1150,7 @@ export function drawBody(
     }
 
     // ── トレモロブリッジの台 ──
-    const plateH = 42 * py * near(BRIDGE_MM);
-    const plateL = X(BRIDGE_MM - 8);
-    const plateR = X(BRIDGE_MM + 30);
-    const plateW = plateR - plateL;
+
     g.save();
     g.shadowColor = 'rgba(0, 0, 0, 0.55)';
     g.shadowBlur = Math.max(3, plateW * 0.2);
@@ -830,22 +1158,36 @@ export function drawBody(
     g.fillStyle = metal(g, cy - plateH, plateH * 2, c.metal);
     g.fillRect(plateL, cy - plateH, plateW, plateH * 2);
     g.restore();
+    // 磨き目。大きな面ほど、一様な塗りだと作り物に見える
+    g.save();
+    g.beginPath();
+    g.rect(plateL, cy - plateH, plateW, plateH * 2);
+    g.clip();
+    brushed(g, plateL, cy - plateH, plateW, plateH * 2, 0x3b71);
+    g.restore();
     // 板の縁が起きている（曲げ加工）。横方向にも光を回す
     const bevel = g.createLinearGradient(plateL, 0, plateR, 0);
-    bevel.addColorStop(0, 'rgba(255, 255, 255, 0.35)');
-    bevel.addColorStop(0.15, 'rgba(0, 0, 0, 0.12)');
-    bevel.addColorStop(0.7, 'rgba(255, 255, 255, 0.12)');
-    bevel.addColorStop(1, 'rgba(0, 0, 0, 0.3)');
+    bevel.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+    bevel.addColorStop(0.12, 'rgba(0, 0, 0, 0.18)');
+    bevel.addColorStop(0.62, 'rgba(255, 255, 255, 0.14)');
+    bevel.addColorStop(1, 'rgba(0, 0, 0, 0.35)');
     g.fillStyle = bevel;
     g.fillRect(plateL, cy - plateH, plateW, plateH * 2);
-    g.strokeStyle = 'rgba(0, 0, 0, 0.65)';
+    g.strokeStyle = 'rgba(0, 0, 0, 0.7)';
     g.lineWidth = Math.max(1, py * 0.3);
     g.strokeRect(plateL, cy - plateH, plateW, plateH * 2);
+    // 起きた縁の頂点に乗る、細く強い光
+    g.beginPath();
+    g.moveTo(plateL + plateW * 0.02, cy - plateH * 0.98);
+    g.lineTo(plateR - plateW * 0.02, cy - plateH * 0.98);
+    g.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    g.lineWidth = Math.max(0.8, plateH * 0.02);
+    g.stroke();
     // 台を留めているネジ。ナット寄りに6本並ぶ
     const scr = 2.6 * py * near(BRIDGE_MM);
     for (let i = 0; i < strings; i++) {
       stud(g, plateL + plateW * 0.16, Y(BRIDGE_MM, stringOff(i, BRIDGE_MM)),
-        Math.max(1, scr * flat), scr, '#c3c8cd', false);
+        Math.max(1, scr * flat), scr, '#c3c8cd', 'chrome');
     }
   } else {
     /*
@@ -919,22 +1261,33 @@ export function drawBody(
     stringOn(g, path, wide, i >= strings - 3);
 
     if (kind === 'electric') {
-      // サドル
+      /*
+       * 駒（サドル）。実物は6つの短い筒が並んでいて、その1つ1つに
+       * 高さと長さを合わせるネジが付いている。台の幅いっぱいに横線を
+       * 引いていたころは、暖房器具のような縞板に見えていた。
+       * 台の手前寄りに短く置き、間に濃い隙間を入れる。
+       */
       const sh = Math.max(3, 8 * py * near(BRIDGE_MM));
-      const sw = Math.max(4, X(BRIDGE_MM + 10) - X(BRIDGE_MM - 6));
-      const sx = X(BRIDGE_MM) - sw * 0.35;
-      g.fillStyle = metal(g, y1 - sh / 2, sh, c.metal);
+      const sx = plateL + plateW * 0.08;
+      const sw = plateW * 0.44;
+      g.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      g.fillRect(sx - sw * 0.04, y1 - sh * 0.62, sw * 1.08, sh * 1.24);
+      g.fillStyle = chrome(g, y1 - sh / 2, sh, c.metal);
       g.fillRect(sx, y1 - sh / 2, sw, sh);
-      // 駒は筒状。左右の端が落ちる
+      // 筒なので、左右の端が落ちる
       const curve = g.createLinearGradient(sx, 0, sx + sw, 0);
-      curve.addColorStop(0, 'rgba(0, 0, 0, 0.3)');
-      curve.addColorStop(0.3, 'rgba(255, 255, 255, 0.3)');
-      curve.addColorStop(1, 'rgba(0, 0, 0, 0.35)');
+      curve.addColorStop(0, 'rgba(0, 0, 0, 0.4)');
+      curve.addColorStop(0.26, 'rgba(255, 255, 255, 0.34)');
+      curve.addColorStop(1, 'rgba(0, 0, 0, 0.45)');
       g.fillStyle = curve;
       g.fillRect(sx, y1 - sh / 2, sw, sh);
-      g.strokeStyle = 'rgba(0, 0, 0, 0.6)';
-      g.lineWidth = 0.8;
-      g.strokeRect(sx, y1 - sh / 2, sw, sh);
+      // 頂点の細い光
+      g.beginPath();
+      g.moveTo(sx, y1 - sh * 0.36);
+      g.lineTo(sx + sw, y1 - sh * 0.36);
+      g.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+      g.lineWidth = Math.max(0.6, sh * 0.12);
+      g.stroke();
     } else {
       // ブリッジピン。弦はサドルを越えて、ここで板に刺さって止まる
       const pinMM = BRIDGE_MM + 12;
@@ -961,13 +1314,14 @@ export function drawBody(
     const ar = 5 * py * near(BRIDGE_MM + 22);
     const aX = X(BRIDGE_MM + 22);
     const aY = Y(BRIDGE_MM + 22, 40);
-    stud(g, aX, aY, ar * flat, ar, c.metal, false);
+    stud(g, aX, aY, ar * flat, ar, c.metal, 'chrome');
     g.beginPath();
     g.ellipse(aX, aY, ar * flat * 0.45, ar * 0.45, 0, 0, Math.PI * 2);
     g.fillStyle = 'rgba(12, 12, 14, 0.85)';
     g.fill();
   }
 
-  // 最後に、奥へ向かう暗さと面の光を掛ける
-  finish(g, w, h, 0.32, 1);
+  // 最後に、奥へ向かう暗さと面の光、そして画素のざらつきを掛ける
+  finish(g, w, h, 0.24, 1);
+  filmGrain(g, 0.13);
 }
