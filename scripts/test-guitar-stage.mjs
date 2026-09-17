@@ -485,105 +485,24 @@ async function bareMode() {
     return {
       // ナット側を細く見せるための削り
       tapered: getComputedStyle(fb).clipPath !== 'none',
+      /*
+       * 送りの左端が、そのままナットであること。
+       * 前はここにヘッドの面があり、開いたときに指板まで送り直していた。
+       */
+      startsAtNut: (() => {
+        const sc = document.querySelector('.board-scroll');
+        const open = document.querySelector('.fb-cell.open');
+        if (!sc || !open) return false;
+        sc.scrollLeft = 0;
+        const r = open.getBoundingClientRect();
+        return r.left >= sc.getBoundingClientRect().left - 1 && r.width > 4;
+      })(),
       // 側面の目印
       sideDots: document.querySelectorAll('.fb-side-cell.single, .fb-side-cell.double').length,
       sideShown: side ? side.getBoundingClientRect().height > 2 : false,
       hasTexture: !!tex && tex.width > 8,
       rowMatch,
 
-      /*
-       * ヘッドとボディ。指板を左いっぱいに送ればヘッド、右いっぱいで
-       * ブリッジが出る。ただ在るだけでは足りない。ヘッドから来た弦が
-       * 指板の弦とつながっていないと、継ぎ目で折れて見える。
-       * ナット（ほぼ白）の上端と下端が、指板の 1 弦・6 弦と
-       * 揃っているかを画素で見る。
-       */
-      ends: (() => {
-        const strip = document.querySelector('.neck-strip');
-        const head = document.querySelector('.fb-head');
-        const body = document.querySelector('.fb-body');
-        if (!strip || !head || !body || head.width < 8) return null;
-        const sr = strip.getBoundingClientRect();
-        const rows = [...document.querySelectorAll('.fb-row')];
-        if (rows.length < 2) return null;
-        const mid = (el) => {
-          const b = el.getBoundingClientRect();
-          return Math.round(b.top + b.height / 2 - sr.top);
-        };
-        const firstY = mid(rows[0]);
-        const lastY = mid(rows[rows.length - 1]);
-
-        /*
-         * ヘッドの面の右端（＝ナットに接する側）を縦に見て、弦が
-         * 通っている高さを拾う。
-         *
-         * 前は「ほぼ白（230 以上）」で拾っていた。そのころは、ここに
-         * 牛骨のナットが描いてあったから。ナットは指板側の開放弦の列に
-         * 1つあれば足りる（2つ描くと 100px 離れて並ぶ）ので、いまは
-         * ここには無い。残っているのは弦だけで、太さも明るさも弦ごとに
-         * 違うため、決め打ちの敷居では細い1弦を取りこぼす。
-         *
-         * そこで、その場のいちばん明るい所と地の木の明るさの中間を
-         * 敷居にする。木か弦かだけを見分けられればよい。
-         */
-        const g = head.getContext('2d');
-        const d = g.getImageData(0, 0, head.width, head.height).data;
-        const col = [];
-        for (let y = 0; y < head.height; y++) {
-          let best = 0;
-          for (let x = head.width - 6; x < head.width; x++) {
-            const i = (y * head.width + x) * 4;
-            if (d[i + 3] < 200) continue;
-            best = Math.max(best, (d[i] + d[i + 1] + d[i + 2]) / 3);
-          }
-          col.push(best);
-        }
-        const lit = [...col].filter((v) => v > 0).sort((a, b) => a - b);
-        const wood = lit[Math.floor(lit.length / 2)] ?? 0;
-        const peak = lit[lit.length - 1] ?? 0;
-        const gate = (wood + peak) / 2;
-        const white = [];
-        for (let y = 0; y < col.length; y++) if (col[y] > gate) white.push(y);
-        const bg = body.getContext('2d');
-        const bd = bg.getImageData(0, 0, body.width, body.height).data;
-        let painted = 0;
-        for (let i = 3; i < bd.length; i += 4 * 29) if (bd[i] > 10) painted += 1;
-
-        /*
-         * ボディ側も同じように、継ぎ目（面の左端）で弦の高さを拾う。
-         *
-         * ここを見ていなかったせいで、ボディの 1mm を「ブリッジでの
-         * 広がり 42mm」から出すという取り違えを見逃した。指板から来た
-         * 弦は継ぎ目では 35mm ぶんなので、ボディ側の6本だけが 83% の
-         * 幅に縮み、そこで段差になっていた。実機で見つかるまで
-         * 検査は素通りしていた。
-         */
-        const bcol = [];
-        for (let y = 0; y < body.height; y++) {
-          let best = 0;
-          for (let x = 0; x < 6; x++) {
-            const i = (y * body.width + x) * 4;
-            if (bd[i + 3] < 200) continue;
-            best = Math.max(best, (bd[i] + bd[i + 1] + bd[i + 2]) / 3);
-          }
-          bcol.push(best);
-        }
-        const blit = [...bcol].filter((v) => v > 0).sort((a, b) => a - b);
-        const bgate = ((blit[Math.floor(blit.length / 2)] ?? 0) + (blit[blit.length - 1] ?? 0)) / 2;
-        const bwhite = [];
-        for (let y = 0; y < bcol.length; y++) if (bcol[y] > bgate) bwhite.push(y);
-
-        return {
-          headDrawn: white.length > 0,
-          bodyPainted: painted / (bd.length / (4 * 29)),
-          nutTop: white[0] ?? -1,
-          nutBottom: white[white.length - 1] ?? -1,
-          jointTop: bwhite[0] ?? -1,
-          jointBottom: bwhite[bwhite.length - 1] ?? -1,
-          firstY,
-          lastY,
-        };
-      })(),
     };
   });
 
@@ -654,17 +573,17 @@ check('木目が描かれている', bm.neck.hasTexture);
 check('木目が縞になっていない（行ごとに違う）',
   bm.neck.rowMatch < 0.2, `行の一致率 ${(bm.neck.rowMatch * 100).toFixed(1)}%`);
 check('横向きでは波形を出さない', bm.waveShown === false);
-const e = bm.neck.ends;
-check('ヘッドとボディが描かれている',
-  !!e && e.headDrawn && e.bodyPainted > 0.5,
-  e ? `ボディ描画率 ${(e.bodyPainted * 100).toFixed(0)}%` : 'なし');
-// 弦は細く、縁はぼけるので、数 px の差は許す（折れて見えるのは 10px 以上）
-check('ヘッドの弦が指板の弦とつながっている',
-  !!e && Math.abs(e.nutTop - e.firstY) <= 6 && Math.abs(e.nutBottom - e.lastY) <= 6,
-  e ? `ナット ${e.nutTop}..${e.nutBottom} / 弦 ${e.firstY}..${e.lastY}` : 'なし');
-check('ボディの弦が指板の弦とつながっている',
-  !!e && Math.abs(e.jointTop - e.firstY) <= 6 && Math.abs(e.jointBottom - e.lastY) <= 6,
-  e ? `継ぎ目 ${e.jointTop}..${e.jointBottom} / 弦 ${e.firstY}..${e.lastY}` : 'なし');
+/*
+ * ヘッドとボディを見る検査は外した。
+ *
+ * 一時期、指板の左右に糸巻きとブリッジを描いた面を並べていた。実物の
+ * 寸法と遠近で組んだが、指板が「指で押さえられる大きさ」で決まっている
+ * 以上、同じ画の中のヘッドやボディは 1mm ＝ 12px の接写になる。その
+ * 大きさで見られる絵を用意できず、何度描き直しても作り物のままだった
+ * ので、面ごと外してある。いまは左端がナット、右端が 24 フレット。
+ */
+check('指板の左端がナットで始まっている',
+  bm.neck.startsAtNut === true);
 console.log('');
 
 const lk = await looks();

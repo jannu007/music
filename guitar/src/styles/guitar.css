@@ -1487,65 +1487,16 @@ html, body {
 .fretboard::after { clip-path: polygon(0 3.5%, 100% 0, 100% 100%, 0 96.5%); }
 
 /* ==================================================================
-   ヘッドからブリッジまで
+   指板の端
    ------------------------------------------------------------------
-   これまで画面にあったのは指板だけで、ネックがどこから始まって
-   どこで終わるのかが無かった。弦は糸巻きに巻かれ、ナットを通り、
-   ブリッジで留まっている。その両端が無いと、木の板に線を引いたものに
-   しか見えない。
+   ここには一時期、ヘッド（糸巻き）とボディ（ピックアップ・ブリッジ）を
+   描いた面を並べていた。実物の寸法と遠近で組んではみたものの、
+   指板が「指で押さえられる大きさ」で決まっている以上、同じ画の中の
+   ヘッドやボディは実寸で 1mm ＝ 12px という接写になる。その大きさで
+   見られる絵を用意できず、何度描き直しても作り物のままだった。
 
-   横に送れば、左いっぱいでヘッド、右いっぱいでブリッジが出る。
-   楽器1本ぶんが、そのまま画面の中にある。
+   いまは指板だけを出している。左端はナット、右端は 24 フレット。
+   演奏に要るものは全部ここにあり、要らないものは置かない。
    ================================================================== */
-.neck-strip {
-  display: flex;
-  align-items: stretch;
-  flex: 1;
-  min-height: 0;
-}
-.fb-head,
-.fb-body {
-  flex: none;
-  display: block;
-  align-self: stretch;
-  pointer-events: none;
-}
-.fb-head { width: 132px; }
-.fb-body { width: 210px; }
 
-@media (max-width: 767px) {
-  .fb-head { width: 108px; }
-  .fb-body { width: 176px; }
-  /* 帯の中で指板が伸びる */
-  .neck-strip > .fretboard { flex: 1; }
-}
 
-/* 楽器ごとの色。ヘッドの木・ボディの塗り・ピックガード・金物 */
-.guitar-app { --head-wood: #c9a163; --body-paint: #2a1a10; --guard: #efe7d5; --hardware: #c8ccd0; }
-.guitar-app[data-look='strat'] { --head-wood: #d8ab68; --body-paint: #101010; --guard: #f4f2ec; --hardware: #ccd1d6; }
-.guitar-app[data-look='superstrat'] { --head-wood: #2a2422; --body-paint: #0b0b0d; --guard: #1b1b1e; --hardware: #b9bec4; }
-.guitar-app[data-look='lespaul'] { --head-wood: #3a2113; --body-paint: #c9a244; --guard: #efe2c4; --hardware: #d8b55e; }
-.guitar-app[data-look='archtop'] { --head-wood: #2c1a12; --body-paint: #4a2213; --guard: #2a1a12; --hardware: #d9b45c; }
-.guitar-app[data-look='pbass'] { --head-wood: #d3a765; --body-paint: #e9e6df; --guard: #23252c; --hardware: #c8ccd0; }
-.guitar-app[data-look='offset'] { --head-wood: #c9a163; --body-paint: #2b4a6e; --guard: #efe7d5; --hardware: #c8ccd0; }
-/*
- * 生ギターの表板はスプルース（明るい白木）。ここを濃い茶にしていたので、
- * サウンドホールを開けても板の色に沈んで、胴に見えなかった。
- */
-.guitar-app[data-look='acoustic'],
-.guitar-app[data-look='nylon'] { --head-wood: #6b4527; --body-paint: #d9b478; --guard: #3a2414; --hardware: #cfd3d6; }
-.guitar-app[data-look='koa'] { --head-wood: #6b4527; --body-paint: #c08a46; --guard: #3a2414; --hardware: #cfd3d6; }
-.guitar-app[data-look='resonator'] { --head-wood: #6b4527; --body-paint: #b9bec2; --guard: #3a2414; --hardware: #cfd3d6; }
-
-/*
- * ヘッドとボディの「作り」。色ではなく仕組みが違うので、別に持つ。
- * 弦を糸巻き6連で巻くのか3対3なのか、ブリッジで留めるのかピンで
- * 刺すのか。ここを間違えると、生ギターにトレモロが付く。
- */
-.guitar-app { --neck-kind: acoustic; }
-.guitar-app[data-look='strat'],
-.guitar-app[data-look='superstrat'],
-.guitar-app[data-look='lespaul'],
-.guitar-app[data-look='archtop'],
-.guitar-app[data-look='offset'],
-.guitar-app[data-look='pbass'] { --neck-kind: electric; }
