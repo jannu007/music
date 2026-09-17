@@ -1220,33 +1220,49 @@ html, body {
    ポジションマークの色。この3つが変われば、別のギターに見える。
    ================================================================== */
 
+/*
+ * 指板の木は、色だけでなく「樹種」で渡す（--wood-species）。
+ * 導管の太さ・黒筋・杢・つやの出方が樹種ごとに違い、それが
+ * 木の見分けになる。描き分けは guitar/src/ui/woodArt.ts。
+ *
+ *   rosewood  … インディアン・ローズウッド。太い導管と不揃いな黒筋
+ *   pauferro  … パーフェロー。ローズウッドより明るく、筋がはっきり
+ *   ebony     … エボニー。ほぼ無地の黒
+ *   maple     … メイプル。導管が見えず、横の杢と塗装のつや
+ *   koa       … コア。金褐色に強い杢
+ *   composite … 合成材。木目が無い
+ */
+
 /* アコースティック。スプルースの明るい本体に、ローズウッドの指板 */
 .guitar-app[data-look='acoustic'] {
-  --wood-1: #3a2414; --wood-2: #4e3220; --wood-3: #2e1c10;
+  --wood-species: rosewood;
+  --wood-1: #4a3020; --wood-2: #5b3c27; --wood-3: #3a2517;
   --body-1: rgba(214, 150, 78, 0.16);
   --body-2: rgba(150, 92, 40, 0.18);
 }
 
 /* クラシック。エボニーの黒い指板。実物はポジションマークを置かない */
 .guitar-app[data-look='nylon'] {
-  --wood-1: #241c17; --wood-2: #2f2620; --wood-3: #171210;
-  --grain-a: 0.3; --grain-b: 0.16; --grain-c: rgba(90, 70, 52, 0.12);
+  --wood-species: ebony;
+  --wood-1: #241f1c; --wood-2: #2e2825; --wood-3: #171311;
   --body-1: rgba(226, 196, 140, 0.15);
   --body-2: rgba(140, 104, 56, 0.16);
 }
-.guitar-app[data-look='nylon'] .fb-marker::after { opacity: 0; }
+.guitar-app[data-look='nylon'] .fb-inlay::after { opacity: 0; }
 
-/* リゾネーター。金属ボディ。冷たい銀色 */
+/* リゾネーター。金属ボディ。指板はローズウッドだが、灰みを帯びて見える */
 .guitar-app[data-look='resonator'] {
-  --wood-1: #2b2622; --wood-2: #3a342e; --wood-3: #1e1a17;
+  --wood-species: rosewood;
+  --wood-1: #3a322c; --wood-2: #483f37; --wood-3: #2a231e;
   --inlay: #dfe4e6; --inlay-hi: #ffffff; --inlay-lo: #9aa3a7;
   --body-1: rgba(180, 196, 204, 0.16);
   --body-2: rgba(96, 112, 120, 0.2);
 }
 
-/* ジャズのアーチトップ。焦げ茶のサンバースト、金の金物 */
+/* ジャズのアーチトップ。エボニー指板に、貝のブロック */
 .guitar-app[data-look='archtop'] {
-  --wood-1: #241610; --wood-2: #35211a; --wood-3: #150d09;
+  --wood-species: ebony;
+  --wood-1: #1f1a17; --wood-2: #2a231f; --wood-3: #141010;
   --inlay: #f0dfae; --inlay-hi: #fff8dc; --inlay-lo: #a98e4e;
   --body-1: rgba(196, 128, 46, 0.2);
   --body-2: rgba(92, 40, 14, 0.24);
@@ -1254,8 +1270,8 @@ html, body {
 
 /* ストラト。メイプルの明るい指板がいちばんの見どころ */
 .guitar-app[data-look='strat'] {
-  --wood-1: #b98a4e; --wood-2: #d6a869; --wood-3: #9a6f3a;
-  --grain-a: 0.12; --grain-b: 0.07; --grain-c: rgba(255, 226, 180, 0.2);
+  --wood-species: maple;
+  --wood-1: #c9974f; --wood-2: #e0b06c; --wood-3: #ab7c3c;
   --inlay: #2a1a0e; --inlay-hi: #4a3320; --inlay-lo: #140c06;
   --body-1: rgba(120, 200, 220, 0.16);
   --body-2: rgba(40, 110, 140, 0.18);
@@ -1264,34 +1280,45 @@ html, body {
 .guitar-app[data-look='strat'] .fb-label { color: rgba(40, 24, 10, 0.72); }
 .guitar-app[data-look='strat'] .fb-fretnum { color: rgba(40, 24, 10, 0.6); }
 
-/* レスポール。マホガニーの赤茶、ゴールドトップ */
+/* ブルース。同じストラトでも、こちらはローズウッド指板の個体 */
+.guitar-app[data-look='stratrose'] {
+  --wood-species: rosewood;
+  --wood-1: #46291a; --wood-2: #573523; --wood-3: #341d12;
+  --inlay: #e9dfc8; --inlay-hi: #fffaf0; --inlay-lo: #b0a284;
+  --body-1: rgba(214, 160, 90, 0.18);
+  --body-2: rgba(120, 58, 26, 0.22);
+}
+
+/* レスポール。マホガニーの赤茶、ゴールドトップ。指板はローズウッド */
 .guitar-app[data-look='lespaul'] {
-  --wood-1: #33190f; --wood-2: #4a2416; --wood-3: #22110a;
+  --wood-species: rosewood;
+  --wood-1: #3d2013; --wood-2: #4e2b1a; --wood-3: #2a150c;
   --inlay: #efe6cf; --inlay-hi: #fffdf3; --inlay-lo: #b3a586;
   --body-1: rgba(212, 168, 74, 0.22);
   --body-2: rgba(122, 52, 22, 0.22);
 }
 
-/* モダン・ハイゲイン。黒とエボニー */
+/* モダン・ハイゲイン。黒い合成材。木目を出さないのが今どき */
 .guitar-app[data-look='superstrat'] {
-  --wood-1: #1a1614; --wood-2: #262120; --wood-3: #0e0b0a;
-  --grain-a: 0.34; --grain-b: 0.18; --grain-c: rgba(70, 62, 58, 0.14);
+  --wood-species: composite;
+  --wood-1: #1c1917; --wood-2: #262220; --wood-3: #100e0d;
   --inlay: #c9ced2; --inlay-hi: #ffffff; --inlay-lo: #7e868c;
   --body-1: rgba(150, 60, 220, 0.16);
   --body-2: rgba(30, 30, 40, 0.3);
 }
 
-/* オフセット。くすんだ青 */
+/* オフセット。パーフェローの明るい指板 */
 .guitar-app[data-look='offset'] {
-  --wood-1: #2e2016; --wood-2: #40301f; --wood-3: #1f1610;
+  --wood-species: pauferro;
+  --wood-1: #5a4029; --wood-2: #6d5033; --wood-3: #43301e;
   --body-1: rgba(96, 156, 210, 0.18);
   --body-2: rgba(38, 66, 104, 0.22);
 }
 
-/* エレキベース */
+/* エレキベース。メイプル指板 */
 .guitar-app[data-look='pbass'] {
-  --wood-1: #b98a4e; --wood-2: #cfa268; --wood-3: #93693a;
-  --grain-a: 0.13; --grain-b: 0.08; --grain-c: rgba(255, 226, 180, 0.18);
+  --wood-species: maple;
+  --wood-1: #c39350; --wood-2: #d9aa68; --wood-3: #a4763e;
   --inlay: #2a1a0e; --inlay-hi: #4a3320; --inlay-lo: #140c06;
   --body-1: rgba(214, 214, 218, 0.14);
   --body-2: rgba(70, 76, 92, 0.22);
@@ -1299,9 +1326,11 @@ html, body {
 .guitar-app[data-look='pbass'] .fb-label { color: rgba(40, 24, 10, 0.72); }
 .guitar-app[data-look='pbass'] .fb-fretnum { color: rgba(40, 24, 10, 0.6); }
 
-/* ウクレレ。ハワイのコア材 */
+/* ウクレレ。ハワイのコア材。強い杢が出る */
 .guitar-app[data-look='koa'] {
-  --wood-1: #4a2f18; --wood-2: #6b4525; --wood-3: #341f10;
+  --wood-species: koa;
+  --wood-1: #7a4d25; --wood-2: #96612f; --wood-3: #5d3a1b;
+  --inlay: #f2e6cd; --inlay-hi: #fffaf0; --inlay-lo: #b6a583;
   --body-1: rgba(224, 168, 88, 0.2);
   --body-2: rgba(140, 86, 34, 0.2);
 }

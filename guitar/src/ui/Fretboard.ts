@@ -1,5 +1,6 @@
 import { NOTE_NAMES, type Tuning } from '../music/tunings';
 import { STRING_MM } from './strings-gauge';
+import { paintWood, speciesOf } from './woodArt';
 import { el } from './controls';
 import { t } from './i18n';
 
@@ -29,23 +30,6 @@ const DOUBLE_MARKERS = [12, 24];
  */
 
 /** 出せるフレットの上限。実物の 24 フレットに合わせる */
-
-/**
- * 種を固定した乱数。
- *
- * 木目は描き直すたびに同じでなければならない。毎回変わると、画面の
- * 大きさが変わるたびに木目が踊って、木に見えなくなる。
- */
-function seeded(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 export const MAX_FRETS = 24;
 /**
  * いちばん狭いフレットに残す幅。指の腹はおよそ 10mm なので、
@@ -348,65 +332,17 @@ export class Fretboard {
     const css = getComputedStyle(this.board);
     const pick = (name: string, fallback: string) =>
       css.getPropertyValue(name).trim() || fallback;
-    const c1 = pick('--wood-1', '#3a2414');
-    const c2 = pick('--wood-2', '#4e3220');
-    const c3 = pick('--wood-3', '#2e1c10');
 
-    // 地の色。根元と先で濃さが違う（一枚板でも色は一様ではない）
-    const base = g.createLinearGradient(0, 0, w, 0);
-    base.addColorStop(0, c1);
-    base.addColorStop(0.42, c2);
-    base.addColorStop(0.78, c1);
-    base.addColorStop(1, c3);
-    g.fillStyle = base;
-    g.fillRect(0, 0, w, h);
-
-    const rnd = seeded(20260916);
-
-    // 導管。ネックの長手方向に走る。太さ・濃さ・長さ・蛇行をすべて変える
-    // 線が多すぎると、木ではなくブラシをかけた金属に見える。
-    // 実物の導管はもっとまばらで、濃さも控えめ
-    const lines = Math.max(40, Math.round(w / 6));
-    for (let i = 0; i < lines; i++) {
-      const dark = rnd() < 0.74;
-      g.strokeStyle = dark
-        ? `rgba(0, 0, 0, ${(0.02 + rnd() * 0.08).toFixed(3)})`
-        : `rgba(255, 224, 186, ${(0.01 + rnd() * 0.035).toFixed(3)})`;
-      g.lineWidth = 0.4 + rnd() * 1.7;
-      g.beginPath();
-      let x = -40 - rnd() * 80;
-      let y = rnd() * h;
-      g.moveTo(x, y);
-      const len = w * (0.2 + rnd() * 0.95);
-      const steps = 16;
-      for (let k = 1; k <= steps; k++) {
-        x += len / steps;
-        y += (rnd() - 0.5) * 1.8;
-        g.lineTo(x, y);
-      }
-      g.stroke();
-    }
-
-    // 小さな斑（ローズウッドの点々）。これが無いと、線を引いただけに見える
-    const flecks = Math.round(w / 9);
-    for (let i = 0; i < flecks; i++) {
-      g.fillStyle = `rgba(0, 0, 0, ${(0.03 + rnd() * 0.07).toFixed(3)})`;
-      const x = rnd() * w;
-      const y = rnd() * h;
-      g.beginPath();
-      g.ellipse(x, y, 0.6 + rnd() * 2.4, 0.4 + rnd() * 0.9, 0, 0, Math.PI * 2);
-      g.fill();
-    }
-
-    // 面の丸み（指板R）。中央が明るく、上下の縁が落ちる
-    const round = g.createLinearGradient(0, 0, 0, h);
-    round.addColorStop(0, 'rgba(0, 0, 0, 0.5)');
-    round.addColorStop(0.14, 'rgba(0, 0, 0, 0.12)');
-    round.addColorStop(0.46, 'rgba(255, 238, 214, 0.08)');
-    round.addColorStop(0.8, 'rgba(0, 0, 0, 0.14)');
-    round.addColorStop(1, 'rgba(0, 0, 0, 0.55)');
-    g.fillStyle = round;
-    g.fillRect(0, 0, w, h);
+    /*
+     * 木の描き方は樹種ごとに違う（導管の太さ、黒筋、杢、つや）。
+     * 色だけ変えても木の違いにはならないので、樹種そのものを
+     * 音色から受け取る。対応は looks.ts と guitar.css にある。
+     */
+    paintWood(g, w, h, speciesOf(pick('--wood-species', 'rosewood')), {
+      c1: pick('--wood-1', '#3a2414'),
+      c2: pick('--wood-2', '#4e3220'),
+      c3: pick('--wood-3', '#2e1c10'),
+    });
 
     this.sizeStrings();
   }
