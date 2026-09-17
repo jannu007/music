@@ -166,6 +166,8 @@ export class GuitarApp {
   private sheetTitle!: HTMLElement;
   /** 画面上部に出した「弦」のボタン */
   private topTabButton: HTMLButtonElement | null = null;
+  /** 上に出す、いま選んでいる音色の名前 */
+  private presetNameEl: HTMLElement | null = null;
   /** .guitar-app 本体。見た目の印はここに付ける（this.root はその外側） */
   private appEl: HTMLElement | null = null;
   /** 横向きで畳んだ操作を呼び戻すボタン */
@@ -217,6 +219,18 @@ export class GuitarApp {
         if (data.ui.fretRangeRaised !== true) {
           this.ui.fretCount = MAX_FRETS;
           this.ui.fretRangeRaised = true;
+          this.save();
+        }
+
+        /*
+         * 無くなった音色を選んだまま保存されている端末がある
+         * （エレキベースとウクレレは、ギターのアプリなので外した）。
+         * そのままだと、上に出る名前が空になり、選択欄も先頭を指すのに
+         * 中の値だけ古いまま食い違う。無い名前なら既定へ戻す。
+         */
+        if (!PRESETS.some((p) => p.id === this.ui.presetId)) {
+          this.ui.presetId = DEFAULT_UI.presetId;
+          this.settings = { ...DEFAULT_SETTINGS, ...findPreset(this.ui.presetId).settings };
           this.save();
         }
       }
@@ -407,9 +421,20 @@ export class GuitarApp {
     // クラスに tab は付けない。下の並びと同じ名前にすると、
     // 「最初のタブ」を探す側がこちらを掴んでしまう（実際それで、
     // コード面が開かないまま弾こうとして無音になった）
-    const stringButton = button('', 'ghost round tab-top', () => this.toggleTab('string'));
+    const stringButton = button('', 'ghost tab-top', () => this.toggleTab('string'));
     stringButton.dataset.tab = 'string';
+    /*
+     * いま選んでいる音色の名前を、この上に出す。
+     *
+     * 前はここに選択欄そのものを置いていて、狭い画面で名前が
+     * 「azz Archtop」と頭を欠いた。いったんパネルへ引っ込めたが、
+     * 今度は「いま何を弾いているのか」が画面から消えてしまった。
+     * 出すのは選んだ1つの名前だけにして、押すと選ぶ画面が出る形にする。
+     * 名前の場所は、マスター音量をアイコンに畳んで空けたぶん。
+     */
+    this.presetNameEl = el('span', 'tab-top-name');
     stringButton.innerHTML = TAB_ICONS.string ?? '';
+    stringButton.append(this.presetNameEl);
     stringButton.title = t('tab.string');
     stringButton.setAttribute('aria-label', t('tab.string'));
     this.topTabButton = stringButton;
@@ -438,6 +463,8 @@ export class GuitarApp {
         this.commit();
         this.watchForSilence();
       },
+      // 溝を出したままだと 86px を食い、隣の音色名が切れる
+      compact: true,
     });
 
     const headerActions = el('div', 'header-actions');
@@ -688,6 +715,9 @@ export class GuitarApp {
 
   private applyLook() {
     if (this.appEl) this.appEl.dataset.look = lookFor(this.ui.presetId);
+    if (this.presetNameEl) {
+      this.presetNameEl.textContent = t(`preset.${this.ui.presetId}.name`);
+    }
     // 木が変わったので、木目も描き直す（色は CSS 変数から読んでいる）
     this.fretboard?.repaintTexture();
   }
@@ -1834,7 +1864,7 @@ export class GuitarApp {
     }
     // 25 = Acoustic Guitar (steel) / 27 = Electric Guitar (clean) / 33 = ベース
     const preset = this.settings;
-    const program = preset.tuningId === 'bass' ? 33 : preset.ampType === 'off' ? 25 : 27;
+    const program = preset.ampType === 'off' ? 25 : 27;
     const blob = encodeMidi(events, this.tuning().notes, this.settings.capo, this.ui.bpm, program);
     try {
       await this.saveFile(blob, timestampName('kagari-guitar', 'mid'), t('status.midiExported'));

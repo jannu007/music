@@ -130,9 +130,20 @@ async function look(app, width) {
         bad.push(`${name(el)} が枠の外（${Math.round(r.left)}..${Math.round(r.right)} / 枠 ${Math.round(b.left)}..${Math.round(b.right)}）`);
         continue;
       }
-      // 中身が切れていないか。select は自前で省略しないので、
-      // 入りきらなければそのまま頭や尻が欠ける
-      if (el.scrollWidth > el.clientWidth + 1 && el.children.length === 0) {
+      /*
+       * 中身が切れていないか。select は自前で省略しないので、
+       * 入りきらなければそのまま頭や尻が欠ける。
+       *
+       * ただし「…」を出して畳んでいるものは別に扱う。ここで捕まえたい
+       * のは、以前ヘッダーの音色名が「azz Archtop」と頭から欠けていた
+       * ような、断りのない切れ方。末尾に「…」が出ていれば、続きがある
+       * ことは伝わっているし、押せば全文が出る。日本語の音色名は
+       * 「ジャズ・アーチトップ」のように長く、360px では畳まずに
+       * 収める方法がない。
+       */
+      const clipped = style.textOverflow === 'ellipsis'
+        && ['hidden', 'clip'].includes(style.overflowX);
+      if (el.scrollWidth > el.clientWidth + 1 && el.children.length === 0 && !clipped) {
         bad.push(`${name(el)} の中身が切れている（${el.scrollWidth}>${el.clientWidth}）`);
       }
     }

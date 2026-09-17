@@ -277,38 +277,6 @@ export const PRESETS: GuitarPreset[] = [
       delayMix: 0, reverbType: 'room', reverbMix: 0.14,
     },
   },
-  {
-    id: 'bass',
-    name: 'エレキベース',
-    description: '4弦ベース。チューニングも自動でベースに切り替わります。',
-    pattern: 'eighth',
-    settings: {
-      outputTrim: 1.0,
-      tuningId: 'bass',
-      pickPos: 0.13, pickHard: 0.45, brightness: 0.5, sustain: 1.3, stiffness: 0.5,
-      coupling: 0.3, pickNoise: 0.35, fretNoise: 0.4, buzz: 0.15, spread: 0.15,
-      bodyType: 'none', bodyMix: 0,
-      ampType: 'bassamp', driveType: 'off', compress: 0.5,
-      bass: 0.25, mid: 0, treble: 0.05, presence: -0.1, cabType: 'bass8x10',
-      modType: 'off', delayMix: 0, reverbType: 'off', reverbMix: 0,
-    },
-  },
-  {
-    id: 'ukulele',
-    name: 'ウクレレ',
-    description: '4弦ウクレレ。チューニングも自動で切り替わります。',
-    pattern: 'folk',
-    settings: {
-      outputTrim: 1.3,
-      tuningId: 'ukulele',
-      pickPos: 0.2, pickHard: 0.35, brightness: 0.6, sustain: 0.6, stiffness: 0.1,
-      coupling: 0.5, pickNoise: 0.3, fretNoise: 0.2, buzz: 0.05, spread: 0.4,
-      bodyType: 'parlor', bodyMix: 0.9,
-      ampType: 'off', driveType: 'off', compress: 0.15,
-      bass: -0.25, mid: 0.15, treble: 0.15, presence: 0.1, cabType: 'off',
-      modType: 'off', delayMix: 0, reverbType: 'room', reverbMix: 0.24,
-    },
-  },
 ];
 
 export function findPreset(id: string): GuitarPreset {

@@ -11,7 +11,6 @@
  *   メイプル     … 導管がほとんど見えない。代わりに横方向の杢（トラ目）と
  *                  塗装のつやが出る
  *   エボニー     … ほぼ無地。ごくたまに灰色の筋が入るだけ
- *   コア         … 金褐色に、強い杢
  *   合成材       … 木目が無い。均一な黒
  *
  * つまり「どんな模様が、どれくらいの濃さで、どの向きに出るか」が
@@ -25,7 +24,7 @@
  */
 
 /** 樹種。指板に使われる木のうち、見た目がはっきり違うものだけ */
-export type Species = 'rosewood' | 'pauferro' | 'ebony' | 'maple' | 'koa' | 'composite';
+export type Species = 'rosewood' | 'pauferro' | 'ebony' | 'maple' | 'composite';
 
 export interface WoodColors {
   /** 根元寄りの地の色 */
@@ -93,11 +92,6 @@ const RECIPE: Record<Species, Recipe> = {
     pore: 4, poreInk: 0.05, poreWide: 0.8,
     streak: 0, streakInk: 0, fleck: 60, curl: 0.22, gloss: 0.6, blotch: 0.55,
     warm: '214, 150, 70', cool: '150, 118, 76',
-  },
-  koa: {
-    pore: 8, poreInk: 0.075, poreWide: 1.8,
-    streak: 40, streakInk: 0.14, fleck: 16, curl: 0.65, gloss: 0.34, blotch: 1,
-    warm: '190, 116, 40', cool: '96, 62, 30',
   },
   composite: {
     pore: 0, poreInk: 0, poreWide: 0,
