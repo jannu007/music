@@ -156,26 +156,6 @@ export const DEMOS: Demo[] = [
     chords: ['Em', 'Em', 'Am', 'B7'],
     repeat: 4,
   },
-  {
-    id: 'uke',
-    title: 'ウクレレ・ハワイアン',
-    description: '4弦ウクレレの軽やかなストローク。',
-    presetId: 'ukulele',
-    patternId: 'folk',
-    bpm: 118,
-    chords: ['C', 'Am', 'F', 'G7'],
-    repeat: 4,
-  },
-  {
-    id: 'bassline',
-    title: 'ベースライン',
-    description: 'エレキベースで8分のルート弾き。',
-    presetId: 'bass',
-    patternId: 'eighth',
-    bpm: 104,
-    chords: ['Am', 'F', 'C', 'G'],
-    repeat: 4,
-  },
 ];
 
 export function findDemo(id: string): Demo | undefined {

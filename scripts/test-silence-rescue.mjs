@@ -117,16 +117,32 @@ async function masterKnob(app, width) {
   await page.mouse.click(5, 5);
   await page.waitForTimeout(1400);
 
+  /*
+   * 畳んだ形（.is-compact）のアプリでは、溝はアイコンを押すと下に出る。
+   * 上に並べる物が増えて、溝の 86px が隣の音色名を押し出したため。
+   * 畳んであっても「見えて、掴める」ことは変わらないので、押してから測る。
+   */
+  await page.evaluate(() => {
+    const toggle = document.querySelector('.mv-wrap.is-compact .mv-toggle');
+    if (toggle) toggle.click();
+  });
+  await page.waitForTimeout(200);
+
   const seen = await page.evaluate(() => {
     const wrap = document.querySelector('.mv-wrap');
     const range = document.querySelector('.mv-range');
     if (!wrap || !range) return { missing: true };
+    const compact = wrap.classList.contains('is-compact');
+    // 畳んだ形では、上に出ているのはアイコン。そこが指で押せる大きさか
+    const hit = compact
+      ? wrap.querySelector('.mv-toggle')?.getBoundingClientRect()
+      : null;
     const bw = wrap.getBoundingClientRect();
     const br = range.getBoundingClientRect();
     const bar = document.querySelector('.topbar, .app-header, header')?.getBoundingClientRect();
     return {
       shown: bw.width > 0 && bw.height > 0,
-      grabbable: br.height >= 20,
+      grabbable: br.height >= 20 && (!compact || (hit && hit.height >= 34)),
       inBar: !bar || bw.right <= bar.right + 1,
       // 狭い画面では見出しが横に流れるものがある。開いた時点で
       // 画面の中にいなければ、探さないと届かないのと同じ
@@ -153,8 +169,10 @@ async function masterKnob(app, width) {
       const covered = !!band && !!knob
         && !(knob.right <= band.left || knob.left >= band.right
              || knob.bottom <= band.top || knob.top >= band.bottom);
+      // 畳んだ形では、赤くなるのはアイコンを囲う枠のほう
       return {
-        red: !!document.querySelector('.mv-range')?.classList.contains('is-zero'),
+        red: !!document.querySelector('.mv-range')?.classList.contains('is-zero')
+          && !!document.querySelector('.mv-wrap')?.classList.contains('is-zero'),
         status: (document.querySelector('.status')?.textContent || '').trim(),
         band: !!band,
         covered,

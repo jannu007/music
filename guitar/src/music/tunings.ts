@@ -73,20 +73,6 @@ export const TUNINGS: Tuning[] = [
     wound: 3,
     hint: '開放でEメジャー。荒々しいブルースに。',
   },
-  {
-    id: 'bass',
-    name: 'ベース4弦 (EADG)',
-    notes: [28, 33, 38, 43],
-    wound: 4,
-    hint: 'エレキベースの調弦。ベース音色と組み合わせて。',
-  },
-  {
-    id: 'ukulele',
-    name: 'ウクレレ (GCEA)',
-    notes: [67, 60, 64, 69],
-    wound: 0,
-    hint: 'ハイG調弦のソプラノウクレレ。ナイロン音色で。',
-  },
 ];
 
 export function findTuning(id: string): Tuning {

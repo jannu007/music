@@ -15,6 +15,7 @@
  *   --mv-line    枠の色
  *   --mv-accent  つまみと溝の色
  *   --mv-zero    0 のときの色（既定は赤）
+ *   --mv-pop-bg  畳んだ形で出てくる溝の土台（不透明にすること）
  */
 
 export interface MasterVolumeOptions {
@@ -26,6 +27,15 @@ export interface MasterVolumeOptions {
   set: (value: number) => void;
   /** 上限。既定は 1。シンセのように 1 を超えるものだけ渡す */
   max?: number;
+  /**
+   * 狭い画面用の畳んだ形。
+   *
+   * 上に並べる物が増えると、溝（86px）が場所を食って、隣の文字が
+   * 切れる。押すと溝が下に出てくるアイコン1つに畳む。0 のときは
+   * アイコンが赤くなるので、「音が出ない理由がここにある」ことは
+   * 畳んでいても一目で分かる。
+   */
+  compact?: boolean;
 }
 
 export interface MasterVolumeControl {
@@ -85,6 +95,45 @@ const CSS = `
 .mv-wrap.is-zero .mv-icon svg { color: var(--mv-zero, #e4674f); }
 .mv-range.is-zero::-webkit-slider-thumb { background: var(--mv-zero, #e4674f); }
 .mv-range.is-zero::-moz-range-thumb { background: var(--mv-zero, #e4674f); }
+/* ── 畳んだ形 ── */
+.mv-wrap.is-compact {
+  position: relative;
+  padding: 0;
+  border: none;
+  background: none;
+}
+.mv-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 999px;
+  background: var(--mv-panel, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--mv-line, rgba(255, 255, 255, 0.16));
+  color: inherit;
+  cursor: pointer;
+}
+.mv-wrap.is-compact.is-zero .mv-toggle { border-color: var(--mv-zero, #e4674f); }
+.mv-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  display: none;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 12px;
+  /* 透けると、後ろの操作の文字が重なって読めなくなる。ここは不透明にする */
+  background: var(--mv-pop-bg, #17120f);
+  border: 1px solid var(--mv-line, rgba(255, 255, 255, 0.16));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.mv-wrap.is-compact.is-open .mv-pop { display: flex; }
+.mv-pop .mv-range { width: 132px; }
+
 /* 狭い画面でも隠さない。隠すと、また 0 に気づけない状態に戻ってしまう */
 @media (max-width: 559px) {
   .mv-wrap { padding: 0.15rem 0.35rem; gap: 0.25rem; }
@@ -104,12 +153,18 @@ export function masterVolumeControl(opts: MasterVolumeOptions): MasterVolumeCont
   ensureStyle();
 
   const root = document.createElement('div');
-  root.className = 'mv-wrap';
+  root.className = opts.compact ? 'mv-wrap is-compact' : 'mv-wrap';
   root.title = opts.label;
 
-  const icon = document.createElement('span');
-  icon.className = 'mv-icon';
-  icon.setAttribute('aria-hidden', 'true');
+  // 畳んだ形では、アイコンそのものが押しボタンになる
+  const icon = document.createElement(opts.compact ? 'button' : 'span');
+  icon.className = opts.compact ? 'mv-icon mv-toggle' : 'mv-icon';
+  if (icon instanceof HTMLButtonElement) {
+    icon.type = 'button';
+    icon.setAttribute('aria-label', opts.label);
+  } else {
+    icon.setAttribute('aria-hidden', 'true');
+  }
   icon.innerHTML =
     '<svg viewBox="0 0 24 24" focusable="false">'
     + '<path d="M4 9.5h3.2L12 5.4v13.2L7.2 14.5H4z" fill="currentColor" />'
@@ -139,7 +194,26 @@ export function masterVolumeControl(opts: MasterVolumeOptions): MasterVolumeCont
     sync();
   });
 
-  root.append(icon, range);
+  if (opts.compact) {
+    const pop = document.createElement('div');
+    pop.className = 'mv-pop';
+    pop.append(range);
+    root.append(icon, pop);
+
+    const close = () => root.classList.remove('is-open');
+    icon.addEventListener('click', (e) => {
+      e.stopPropagation();
+      root.classList.toggle('is-open');
+    });
+    // 外を触ったら閉じる。開きっぱなしだと指板を隠してしまう
+    pop.addEventListener('pointerdown', (e) => e.stopPropagation());
+    document.addEventListener('pointerdown', close);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+    });
+  } else {
+    root.append(icon, range);
+  }
   sync();
   return { root, sync };
 }

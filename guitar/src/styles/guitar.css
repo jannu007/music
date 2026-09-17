@@ -1190,20 +1190,52 @@ html, body {
 }
 
 
+/*
+ * 狭い画面では「全部止める」の文字を落とし、四角の絵だけにする。
+ * 音色の名前に幅を回すため。絵だけでも意味は通るし、読み上げと
+ * 吹き出しには名前が残る。
+ */
+@media (max-width: 479px) {
+  .panic-btn .btn-text { display: none; }
+  .panic-btn { padding: 0.35rem 0.5rem; }
+}
+
+/*
+ * 上に出す音色の名前。
+ *
+ * 名前は「ジャズ・アーチトップ」のように長いものがあり、狭い画面では
+ * 入りきらない。入りきらないときは途中で切らず、末尾に「…」を出す。
+ * 前に頭から欠けて「azz Archtop」になっていたのは、この始末をせずに
+ * 枠から溢れさせていたため。
+ */
+.tab-top-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+
 /* 上に出した「弦」のボタン。下の並びと同じ絵を使うが、
    あちらは縦積み（絵＋名前）なので、ここでは絵だけの丸にする。
    クラスに .tab は付けていない（同じ名前にすると、下の並びを
    探している側がこちらを掴んでしまう）。土台は .ghost .round が持つ */
 .tab-top {
-  flex: none;
+  /* 名前を抱えるので、余っている幅を受け取って縮みもする */
+  flex: 0 1 auto;
+  min-width: 36px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-width: 36px;
+  justify-content: flex-start;
+  gap: 0.3rem;
   min-height: 36px;
-  padding: 0;
+  padding: 0 0.55rem;
+  border-radius: 999px;
   flex-direction: row;
+  overflow: hidden;
 }
+.tab-top svg { flex: none; }
 .tab-top .tab-icon { width: 19px; height: 19px; }
 .tab-top.active {
   background: rgba(239, 138, 60, 0.18);
@@ -1229,7 +1261,6 @@ html, body {
  *   pauferro  … パーフェロー。ローズウッドより明るく、筋がはっきり
  *   ebony     … エボニー。ほぼ無地の黒
  *   maple     … メイプル。導管が見えず、横の杢と塗装のつや
- *   koa       … コア。金褐色に強い杢
  *   composite … 合成材。木目が無い
  */
 
@@ -1313,26 +1344,6 @@ html, body {
   --wood-1: #5a4029; --wood-2: #6d5033; --wood-3: #43301e;
   --body-1: rgba(96, 156, 210, 0.18);
   --body-2: rgba(38, 66, 104, 0.22);
-}
-
-/* エレキベース。メイプル指板 */
-.guitar-app[data-look='pbass'] {
-  --wood-species: maple;
-  --wood-1: #c39350; --wood-2: #d9aa68; --wood-3: #a4763e;
-  --inlay: #2a1a0e; --inlay-hi: #4a3320; --inlay-lo: #140c06;
-  --body-1: rgba(214, 214, 218, 0.14);
-  --body-2: rgba(70, 76, 92, 0.22);
-}
-.guitar-app[data-look='pbass'] .fb-label { color: rgba(40, 24, 10, 0.72); }
-.guitar-app[data-look='pbass'] .fb-fretnum { color: rgba(40, 24, 10, 0.6); }
-
-/* ウクレレ。ハワイのコア材。強い杢が出る */
-.guitar-app[data-look='koa'] {
-  --wood-species: koa;
-  --wood-1: #7a4d25; --wood-2: #96612f; --wood-3: #5d3a1b;
-  --inlay: #f2e6cd; --inlay-hi: #fffaf0; --inlay-lo: #b6a583;
-  --body-1: rgba(224, 168, 88, 0.2);
-  --body-2: rgba(140, 86, 34, 0.2);
 }
 
 /* 本体の色は、画面の地にも回す。持っているギターの色が
@@ -1476,7 +1487,6 @@ html, body {
 /* バインディングの色も、木に合わせて変える。
    黒い指板には白が映え、明るいメイプルには縁が無い（実物もそう） */
 .guitar-app[data-look='strat'] { --binding: transparent; }
-.guitar-app[data-look='pbass'] { --binding: transparent; }
 .guitar-app[data-look='superstrat'] { --binding: rgba(220, 224, 228, 0.5); }
 .guitar-app[data-look='archtop'] { --binding: #f2e6c4; }
 .guitar-app[data-look='lespaul'] { --binding: #f0e7d0; }

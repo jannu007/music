@@ -26,9 +26,7 @@ export type LookId =
   | 'stratrose'
   | 'lespaul'
   | 'superstrat'
-  | 'offset'
-  | 'pbass'
-  | 'koa';
+  | 'offset';
 
 export interface Look {
   id: LookId;
@@ -48,8 +46,6 @@ export interface Look {
  *   lespaul     マホガニー＋ゴールドトップ。ローズウッド指板
  *   superstrat  モダン・ハイゲイン。黒い合成材で木目を出さない
  *   offset      オフセット。パーフェローの明るい指板
- *   pbass       エレキベース。メイプル指板
- *   koa         ウクレレ。ハワイの木。強い杢
  *
  * 指板の木は、色ではなく樹種（ローズウッド／メイプル／エボニー／
  * パーフェロー／コア／合成材）で分かれる。導管の太さ、黒筋、杢、
@@ -79,8 +75,6 @@ const BY_PRESET: Record<string, LookId> = {
   british: 'lespaul',
   metal: 'superstrat',
   fuzz: 'superstrat',
-  bass: 'pbass',
-  ukulele: 'koa',
 };
 
 /** 知らない音色は、いちばん素直なアコースティックに寄せる */
