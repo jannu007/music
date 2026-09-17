@@ -23,6 +23,7 @@ export type LookId =
   | 'resonator'
   | 'archtop'
   | 'strat'
+  | 'stratrose'
   | 'lespaul'
   | 'superstrat'
   | 'offset'
@@ -41,13 +42,18 @@ export interface Look {
  *   acoustic    スプルース＋ローズウッド。生のスチール弦
  *   nylon       クラシック。エボニー指板、目印を置かない
  *   resonator   金属ボディ。冷たい銀色
- *   archtop     ジャズ。焦げ茶のサンバースト、金の金物
+ *   archtop     ジャズ。エボニー指板に貝のブロック
  *   strat       シングルコイル。メイプルの明るい指板
+ *   stratrose   同じストラトでも、ローズウッド指板の個体
  *   lespaul     マホガニー＋ゴールドトップ。ローズウッド指板
- *   superstrat  モダン・ハイゲイン。黒とエボニー
- *   offset      オフセット。くすんだ青
- *   pbass       エレキベース
- *   koa         ウクレレ。ハワイの木
+ *   superstrat  モダン・ハイゲイン。黒い合成材で木目を出さない
+ *   offset      オフセット。パーフェローの明るい指板
+ *   pbass       エレキベース。メイプル指板
+ *   koa         ウクレレ。ハワイの木。強い杢
+ *
+ * 指板の木は、色ではなく樹種（ローズウッド／メイプル／エボニー／
+ * パーフェロー／コア／合成材）で分かれる。導管の太さ、黒筋、杢、
+ * つやの出方がそれぞれ違い、そこが木の見分けになる。
  */
 const BY_PRESET: Record<string, LookId> = {
   steel: 'acoustic',
@@ -57,12 +63,16 @@ const BY_PRESET: Record<string, LookId> = {
   nylon: 'nylon',
   resonator: 'resonator',
   jazz: 'archtop',
-  // シングルコイルの音はストラトのもの
+  /*
+   * シングルコイルの音はストラトのもの。ただし実物には、メイプル指板の
+   * 個体とローズウッド指板の個体がある。カッティングやクリーンは
+   * 明るいメイプル、ブルースやワウは温かいローズウッドの個体が多い。
+   */
   clean: 'strat',
   funk: 'strat',
-  blues: 'strat',
-  wah: 'strat',
   chorus: 'strat',
+  blues: 'stratrose',
+  wah: 'stratrose',
   surf: 'offset',
   ambient: 'offset',
   // ブリティッシュ・ロックはハムバッカー＋積んだアンプ
