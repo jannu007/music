@@ -865,7 +865,7 @@ html, body {
 
 /* ------------------------------------------------------------------ 画面幅 */
 
-@media (max-width: 900px) {
+@media (max-width: 900px), (max-height: 560px) and (orientation: landscape) {
   .main-area { flex-direction: column; }
   .stage {
     flex: none;
@@ -1010,7 +1010,16 @@ html, body {
 }
 
 /* ---- 中：指板を画面いっぱいに ---- */
-@media (max-width: 900px) {
+/*
+ * 幅だけで見ていたのが間違いだった。
+ *
+ * 横にした端末は、幅が 900px を超えることがある（例: 915x412）。
+ * そこではこの一式が当たらず、弦の揺れる絵の面が残ったままになって、
+ * 指板の上に 115px の空きができていた。実機の写真がまさにそれ。
+ *
+ * 見るべきは「高さが乏しいか」。横向きはそちらでも拾う。
+ */
+@media (max-width: 900px), (max-height: 560px) and (orientation: landscape) {
   /* 弦の揺れる絵は、指板のぶんの高さを取ってしまうので出さない。
      弾いた手ごたえは指板そのものが光って返す */
   .stage { display: none; }
